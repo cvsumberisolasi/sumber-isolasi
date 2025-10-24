@@ -22,6 +22,11 @@ import {
   XCircle,
   ChevronsUpDown,
   Check,
+  DollarSign,
+  TrendingDown,
+  TrendingUp,
+  Landmark,
+  Wallet,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -65,9 +70,9 @@ export default function ImportMarketplacePage() {
     return () => unsub();
   }, []);
 
-  const { allProductsMapped, uniqueOrderCount, totalItems, unmappedSkus } = useMemo(() => {
+  const { allProductsMapped, uniqueOrderCount, totalItems, unmappedSkus, summary } = useMemo(() => {
     if (parsedData.length === 0) {
-      return { allProductsMapped: false, uniqueOrderCount: 0, totalItems: 0, unmappedSkus: [] };
+      return { allProductsMapped: false, uniqueOrderCount: 0, totalItems: 0, unmappedSkus: [], summary: null };
     }
     
     const uniqueSkus = [...new Set(parsedData.map(row => row.sku))];
@@ -75,12 +80,35 @@ export default function ImportMarketplacePage() {
 
     const uniqueOrders = new Set(parsedData.map(row => row.nomor_order));
     const totalItems = parsedData.reduce((sum, row) => sum + row.qty, 0);
+    
+    const summaryData = parsedData.reduce((acc, row) => {
+        acc.grossRevenue += row.subtotal;
+        acc.totalDiscount += row.discount;
+        acc.totalFee += row.fee;
+        acc.netRevenue += row.net_total;
+        
+        const mappedProduct = skuToProductMap[row.sku];
+        const cost = mappedProduct?.cost || 0;
+        acc.totalCogs += cost * row.qty;
+
+        return acc;
+    }, {
+        grossRevenue: 0,
+        totalDiscount: 0,
+        totalFee: 0,
+        netRevenue: 0,
+        totalCogs: 0,
+    });
+    
+    summaryData.netProfit = summaryData.netRevenue - summaryData.totalCogs;
+
 
     return { 
       allProductsMapped: unmapped.length === 0, 
       uniqueOrderCount: uniqueOrders.size,
       totalItems,
-      unmappedSkus: unmapped
+      unmappedSkus: unmapped,
+      summary: summaryData
     };
   }, [parsedData, skuToProductMap]);
 
@@ -289,111 +317,131 @@ export default function ImportMarketplacePage() {
       </Card>
 
       {parsedData.length > 0 && (
-        <Card>
-            <CardHeader>
-                <CardTitle>Langkah 2: Pratinjau & Pemetaan</CardTitle>
-                <CardDescription>
-                  Periksa data yang berhasil di-parse dan petakan produk yang belum ditemukan. SKU di laporan harus cocok dengan SKU Gudang di data produk.
-                  <br />
-                  <span className="font-semibold text-foreground">
-                    Terdeteksi {uniqueOrderCount} transaksi unik dengan total {totalItems} item.
-                  </span>
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {unmappedSkus.length > 0 && (
-                    <div className="mb-6">
-                        <Alert variant="destructive" className="mb-4">
+        <>
+            {summary && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ringkasan Impor</CardTitle>
+                  <CardDescription>Berikut adalah ringkasan finansial dari data yang akan diimpor.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                    <SummaryItem icon={DollarSign} label="Pendapatan Kotor" value={summary.grossRevenue} />
+                    <SummaryItem icon={TrendingDown} label="Total Diskon & Biaya" value={summary.totalDiscount + summary.totalFee} isNegative />
+                    <SummaryItem icon={Wallet} label="Pendapatan Bersih" value={summary.netRevenue} />
+                    <SummaryItem icon={Wallet} label="Estimasi HPP" value={summary.totalCogs} isNegative />
+                    <SummaryItem icon={Landmark} label="Estimasi Laba Bersih" value={summary.netProfit} isProfit />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Langkah 2: Pratinjau & Pemetaan</CardTitle>
+                    <CardDescription>
+                      Periksa data yang berhasil di-parse dan petakan produk yang belum ditemukan. SKU di laporan harus cocok dengan SKU Gudang di data produk.
+                      <br />
+                      <span className="font-semibold text-foreground">
+                        Terdeteksi {uniqueOrderCount} transaksi unik dengan total {totalItems} item.
+                      </span>
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {unmappedSkus.length > 0 && (
+                        <div className="mb-6">
+                            <Alert variant="destructive" className="mb-4">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>Diperlukan Pemetaan</AlertTitle>
+                                <AlertDescription>
+                                    {unmappedSkus.length} SKU dari laporan tidak dapat ditemukan di database produk Anda. Harap petakan secara manual di bawah ini.
+                                </AlertDescription>
+                            </Alert>
+                            <div className="max-h-[300px] overflow-y-auto border rounded-md p-4 space-y-4">
+                                {unmappedSkus.map(sku => (
+                                    <div key={sku} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                                        <div>
+                                            <p className="text-sm font-semibold">SKU Laporan:</p>
+                                            <p className="text-sm text-muted-foreground">{sku}</p>
+                                        </div>
+                                        <ProductMappingCell
+                                            sku={sku}
+                                            mappedProduct={skuToProductMap[sku]}
+                                            allProducts={products}
+                                            onMap={(p) => handleProductMapping(sku, p)}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+                <CardContent>
+                    <div className="max-h-[500px] overflow-y-auto border rounded-md">
+                        <Table>
+                            <TableHeader className="sticky top-0 bg-muted">
+                               <TableRow>
+                                    <TableHead>Channel</TableHead>
+                                    <TableHead>SKU</TableHead>
+                                    <TableHead>Produk Terpetakan</TableHead>
+                                    <TableHead className="text-center">Qty</TableHead>
+                                    <TableHead className="text-right">Subtotal</TableHead>
+                                    <TableHead className="text-right">Diskon</TableHead>
+                                    <TableHead className="text-right">Fee</TableHead>
+                                    <TableHead className="text-right">Total Net</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {parsedData.map((row) => (
+                                    <TableRow key={row.id}>
+                                        <TableCell>
+                                          <Badge variant="secondary">{row.channel}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-xs">{row.sku}</TableCell>
+                                        <TableCell>
+                                            <ProductMappingCell
+                                                sku={row.sku}
+                                                mappedProduct={skuToProductMap[row.sku]}
+                                                allProducts={products}
+                                                onMap={(p) => handleProductMapping(row.sku, p)}
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-center">{row.qty}</TableCell>
+                                        <TableCell className="text-right font-mono">
+                                            {Math.round(row.subtotal).toLocaleString('id-ID')}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-destructive">
+                                            - {Math.round(row.discount).toLocaleString('id-ID')}
+                                        </TableCell>
+                                        <TableCell className="text-right font-mono text-destructive">
+                                            - {Math.round(row.fee).toLocaleString('id-ID')}
+                                        </TableCell>
+                                        <TableCell className="text-right font-bold font-mono">
+                                            Rp {Math.round(row.net_total).toLocaleString('id-ID')}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex-col items-start gap-4">
+                     {!allProductsMapped && (
+                        <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Diperlukan Pemetaan</AlertTitle>
+                            <AlertTitle>Pemetaan Belum Selesai</AlertTitle>
                             <AlertDescription>
-                                {unmappedSkus.length} SKU dari laporan tidak dapat ditemukan di database produk Anda. Harap petakan secara manual di bawah ini.
+                                Harap petakan semua produk yang tidak ditemukan sebelum mengimpor.
                             </AlertDescription>
                         </Alert>
-                        <div className="max-h-[300px] overflow-y-auto border rounded-md p-4 space-y-4">
-                            {unmappedSkus.map(sku => (
-                                <div key={sku} className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                                    <div>
-                                        <p className="text-sm font-semibold">SKU Laporan:</p>
-                                        <p className="text-sm text-muted-foreground">{sku}</p>
-                                    </div>
-                                    <ProductMappingCell
-                                        sku={sku}
-                                        mappedProduct={skuToProductMap[sku]}
-                                        allProducts={products}
-                                        onMap={(p) => handleProductMapping(sku, p)}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-            </CardContent>
-            <CardContent>
-                <div className="max-h-[500px] overflow-y-auto border rounded-md">
-                    <Table>
-                        <TableHeader className="sticky top-0 bg-muted">
-                           <TableRow>
-                                <TableHead>Channel</TableHead>
-                                <TableHead>SKU</TableHead>
-                                <TableHead>Produk Terpetakan</TableHead>
-                                <TableHead className="text-center">Qty</TableHead>
-                                <TableHead className="text-right">Subtotal</TableHead>
-                                <TableHead className="text-right">Diskon</TableHead>
-                                <TableHead className="text-right">Fee</TableHead>
-                                <TableHead className="text-right">Total Net</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {parsedData.map((row) => (
-                                <TableRow key={row.id}>
-                                    <TableCell>
-                                      <Badge variant="secondary">{row.channel}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-xs">{row.sku}</TableCell>
-                                    <TableCell>
-                                        <ProductMappingCell
-                                            sku={row.sku}
-                                            mappedProduct={skuToProductMap[row.sku]}
-                                            allProducts={products}
-                                            onMap={(p) => handleProductMapping(row.sku, p)}
-                                        />
-                                    </TableCell>
-                                    <TableCell className="text-center">{row.qty}</TableCell>
-                                    <TableCell className="text-right font-mono">
-                                        {Math.round(row.subtotal).toLocaleString('id-ID')}
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono text-destructive">
-                                        - {Math.round(row.discount).toLocaleString('id-ID')}
-                                    </TableCell>
-                                    <TableCell className="text-right font-mono text-destructive">
-                                        - {Math.round(row.fee).toLocaleString('id-ID')}
-                                    </TableCell>
-                                    <TableCell className="text-right font-bold font-mono">
-                                        Rp {Math.round(row.net_total).toLocaleString('id-ID')}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            </CardContent>
-            <CardFooter className="flex-col items-start gap-4">
-                 {!allProductsMapped && (
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Pemetaan Belum Selesai</AlertTitle>
-                        <AlertDescription>
-                            Harap petakan semua produk yang tidak ditemukan sebelum mengimpor.
-                        </AlertDescription>
-                    </Alert>
-                 )}
-                <Button onClick={handleImport} disabled={isImporting || !allProductsMapped}>
-                    {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Upload className="mr-2 h-4 w-4" />}
-                    Impor {parsedData.length} Baris
-                </Button>
-            </CardFooter>
-        </Card>
+                     )}
+                    <Button onClick={handleImport} disabled={isImporting || !allProductsMapped}>
+                        {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Upload className="mr-2 h-4 w-4" />}
+                        Impor {parsedData.length} Baris
+                    </Button>
+                </CardFooter>
+            </Card>
+        </>
       )}
 
     </div>
@@ -448,4 +496,20 @@ function ProductMappingCell({ sku, mappedProduct, allProducts, onMap }: { sku: s
     );
 }
 
-
+const SummaryItem = ({ icon: Icon, label, value, isNegative = false, isProfit = false }: { icon: React.ElementType, label: string, value: number, isNegative?: boolean, isProfit?: boolean }) => {
+  const valueColor = isProfit ? (value >= 0 ? 'text-green-600' : 'text-destructive') : (isNegative ? 'text-destructive' : 'text-foreground');
+  
+  return (
+    <div className="flex items-start gap-4 rounded-lg bg-muted/50 p-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-background border">
+            <Icon className="h-5 w-5 text-muted-foreground" />
+        </div>
+      <div className="space-y-1">
+        <p className="text-muted-foreground">{label}</p>
+        <p className={cn('text-xl font-bold font-mono', valueColor)}>
+          {isNegative ? '- ' : ''}Rp {Math.abs(value).toLocaleString('id-ID')}
+        </p>
+      </div>
+    </div>
+  )
+};
