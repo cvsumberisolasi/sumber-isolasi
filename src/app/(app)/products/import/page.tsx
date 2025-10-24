@@ -16,12 +16,13 @@ import * as XLSX from 'xlsx';
 
 const HEADER_MAP: Record<string, keyof NewProduct | 'hargaJual'> = {
   'nama produk': 'name',
-  'sku gudang': 'sku',
+  'sku': 'sku',
   'kategori': 'category',
-  'hpp': 'cost',
-  'harga modal': 'cost', // Alias for hpp
-  'harga jual': 'hargaJual',
   'stok': 'stock',
+  'harga pokok': 'cost',
+  'satuan dasar': 'baseUnit',
+  'harga jual (satuan dasar)': 'hargaJual',
+  'batas stok minimum': 'minStockThreshold',
 };
 
 export default function ImportProductsPage() {
@@ -61,22 +62,16 @@ export default function ImportProductsPage() {
             const header = json[0].map(h => String(h).trim().toLowerCase());
             const dataRows = json.slice(1);
             
-            const requiredHeaders = ['nama produk', 'harga jual', 'stok'];
-            const requiredHppHeaders = ['hpp', 'harga modal'];
+            const requiredHeaders = ['nama produk', 'harga jual (satuan dasar)', 'stok', 'harga pokok', 'satuan dasar', 'batas stok minimum'];
             
             const missingHeaders = requiredHeaders.filter(rh => !header.includes(rh));
             if (missingHeaders.length > 0) {
                  throw new Error(`Header kolom wajib tidak ditemukan: ${missingHeaders.join(', ')}.`);
             }
-
-            if (!requiredHppHeaders.some(rh => header.includes(rh))) {
-                 throw new Error(`Header kolom wajib tidak ditemukan: hpp atau harga modal.`);
-            }
             
             const products: NewProduct[] = dataRows.map(rowArr => {
                 let product: any = { units: [] };
                 let rowHargaJual = 0;
-                let rowHpp = 0;
 
                 header.forEach((h, index) => {
                     const key = HEADER_MAP[h];
@@ -85,25 +80,27 @@ export default function ImportProductsPage() {
                     if (key) {
                         if (key === 'hargaJual') {
                             rowHargaJual = Number(value) || 0;
-                        } else if (key === 'stock') {
+                        } else if (key === 'stock' || key === 'cost' || key === 'minStockThreshold') {
                             product[key] = Number(value) || 0;
-                        } else if (key === 'cost') {
-                            rowHpp = Number(value) || 0;
                         } else {
                             product[key] = value;
                         }
                     }
                 });
 
-                product.cost = rowHpp; // Explicitly set cost
+                const baseUnitName = product.baseUnit || 'Pcs';
+                product.baseUnit = baseUnitName;
+
                 product.units.push({
-                    name: 'Pcs', // Default base unit
+                    name: baseUnitName,
                     price: rowHargaJual,
                     cost: product.cost,
                     conversionRate: 1,
                 });
-                product.baseUnit = 'Pcs';
-                product.minStockThreshold = 10; // Default value
+                
+                if (!product.minStockThreshold) {
+                  product.minStockThreshold = 10; // Default value
+                }
 
                 if (!product.name) throw new Error("Nama produk tidak boleh kosong di salah satu baris.");
 
@@ -146,7 +143,7 @@ export default function ImportProductsPage() {
           <CardTitle>1. Unggah File Anda</CardTitle>
           <CardDescription>
             Pilih file spreadsheet (Excel, CSV) dari komputer Anda. Pastikan baris pertama adalah header yang sesuai.
-            Header wajib: Nama Produk, HPP (atau Harga Modal), Harga Jual, Stok.
+            Header wajib: Nama Produk, SKU, Kategori, Stok, Harga Pokok, Satuan Dasar, Harga Jual (Satuan Dasar), Batas Stok Minimum.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -185,11 +182,13 @@ export default function ImportProductsPage() {
                         <TableHeader className="sticky top-0 bg-muted">
                             <TableRow>
                                 <TableHead>Nama Produk</TableHead>
-                                <TableHead>SKU GUDANG</TableHead>
+                                <TableHead>SKU</TableHead>
                                 <TableHead>Kategori</TableHead>
-                                <TableHead className="text-right">HPP</TableHead>
+                                <TableHead>Stok</TableHead>
+                                <TableHead className="text-right">Harga Pokok</TableHead>
+                                <TableHead>Satuan Dasar</TableHead>
                                 <TableHead className="text-right">Harga Jual</TableHead>
-                                <TableHead className="text-right">Stok</TableHead>
+                                <TableHead className="text-right">Batas Min.</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -198,9 +197,11 @@ export default function ImportProductsPage() {
                                     <TableCell>{product.name}</TableCell>
                                     <TableCell>{product.sku}</TableCell>
                                     <TableCell>{product.category}</TableCell>
+                                    <TableCell>{product.stock}</TableCell>
                                     <TableCell className="text-right">{(product.cost || 0).toLocaleString('id-ID')}</TableCell>
+                                    <TableCell>{product.baseUnit}</TableCell>
                                     <TableCell className="text-right">{(product.units[0]?.price || 0).toLocaleString('id-ID')}</TableCell>
-                                    <TableCell className="text-right">{product.stock}</TableCell>
+                                    <TableCell className="text-right">{product.minStockThreshold}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -212,7 +213,7 @@ export default function ImportProductsPage() {
                     <Info className="h-4 w-4" />
                     <AlertTitle>Perhatian</AlertTitle>
                     <AlertDescription>
-                        Impor ini akan menggunakan satuan dasar "Pcs" untuk semua produk. Anda dapat mengubah atau menambahkan satuan lain nanti melalui menu edit produk.
+                        Impor ini akan menggunakan satuan dasar dari kolom "Satuan Dasar". Anda dapat menambahkan satuan lain nanti melalui menu edit produk.
                     </AlertDescription>
                 </Alert>
                 <Button onClick={handleImport} disabled={isPending}>
@@ -229,4 +230,5 @@ export default function ImportProductsPage() {
     
 
     
+
 
