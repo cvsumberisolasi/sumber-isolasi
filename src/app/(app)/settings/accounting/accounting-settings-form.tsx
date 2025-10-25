@@ -38,6 +38,11 @@ export function AccountingSettingsForm({ initialData, accounts }: AccountingSett
   const [accruedPayableAccountId, setAccruedPayableAccountId] = useState(initialData.accruedPayableAccountId || '');
   const [retainedEarningsAccountId, setRetainedEarningsAccountId] = useState(initialData.retainedEarningsAccountId || '');
   const [incomeSummaryAccountId, setIncomeSummaryAccountId] = useState(initialData.incomeSummaryAccountId || '');
+  
+  const [rawMaterialInventoryAccountId, setRawMaterialInventoryAccountId] = useState(initialData.rawMaterialInventoryAccountId || '');
+  const [wipAccountId, setWipAccountId] = useState(initialData.wipAccountId || '');
+  const [directLaborAccountId, setDirectLaborAccountId] = useState(initialData.directLaborAccountId || '');
+  const [manufacturingOverheadAccountId, setManufacturingOverheadAccountId] = useState(initialData.manufacturingOverheadAccountId || '');
 
 
   const handleSaveChanges = () => {
@@ -55,6 +60,10 @@ export function AccountingSettingsForm({ initialData, accounts }: AccountingSett
         accruedPayableAccountId,
         retainedEarningsAccountId,
         incomeSummaryAccountId,
+        rawMaterialInventoryAccountId,
+        wipAccountId,
+        directLaborAccountId,
+        manufacturingOverheadAccountId,
       });
 
       if (result.error) {
@@ -206,7 +215,7 @@ export function AccountingSettingsForm({ initialData, accounts }: AccountingSett
       </div>
       
       <div className="space-y-2">
-        <Label>Akun Persediaan Barang Dagang</Label>
+        <Label>Akun Persediaan Barang Dagang/Jadi</Label>
         <Select value={inventoryAccountId} onValueChange={setInventoryAccountId} disabled={isPending}>
           <SelectTrigger>
             <SelectValue placeholder="Pilih akun persediaan..." />
@@ -219,6 +228,54 @@ export function AccountingSettingsForm({ initialData, accounts }: AccountingSett
         </Select>
       </div>
       
+      <Separator />
+      <h3 className="text-lg font-medium">Produksi</h3>
+
+      <div className="space-y-2">
+        <Label>Akun Persediaan Bahan Baku</Label>
+        <Select value={rawMaterialInventoryAccountId} onValueChange={setRawMaterialInventoryAccountId} disabled={isPending}>
+          <SelectTrigger><SelectValue placeholder="Pilih akun..." /></SelectTrigger>
+          <SelectContent>
+            {accounts.filter(a => a.type === 'Aset Lancar').map(acc => (
+              <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+       <div className="space-y-2">
+        <Label>Akun Barang Dalam Proses (WIP)</Label>
+        <Select value={wipAccountId} onValueChange={setWipAccountId} disabled={isPending}>
+          <SelectTrigger><SelectValue placeholder="Pilih akun..." /></SelectTrigger>
+          <SelectContent>
+            {accounts.filter(a => a.type === 'Aset Lancar').map(acc => (
+              <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+       <div className="space-y-2">
+        <Label>Akun Biaya Tenaga Kerja Langsung</Label>
+        <Select value={directLaborAccountId} onValueChange={setDirectLaborAccountId} disabled={isPending}>
+          <SelectTrigger><SelectValue placeholder="Pilih akun..." /></SelectTrigger>
+          <SelectContent>
+            {accounts.filter(a => a.type === 'Beban Pokok Penjualan').map(acc => (
+              <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+       <div className="space-y-2">
+        <Label>Akun Biaya Overhead Pabrik</Label>
+        <Select value={manufacturingOverheadAccountId} onValueChange={setManufacturingOverheadAccountId} disabled={isPending}>
+          <SelectTrigger><SelectValue placeholder="Pilih akun..." /></SelectTrigger>
+          <SelectContent>
+            {accounts.filter(a => a.type === 'Beban Pokok Penjualan').map(acc => (
+              <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Separator />
       <h3 className="text-lg font-medium">Tutup Buku</h3>
       

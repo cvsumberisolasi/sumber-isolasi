@@ -84,6 +84,12 @@ export async function completeProduction(completionData: NewProductionCompletion
             const newDocRef = doc(completionCol, newId);
 
             // --- Phase 1: All Reads ---
+            const settings = await getAccountingSettings();
+            const { rawMaterialInventoryAccountId, wipAccountId, inventoryAccountId } = settings;
+            if (!rawMaterialInventoryAccountId || !wipAccountId || !inventoryAccountId) {
+                throw new Error("Akun persediaan produksi belum lengkap di Pengaturan Akuntansi.");
+            }
+
             const allProductIds = [
                 completionData.finishedGoodId,
                 ...completionData.consumedItems.map(item => item.productId)
@@ -99,6 +105,9 @@ export async function completeProduction(completionData: NewProductionCompletion
             
             // --- Phase 2: Logic & Validation (No DB Writes Yet) ---
             const updates: { ref: FirebaseFirestore.DocumentReference<DocumentData>, newStock: number, newCost?: number }[] = [];
+            const journalEntries: JournalEntry[] = [];
+            
+            let totalRawMaterialCost = 0;
 
             // Update raw material stock
             for (const item of completionData.consumedItems) {
@@ -108,9 +117,40 @@ export async function completeProduction(completionData: NewProductionCompletion
                 const newStock = productInfo.data.stock - item.quantity;
                 if (newStock < 0) throw new Error(`Stok ${item.productName} tidak mencukupi.`);
                 
+                const itemCost = (productInfo.data.cost || 0) * item.quantity;
+                totalRawMaterialCost += itemCost;
+                
                 updates.push({ ref: doc(db, 'products', item.productId), newStock });
             }
             
+            // Journal for consuming raw materials
+            if (totalRawMaterialCost > 0) {
+                 journalEntries.push(
+                    { accountId: wipAccountId, accountName: '', debit: totalRawMaterialCost, credit: 0 },
+                    { accountId: rawMaterialInventoryAccountId, accountName: '', debit: 0, credit: totalRawMaterialCost }
+                );
+            }
+
+            // Journal for consuming additional costs
+            let totalAdditionalCost = 0;
+            for (const addCost of completionData.additionalCosts) {
+                if(addCost.amount > 0) {
+                    journalEntries.push(
+                        { accountId: wipAccountId, accountName: '', debit: addCost.amount, credit: 0 },
+                        { accountId: addCost.accountId, accountName: '', debit: 0, credit: addCost.amount }
+                    );
+                    totalAdditionalCost += addCost.amount;
+                }
+            }
+
+            // Journal for moving WIP to Finished Goods
+            const totalProductionCost = totalRawMaterialCost + totalAdditionalCost;
+            journalEntries.push(
+                { accountId: inventoryAccountId, accountName: '', debit: totalProductionCost, credit: 0 },
+                { accountId: wipAccountId, accountName: '', debit: 0, credit: totalProductionCost }
+            );
+
+
             // Update finished good stock and cost
             const finishedGoodInfo = productMap.get(completionData.finishedGoodId);
             if (!finishedGoodInfo) throw new Error(`Barang jadi ${completionData.finishedGoodName} tidak ditemukan.`);
@@ -119,8 +159,8 @@ export async function completeProduction(completionData: NewProductionCompletion
             
             // Calculate new average cost for the finished good
             const existingTotalValue = (finishedGoodInfo.data.cost || 0) * finishedGoodInfo.data.stock;
-            const newTotalValue = existingTotalValue + completionData.totalCost;
-            const newAverageCost = newTotalValue / newFinishedGoodStock;
+            const newTotalValue = existingTotalValue + totalProductionCost;
+            const newAverageCost = newFinishedGoodStock > 0 ? newTotalValue / newFinishedGoodStock : 0;
             
             updates.push({ 
                 ref: doc(db, 'products', completionData.finishedGoodId), 
@@ -131,7 +171,7 @@ export async function completeProduction(completionData: NewProductionCompletion
             // --- Phase 3: All Writes ---
             for (const update of updates) {
                 const updateData: {stock: number, cost?: number} = { stock: update.newStock };
-                if (update.newCost) {
+                if (update.newCost !== undefined) {
                     updateData.cost = update.newCost;
                 }
                 transaction.update(update.ref, updateData);
@@ -143,8 +183,22 @@ export async function completeProduction(completionData: NewProductionCompletion
             const dataWithTimestamp = {
                 ...completionData,
                 date: Timestamp.fromDate(completionData.date),
+                totalCost: totalProductionCost, // Use the recalculated total cost
             };
             transaction.set(newDocRef, dataWithTimestamp);
+
+            // Add journal entry
+            const newJournal: NewJournal = {
+                date: completionData.date,
+                description: `Penyelesaian Produksi WO #${completionData.workOrderId}`,
+                refNumber: newId,
+                entries: journalEntries,
+                total: totalProductionCost,
+            };
+
+            const journalRef = doc(collection(db, 'journals'));
+            transaction.set(journalRef, {...newJournal, date: Timestamp.fromDate(newJournal.date as Date)});
+
 
             return newDocRef;
         });

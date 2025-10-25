@@ -12,12 +12,18 @@ export type AccountingSettings = {
   salesDiscountAccountId?: string;
   marketplaceFeeAccountId?: string;
   cogsAccountId?: string;
-  inventoryAccountId?: string;
+  inventoryAccountId?: string; // Finished Goods Inventory
   accountsReceivableAccountId?: string;
   accountsPayableAccountId?: string;
   accruedPayableAccountId?: string; // Goods Received Not Invoiced
   retainedEarningsAccountId?: string;
   incomeSummaryAccountId?: string;
+  
+  // Production Accounts
+  rawMaterialInventoryAccountId?: string;
+  wipAccountId?: string; // Work-in-Progress
+  directLaborAccountId?: string;
+  manufacturingOverheadAccountId?: string;
 };
 
 const settingsDocRef = doc(db, "settings", "accounting");

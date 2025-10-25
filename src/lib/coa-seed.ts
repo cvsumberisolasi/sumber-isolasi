@@ -7,6 +7,8 @@ export const COA_SEED_DATA: NewAccount[] = [
   { code: '1-10102', name: 'Kas pada Bank ABC', type: 'Kas & Bank' },
   { code: '1-10201', name: 'Piutang Usaha', type: 'Aset Lancar' },
   { code: '1-10301', name: 'Persediaan Barang Dagang', type: 'Aset Lancar' },
+  { code: '1-10302', name: 'Persediaan Bahan Baku', type: 'Aset Lancar' },
+  { code: '1-10303', name: 'Persediaan Barang Dalam Proses', type: 'Aset Lancar' },
   { code: '1-10401', name: 'Sewa Dibayar di Muka', type: 'Aset Lancar' },
   // 1.2 Aset Tetap
   { code: '1-20101', name: 'Peralatan Toko', type: 'Aset Tetap' },
@@ -34,6 +36,8 @@ export const COA_SEED_DATA: NewAccount[] = [
   
   // 5. Beban Pokok Penjualan (HPP/COGS)
   { code: '5-10101', name: 'Beban Pokok Penjualan', type: 'Beban Pokok Penjualan' },
+  { code: '5-10102', name: 'Biaya Tenaga Kerja Langsung', type: 'Beban Pokok Penjualan' },
+  { code: '5-10103', name: 'Biaya Overhead Pabrik', type: 'Beban Pokok Penjualan' },
 
   // 6. Beban Operasional
   { code: '6-10101', name: 'Beban Gaji & Upah', type: 'Beban Operasional' },
