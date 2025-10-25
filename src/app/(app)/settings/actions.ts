@@ -9,6 +9,7 @@ export type CompanySettings = {
   address?: string;
   phone?: string;
   email?: string;
+  logoDataUrl?: string;
 };
 
 const settingsDocRef = doc(db, "settings", "companyProfile");
@@ -30,6 +31,7 @@ export async function updateCompanySettings(settingsData: CompanySettings) {
   try {
     await setDoc(settingsDocRef, settingsData, { merge: true });
     revalidatePath("/(app)/settings");
+    revalidatePath("/(app)/layout");
     return { error: null };
   } catch (e) {
     console.error("Error updating settings: ", e);

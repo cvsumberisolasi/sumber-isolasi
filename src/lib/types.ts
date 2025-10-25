@@ -61,9 +61,10 @@ export type Transaction = {
   customerId?: string;
   customerName?: string;
   channel?: string;
+  total: number;
 };
 
-export type NewTransaction = Omit<Transaction, 'id' | 'date'> & {
+export type NewTransaction = Omit<Transaction, 'id' | 'date' | 'total'> & {
   date: Date | any; // Allow for server timestamp
 };
 

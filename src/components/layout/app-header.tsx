@@ -3,9 +3,8 @@
 
 import { cn } from '@/lib/utils';
 import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
-import { TokoKilatLogo } from '../icons/logo';
 
-export function AppHeader({ companyName }: { companyName: string }) {
+export function AppHeader() {
   const { isMobile } = useSidebar();
   return (
     <header

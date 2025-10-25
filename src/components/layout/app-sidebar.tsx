@@ -4,6 +4,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from 'next/image';
 import {
   BarChart2,
   Book,
@@ -91,6 +92,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { ThemeToggle } from "./theme-toggle";
 import { TokoKilatLogo } from "../icons/logo";
+import type { CompanySettings } from "@/app/(app)/settings/actions";
 
 const navItems = [
   {
@@ -191,7 +193,7 @@ const navItems = [
   },
 ];
 
-export function AppSidebar({ companyName }: { companyName: string }) {
+export function AppSidebar({ companySettings }: { companySettings: CompanySettings }) {
   const pathname = usePathname();
 
   const isActive = (href: string) => {
@@ -218,9 +220,13 @@ export function AppSidebar({ companyName }: { companyName: string }) {
       className="border-r"
     >
        <SidebarHeader className="flex items-center gap-2">
-        <TokoKilatLogo />
+        {companySettings.logoDataUrl ? (
+          <Image src={companySettings.logoDataUrl} alt="Logo Perusahaan" width={40} height={40} className="object-contain" />
+        ) : (
+          <TokoKilatLogo />
+        )}
         <span className="text-lg font-headline font-semibold text-primary">
-          {companyName}
+          {companySettings.companyName || "Toko Kilat"}
         </span>
       </SidebarHeader>
         <SidebarContent>
