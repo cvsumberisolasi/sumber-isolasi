@@ -8,7 +8,7 @@ import type { WorkOrder, BillOfMaterial, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, ArrowLeft, Save, Eye } from 'lucide-react';
+import { Loader2, Plus, ArrowLeft, Save, Eye, CheckCircle, XCircle, PlayCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import Link from 'next/link';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function WorkOrderPage() {
   const [view, setView] = useState<'list' | 'new' | 'detail'>('list');
@@ -56,7 +68,7 @@ export default function WorkOrderPage() {
   }
   
   if (view === 'detail' && selectedWO) {
-    return <WorkOrderDetail wo={selectedWO} onBack={handleBackToList} />
+    return <WorkOrderDetail woId={selectedWO.id} onBack={handleBackToList} />
   }
 
   return (
@@ -242,7 +254,27 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
   );
 }
 
-function WorkOrderDetail({ wo, onBack }: { wo: WorkOrder, onBack: () => void }) {
+function WorkOrderDetail({ woId, onBack }: { woId: string, onBack: () => void }) {
+    const [wo, setWo] = useState<WorkOrder | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const unsub = onSnapshot(doc(db, "workOrders", woId), (doc) => {
+            if (doc.exists()) {
+                 setWo({ id: doc.id, ...doc.data(), date: doc.data().date.toDate(), startDate: doc.data().startDate.toDate(), endDate: doc.data().endDate.toDate() } as WorkOrder);
+            }
+            setLoading(false);
+        });
+        return () => unsub();
+    }, [woId]);
+
+    if (loading) {
+        return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
+    if (!wo) {
+        return <div>Work Order tidak ditemukan.</div>;
+    }
+
     return (
          <div className="flex flex-col gap-6">
             <Button variant="ghost" onClick={onBack} className="w-fit -ml-4">
@@ -266,10 +298,70 @@ function WorkOrderDetail({ wo, onBack }: { wo: WorkOrder, onBack: () => void }) 
                     <p><strong>Rencana Pengerjaan:</strong> {format(wo.startDate, "dd MMM yyyy")} - {format(wo.endDate, "dd MMM yyyy")}</p>
                     {wo.notes && <p><strong>Catatan:</strong> {wo.notes}</p>}
                 </CardContent>
+                <CardFooter>
+                    <WOActions wo={wo} />
+                </CardFooter>
             </Card>
          </div>
     );
 }
+
+function WOActions({ wo }: { wo: WorkOrder }) {
+    const { toast } = useToast();
+    const [isPending, startTransition] = useTransition();
+
+    const handleChangeStatus = (status: WorkOrder['status']) => {
+        startTransition(async () => {
+            const result = await updateWorkOrderStatus(wo.id, status);
+            if (result.error) {
+                toast({ title: 'Gagal Memperbarui Status', description: result.error, variant: 'destructive'});
+            } else {
+                toast({ title: 'Status Berhasil Diperbarui', description: `Status WO #${wo.id} diubah menjadi "${status}".` });
+            }
+        });
+    }
+
+    if (wo.status === 'Belum Diproses') {
+        return (
+             <Button onClick={() => handleChangeStatus('Dalam Pengerjaan')} disabled={isPending}>
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <PlayCircle className="mr-2 h-4 w-4"/>}
+                Mulai Pengerjaan
+            </Button>
+        );
+    }
+    
+    if (wo.status === 'Dalam Pengerjaan') {
+        return (
+            <div className="flex gap-2">
+                <Button asChild>
+                    <Link href="/production/worksheet"><CheckCircle className="mr-2 h-4 w-4"/> Selesaikan di Lembar Kerja</Link>
+                </Button>
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" disabled={isPending}>
+                            <XCircle className="mr-2 h-4 w-4"/> Batalkan
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Batalkan Perintah Produksi?</AlertDialogTitle>
+                            <AlertDialogDescription>Tindakan ini akan mengubah status WO menjadi "Dibatalkan".</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleChangeStatus('Dibatalkan')} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
+                                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : 'Ya, Batalkan'}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
+        );
+    }
+
+    return null;
+}
+
 
 function WOStatusBadge({ status }: { status: WorkOrder['status'] }) {
     const variants = {

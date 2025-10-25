@@ -12,7 +12,7 @@ import { Loader2, ArrowLeft, Save, Workflow, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { completeProduction } from '../actions';
+import { completeProduction, updateWorkOrderStatus } from '../actions';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -20,9 +20,11 @@ export default function ProductionWorksheetPage() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
+  const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    const q = query(collection(db, "workOrders"), where("status", "==", "Belum Diproses"), orderBy("date", "desc"));
+    const q = query(collection(db, "workOrders"), where("status", "in", ["Belum Diproses", "Dalam Pengerjaan"]), orderBy("date", "desc"));
     const unsub = onSnapshot(q, (snapshot) => {
       setWorkOrders(snapshot.docs.map(doc => ({ 
           id: doc.id, ...doc.data(), 
@@ -35,6 +37,23 @@ export default function ProductionWorksheetPage() {
 
     return () => unsub();
   }, []);
+  
+  const handleProcess = (wo: WorkOrder) => {
+    if (wo.status === 'Belum Diproses') {
+        startTransition(async () => {
+            const result = await updateWorkOrderStatus(wo.id, 'Dalam Pengerjaan');
+            if (result.error) {
+                toast({title: 'Gagal Memulai', description: result.error, variant: 'destructive'});
+            } else {
+                toast({title: 'Dimulai', description: `Produksi untuk WO #${wo.id} telah dimulai.`});
+                setSelectedWO(wo);
+            }
+        });
+    } else {
+        setSelectedWO(wo);
+    }
+  }
+
 
   if (selectedWO) {
     return <ProductionExecutionForm wo={selectedWO} onBack={() => setSelectedWO(null)} />;
@@ -45,8 +64,8 @@ export default function ProductionWorksheetPage() {
       <h1 className="text-2xl md:text-3xl font-headline font-bold">Lembar Kerja Produksi</h1>
       <Card>
         <CardHeader>
-          <CardTitle>Daftar Perintah Produksi Siap Dikerjakan</CardTitle>
-          <CardDescription>Pilih perintah kerja (Work Order) untuk memulai eksekusi produksi.</CardDescription>
+          <CardTitle>Daftar Perintah Produksi Aktif</CardTitle>
+          <CardDescription>Pilih perintah kerja (Work Order) untuk memulai atau melanjutkan eksekusi produksi.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -56,14 +75,15 @@ export default function ProductionWorksheetPage() {
                 <TableHead>No. WO</TableHead>
                 <TableHead>Produk</TableHead>
                 <TableHead>Jumlah</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
               ) : workOrders.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Tidak ada perintah produksi yang siap dikerjakan.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Tidak ada perintah produksi yang aktif.</TableCell></TableRow>
               ) : (
                 workOrders.map(wo => (
                   <TableRow key={wo.id}>
@@ -71,9 +91,14 @@ export default function ProductionWorksheetPage() {
                     <TableCell className="font-mono text-xs">{wo.id}</TableCell>
                     <TableCell className="font-medium">{wo.finishedGoodName}</TableCell>
                     <TableCell>{wo.quantityToProduce}</TableCell>
+                    <TableCell>
+                        <Badge variant={wo.status === 'Dalam Pengerjaan' ? 'default' : 'secondary'}>{wo.status}</Badge>
+                    </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" onClick={() => setSelectedWO(wo)}>
-                        <Workflow className="mr-2 h-4 w-4" /> Proses Produksi
+                      <Button size="sm" onClick={() => handleProcess(wo)} disabled={isPending}>
+                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        <Workflow className="mr-2 h-4 w-4" /> 
+                        {wo.status === 'Belum Diproses' ? 'Mulai Produksi' : 'Lanjutkan'}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -91,25 +116,36 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [bom, setBom] = useState<BillOfMaterial | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
   const [consumedItems, setConsumedItems] = useState<ProductionCompletionItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchBom = async () => {
-      const bomRef = doc(db, 'billOfMaterials', wo.bomId);
-      const bomSnap = await getDoc(bomRef);
-      if (bomSnap.exists()) {
-        const bomData = bomSnap.data() as BillOfMaterial;
-        setBom(bomData);
-        setConsumedItems(bomData.items.map(item => ({
-          ...item,
-          quantity: item.quantity * wo.quantityToProduce,
-        })));
+    const fetchDependencies = async () => {
+      try {
+        const bomRef = doc(db, 'billOfMaterials', wo.bomId);
+        const productsSnap = await getDocs(collection(db, 'products'));
+        const bomSnap = await getDoc(bomRef);
+
+        const allProducts = productsSnap.docs.map(doc => ({id: doc.id, ...doc.data()} as Product));
+        setProducts(allProducts);
+
+        if (bomSnap.exists()) {
+          const bomData = bomSnap.data() as BillOfMaterial;
+          setBom(bomData);
+          setConsumedItems(bomData.items.map(item => ({
+            ...item,
+            quantity: item.quantity * wo.quantityToProduce,
+          })));
+        }
+      } catch (error) {
+        toast({title: "Gagal memuat data", description: (error as Error).message, variant: 'destructive'});
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
-    fetchBom();
-  }, [wo]);
+    fetchDependencies();
+  }, [wo, toast]);
 
   const handleQuantityChange = (productId: string, value: string) => {
     setConsumedItems(prev => prev.map(item => 
@@ -118,14 +154,13 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
   };
   
   const totalCost = useMemo(() => {
-    // This is a simplified cost calculation. In a real scenario, you'd fetch the latest cost for each raw material.
     if (!bom) return 0;
     return consumedItems.reduce((sum, consumed) => {
-        const bomItem = bom.items.find(i => i.productId === consumed.productId);
-        const itemCost = products.find(p => p.id === bomItem.productId)?.cost || 0;
+        const productInfo = products.find(p => p.id === consumed.productId);
+        const itemCost = productInfo?.cost || 0;
         return sum + (itemCost * consumed.quantity);
     }, 0);
-  }, [consumedItems, bom]);
+  }, [consumedItems, bom, products]);
 
 
   const handleComplete = () => {

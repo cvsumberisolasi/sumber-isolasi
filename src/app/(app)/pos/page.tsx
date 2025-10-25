@@ -63,14 +63,18 @@ export default function POSPage() {
 
   useEffect(() => {
     // Resume cart from local storage if exists
-    const resumedCart = localStorage.getItem('resumedCart');
-    if (resumedCart && resumedCart !== '[]' && resumedCart.length > 2) {
-      try {
-        setCart(JSON.parse(resumedCart));
-      } catch (e) {
-        console.error("Failed to parse resumed cart", e)
-      }
-      localStorage.removeItem('resumedCart');
+    try {
+        const resumedCart = localStorage.getItem('resumedCart');
+        if (resumedCart) {
+            const parsedCart = JSON.parse(resumedCart);
+            if (Array.isArray(parsedCart) && parsedCart.length > 0) {
+                setCart(parsedCart);
+            }
+        }
+    } catch (e) {
+        console.error("Failed to parse resumed cart from localStorage", e);
+    } finally {
+        localStorage.removeItem('resumedCart');
     }
 
     const productsCol = collection(db, "products");
@@ -480,4 +484,5 @@ function ProductPicker({ products, onSelect }: { products: Product[], onSelect: 
 
     
     
+
 
