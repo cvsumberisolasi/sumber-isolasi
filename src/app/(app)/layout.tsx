@@ -1,9 +1,8 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppShell } from "@/components/layout/app-shell";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { getCompanySettings, CompanySettings } from "./settings/actions";
+import { getCompanySettings } from "./settings/actions";
 import { ThemeProvider } from "@/components/layout/theme-provider";
-import { AppSidebar } from "@/components/layout/app-sidebar";
 
 export default async function AppLayout({
   children,
@@ -17,8 +16,7 @@ export default async function AppLayout({
     <ThemeProvider>
       <SidebarProvider>
         <TooltipProvider>
-          <AppSidebar companySettings={companySettings} />
-          <AppShell>{children}</AppShell>
+          <AppShell companySettings={companySettings}>{children}</AppShell>
         </TooltipProvider>
       </SidebarProvider>
     </ThemeProvider>
