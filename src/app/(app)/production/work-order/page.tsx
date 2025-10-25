@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, getDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, getDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { WorkOrder, BillOfMaterial, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -272,17 +273,63 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
 
 function WorkOrderDetail({ woId, onBack }: { woId: string, onBack: () => void }) {
     const [wo, setWo] = useState<WorkOrder | null>(null);
+    const [bom, setBom] = useState<BillOfMaterial | null>(null);
+    const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsub = onSnapshot(doc(db, "workOrders", woId), (doc) => {
-            if (doc.exists()) {
-                 setWo({ id: doc.id, ...doc.data(), date: doc.data().date.toDate(), startDate: doc.data().startDate.toDate(), endDate: doc.data().endDate.toDate() } as WorkOrder);
+        const fetchDetails = async () => {
+            setLoading(true);
+            try {
+                const woSnap = await getDoc(doc(db, "workOrders", woId));
+                if (woSnap.exists()) {
+                    const workOrder = { id: woSnap.id, ...woSnap.data() } as WorkOrder;
+                    workOrder.date = (workOrder.date as any).toDate();
+                    workOrder.startDate = (workOrder.startDate as any).toDate();
+                    workOrder.endDate = (workOrder.endDate as any).toDate();
+                    setWo(workOrder);
+
+                    const bomSnap = await getDoc(doc(db, "billOfMaterials", workOrder.bomId));
+                    if (bomSnap.exists()) {
+                        setBom({ id: bomSnap.id, ...bomSnap.data() } as BillOfMaterial);
+                    }
+                    
+                    const productsSnap = await getDocs(collection(db, "products"));
+                    setProducts(productsSnap.docs.map(doc => ({id: doc.id, ...doc.data()} as Product)));
+                }
+            } catch (e) {
+                console.error("Error fetching WO details: ", e);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
-        });
-        return () => unsub();
+        };
+
+        fetchDetails();
     }, [woId]);
+    
+    const { totalRawMaterialCost, totalAdditionalCost, totalProductionCost } = useMemo(() => {
+        if (!wo || !bom || products.length === 0) {
+            return { totalRawMaterialCost: 0, totalAdditionalCost: 0, totalProductionCost: 0 };
+        }
+        
+        const productionCycles = wo.quantityToProduce / bom.quantityProduced;
+
+        const totalRawMaterialCost = bom.items.reduce((sum, item) => {
+            const product = products.find(p => p.id === item.productId);
+            const cost = product?.cost || 0;
+            return sum + (cost * item.quantity * productionCycles);
+        }, 0);
+
+        const totalAdditionalCost = bom.additionalCosts?.reduce((sum, cost) => {
+            return sum + (cost.amount * productionCycles);
+        }, 0) || 0;
+
+        return {
+            totalRawMaterialCost,
+            totalAdditionalCost,
+            totalProductionCost: totalRawMaterialCost + totalAdditionalCost
+        };
+    }, [wo, bom, products]);
 
     if (loading) {
         return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -291,6 +338,8 @@ function WorkOrderDetail({ woId, onBack }: { woId: string, onBack: () => void })
         return <div>Work Order tidak ditemukan.</div>;
     }
 
+    const productionCycles = bom ? wo.quantityToProduce / bom.quantityProduced : 0;
+
     return (
          <div className="flex flex-col gap-6">
             <Button variant="ghost" onClick={onBack} className="w-fit -ml-4">
@@ -298,26 +347,71 @@ function WorkOrderDetail({ woId, onBack }: { woId: string, onBack: () => void })
             </Button>
             <h1 className="text-2xl md:text-3xl font-headline font-bold">Detail WO #{wo.id}</h1>
 
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <CardTitle>{wo.finishedGoodName} (x{wo.quantityToProduce})</CardTitle>
-                            <CardDescription>
-                                Dibuat pada: {format(wo.date, "dd MMMM yyyy", { locale: id })}
-                            </CardDescription>
+            <div className="grid md:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle>{wo.finishedGoodName} (x{wo.quantityToProduce})</CardTitle>
+                                <CardDescription>
+                                    Dibuat pada: {format(wo.date, "dd MMMM yyyy", { locale: id })}
+                                </CardDescription>
+                            </div>
+                            <WOStatusBadge status={wo.status}/>
                         </div>
-                        <WOStatusBadge status={wo.status}/>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <p><strong>Rencana Pengerjaan:</strong> {format(wo.startDate, "dd MMM yyyy")} - {format(wo.endDate, "dd MMM yyyy")}</p>
-                    {wo.notes && <p><strong>Catatan:</strong> {wo.notes}</p>}
-                </CardContent>
-                <CardFooter>
-                    <WOActions wo={wo} />
-                </CardFooter>
-            </Card>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p><strong>Rencana Pengerjaan:</strong> {format(wo.startDate, "dd MMM yyyy")} - {format(wo.endDate, "dd MMM yyyy")}</p>
+                        {wo.notes && <p><strong>Catatan:</strong> {wo.notes}</p>}
+                    </CardContent>
+                    <CardFooter>
+                        <WOActions wo={wo} />
+                    </CardFooter>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Estimasi Biaya Produksi</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Komponen Biaya</TableHead>
+                                    <TableHead className="text-right">Jumlah</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {bom?.items.map(item => {
+                                     const product = products.find(p => p.id === item.productId);
+                                     const itemCost = (product?.cost || 0) * item.quantity * productionCycles;
+                                     return (
+                                        <TableRow key={item.productId}>
+                                            <TableCell className="pl-4">{item.productName}</TableCell>
+                                            <TableCell className="text-right font-mono">Rp {itemCost.toLocaleString('id-ID')}</TableCell>
+                                        </TableRow>
+                                     )
+                                })}
+                                 {bom?.additionalCosts?.map((cost, i) => {
+                                     const itemCost = cost.amount * productionCycles;
+                                      return (
+                                        <TableRow key={cost.accountId + i}>
+                                            <TableCell className="pl-4">{cost.accountName}</TableCell>
+                                            <TableCell className="text-right font-mono">Rp {itemCost.toLocaleString('id-ID')}</TableCell>
+                                        </TableRow>
+                                      )
+                                 })}
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow className="font-bold text-base">
+                                    <TableCell>Total Estimasi Biaya Produksi</TableCell>
+                                    <TableCell className="text-right font-mono">Rp {totalProductionCost.toLocaleString('id-ID')}</TableCell>
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
          </div>
     );
 }
