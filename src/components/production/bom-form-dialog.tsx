@@ -1,0 +1,211 @@
+
+'use client';
+
+import React, { useState, useTransition, useEffect, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { addBillOfMaterial, updateBillOfMaterial } from '@/app/(app)/production/actions';
+import type { Product, BillOfMaterial, NewBillOfMaterial, BillOfMaterialItem } from '@/lib/types';
+import { Loader2, PlusCircle, Trash2, Edit } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+interface BomFormDialogProps {
+  children: React.ReactNode;
+  products: Product[];
+  bom?: BillOfMaterial;
+}
+
+export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  const [finishedGoodId, setFinishedGoodId] = useState(bom?.productId || '');
+  const [quantityProduced, setQuantityProduced] = useState(bom?.quantityProduced || 1);
+  const [items, setItems] = useState<BillOfMaterialItem[]>(bom?.items || []);
+
+  const finishedGoods = useMemo(() => products.filter(p => p.productType === 'Barang Jadi'), [products]);
+  const rawMaterials = useMemo(() => products.filter(p => p.productType === 'Bahan Baku'), [products]);
+
+  const isEditing = !!bom;
+  const isDropdownItem = React.isValidElement(children) && (children.type as any).displayName === 'DropdownMenuItem';
+
+  const handleAddItem = () => {
+    setItems(prev => [...prev, { productId: '', productName: '', quantity: 0 }]);
+  };
+
+  const handleItemChange = (index: number, field: keyof BillOfMaterialItem, value: string | number) => {
+    setItems(prev => {
+      const newItems = [...prev];
+      if (field === 'productId') {
+        const product = rawMaterials.find(p => p.id === value);
+        newItems[index] = { ...newItems[index], productId: value as string, productName: product?.name || '' };
+      } else {
+        (newItems[index] as any)[field] = value;
+      }
+      return newItems;
+    });
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setItems(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const resetForm = () => {
+    setFinishedGoodId(bom?.productId || '');
+    setQuantityProduced(bom?.quantityProduced || 1);
+    setItems(bom?.items || []);
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    if (isPending) return;
+    if (!isOpen) {
+        resetForm();
+    }
+    setOpen(isOpen);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!finishedGoodId || items.length === 0) {
+      toast({ title: 'Data tidak lengkap', description: 'Produk jadi dan minimal satu bahan baku harus diisi.', variant: 'destructive' });
+      return;
+    }
+    
+    const finishedGood = finishedGoods.find(p => p.id === finishedGoodId);
+    if (!finishedGood) {
+      toast({ title: 'Produk jadi tidak valid', variant: 'destructive' });
+      return;
+    }
+
+    startTransition(async () => {
+      const data: NewBillOfMaterial = {
+        productId: finishedGoodId,
+        productName: finishedGood.name,
+        quantityProduced,
+        items,
+      };
+
+      const result = isEditing
+        ? await updateBillOfMaterial(bom.id, data)
+        : await addBillOfMaterial(data);
+
+      if (result.error) {
+        toast({ title: `Gagal menyimpan`, description: result.error, variant: 'destructive' });
+      } else {
+        toast({ title: `Formula berhasil disimpan.` });
+        setOpen(false);
+      }
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        {isDropdownItem ? (
+          <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
+            <Edit className="mr-2 h-4 w-4" /> Edit
+          </div>
+        ) : (
+          children
+        )}
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="font-headline">{isEditing ? 'Edit Formula Produksi' : 'Buat Formula Produksi'}</DialogTitle>
+          <DialogDescription>
+            Tentukan resep untuk menghasilkan sebuah barang jadi dari beberapa bahan baku.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto p-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="finishedGood">Produk Hasil (Output)</Label>
+              <Select value={finishedGoodId} onValueChange={setFinishedGoodId} required>
+                <SelectTrigger id="finishedGood" disabled={isPending}>
+                  <SelectValue placeholder="Pilih produk jadi..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {finishedGoods.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="quantityProduced">Jumlah Dihasilkan</Label>
+                <Input id="quantityProduced" type="number" value={quantityProduced} onChange={(e) => setQuantityProduced(Number(e.target.value))} required disabled={isPending} />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Bahan Baku (Input)</Label>
+            <div className="border rounded-md">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Bahan Baku</TableHead>
+                            <TableHead className="w-28">Kuantitas</TableHead>
+                            <TableHead className="w-12"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {items.map((item, index) => (
+                            <TableRow key={index}>
+                                <TableCell>
+                                    <Select value={item.productId} onValueChange={(v) => handleItemChange(index, 'productId', v)}>
+                                        <SelectTrigger><SelectValue placeholder="Pilih bahan..."/></SelectTrigger>
+                                        <SelectContent>
+                                            {rawMaterials.map(p => (
+                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </TableCell>
+                                <TableCell>
+                                    <Input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}/>
+                                </TableCell>
+                                <TableCell>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
+                <PlusCircle className="mr-2 h-4 w-4"/> Tambah Bahan
+            </Button>
+          </div>
+
+          <DialogFooter className="pt-4">
+            <Button type="submit" disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Simpan Formula
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
