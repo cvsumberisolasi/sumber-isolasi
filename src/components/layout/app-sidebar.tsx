@@ -120,16 +120,9 @@ const navItems = [
     ],
   },
   {
+    href: "/purchasing",
     label: "Pembelian",
     icon: Truck,
-    subItems: [
-      { href: "/purchasing/request", label: "Permintaan Pembelian", icon: FilePlus },
-      { href: "/purchasing/order", label: "Pesanan Pembelian", icon: PackagePlus },
-      { href: "/purchasing/goods-receipt", label: "Penerimaan Barang", icon: PackageCheck },
-      { href: "/purchasing/invoice", label: "Faktur Pemasok", icon: FileKey2 },
-      { href: "/purchasing/returns", label: "Retur Pembelian", icon: ArrowRightLeft },
-      { href: "/purchasing/payables", label: "Utang Usaha", icon: Handshake },
-    ],
   },
   {
     href: "/products",
@@ -217,8 +210,10 @@ export function AppSidebar({ companyName }: { companyName: string }) {
 
   const isActive = (href: string) => {
     if (href === '/products') {
-        // Special case for the new tabbed page
         return pathname.startsWith('/products') || pathname.startsWith('/stock/warehouses') || pathname.startsWith('/stock/transfer') || pathname.startsWith('/stock/opname');
+    }
+    if (href === '/purchasing') {
+      return pathname.startsWith('/purchasing');
     }
     return pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
   };
