@@ -7,7 +7,7 @@ import { collection, onSnapshot, query, orderBy, getDoc, doc, getDocs } from 'fi
 import { db } from '@/lib/firebase';
 import type { WorkOrder, BillOfMaterial, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Loader2, Plus, ArrowLeft, Save, Eye, CheckCircle, XCircle, PlayCircle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -218,8 +218,8 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label>Jumlah Siklus Produksi</Label>
-                        <Input type="number" value={productionCycles} onChange={e => setProductionCycles(Number(e.target.value))} min={1} onFocus={(e) => e.target.select()}/>
+                        <Label htmlFor="productionCycles">Jumlah Siklus Produksi</Label>
+                        <Input id="productionCycles" type="number" value={productionCycles} onChange={e => setProductionCycles(Number(e.target.value))} min={1} onFocus={(e) => e.target.select()}/>
                     </div>
                     <div className="space-y-2">
                         <Label>Total Jumlah Produksi</Label>
@@ -307,9 +307,9 @@ function WorkOrderDetail({ woId, onBack }: { woId: string, onBack: () => void })
         fetchDetails();
     }, [woId]);
     
-    const { totalRawMaterialCost, totalAdditionalCost, totalProductionCost } = useMemo(() => {
+    const { totalProductionCost } = useMemo(() => {
         if (!wo || !bom || products.length === 0) {
-            return { totalRawMaterialCost: 0, totalAdditionalCost: 0, totalProductionCost: 0 };
+            return { totalProductionCost: 0 };
         }
         
         const productionCycles = wo.quantityToProduce / bom.quantityProduced;
@@ -325,8 +325,6 @@ function WorkOrderDetail({ woId, onBack }: { woId: string, onBack: () => void })
         }, 0) || 0;
 
         return {
-            totalRawMaterialCost,
-            totalAdditionalCost,
             totalProductionCost: totalRawMaterialCost + totalAdditionalCost
         };
     }, [wo, bom, products]);
