@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
-import { collection, onSnapshot, query, where, orderBy, getDoc, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, getDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { WorkOrder, BillOfMaterial, Product, ProductionCompletionItem, NewProductionCompletion } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
