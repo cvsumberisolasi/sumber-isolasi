@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidatePath } from "next/cache";
-import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, Timestamp, runTransaction, getDoc, DocumentData } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, Timestamp, runTransaction, getDoc, DocumentData, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { NewBillOfMaterial, NewWorkOrder, WorkOrder, Product, BillOfMaterial, NewJournal, JournalEntry, ProductionCompletion, NewProductionCompletion, AdditionalCostItem } from "@/lib/types";
 import { generateDocumentId } from "@/lib/utils";
@@ -98,7 +98,7 @@ export async function completeProduction(completionData: NewProductionCompletion
             });
             
             // --- Phase 2: Logic & Validation (No DB Writes Yet) ---
-            const updates: { ref: FirebaseFirestore.DocumentReference<DocumentData>, newStock: number }[] = [];
+            const updates: { ref: FirebaseFirestore.DocumentReference<DocumentData>, newStock: number, newCost?: number }[] = [];
 
             // Update raw material stock
             for (const item of completionData.consumedItems) {
@@ -111,16 +111,30 @@ export async function completeProduction(completionData: NewProductionCompletion
                 updates.push({ ref: doc(db, 'products', item.productId), newStock });
             }
             
-            // Update finished good stock
+            // Update finished good stock and cost
             const finishedGoodInfo = productMap.get(completionData.finishedGoodId);
             if (!finishedGoodInfo) throw new Error(`Barang jadi ${completionData.finishedGoodName} tidak ditemukan.`);
             
             const newFinishedGoodStock = finishedGoodInfo.data.stock + completionData.quantityProduced;
-            updates.push({ ref: doc(db, 'products', completionData.finishedGoodId), newStock: newFinishedGoodStock });
+            
+            // Calculate new average cost for the finished good
+            const existingTotalValue = (finishedGoodInfo.data.cost || 0) * finishedGoodInfo.data.stock;
+            const newTotalValue = existingTotalValue + completionData.totalCost;
+            const newAverageCost = newTotalValue / newFinishedGoodStock;
+            
+            updates.push({ 
+                ref: doc(db, 'products', completionData.finishedGoodId), 
+                newStock: newFinishedGoodStock,
+                newCost: newAverageCost 
+            });
             
             // --- Phase 3: All Writes ---
             for (const update of updates) {
-                transaction.update(update.ref, { stock: update.newStock });
+                const updateData: {stock: number, cost?: number} = { stock: update.newStock };
+                if (update.newCost) {
+                    updateData.cost = update.newCost;
+                }
+                transaction.update(update.ref, updateData);
             }
 
             const woRef = doc(db, 'workOrders', completionData.workOrderId);
@@ -134,57 +148,7 @@ export async function completeProduction(completionData: NewProductionCompletion
 
             return newDocRef;
         });
-
-        // --- Phase 4. Create Journal Entry (outside main transaction) ---
-        const { totalCost, consumedItems, additionalCosts = [] } = completionData;
-        const settings = await getAccountingSettings();
-        const { inventoryAccountId } = settings;
         
-        if (!inventoryAccountId) {
-            throw new Error('Akun Persediaan belum diatur di Pengaturan Akuntansi.');
-        }
-
-        const journalDescription = `Penyelesaian Produksi WO #${completionData.workOrderId}`;
-        
-        // We need to fetch product costs again as we can't do it inside the transaction.
-        const productCosts = new Map<string, number>();
-        const productsSnap = await getDocs(collection(db, 'products'));
-        productsSnap.forEach(doc => productCosts.set(doc.id, doc.data().cost || 0));
-
-        const rawMaterialCost = consumedItems.reduce((sum, item) => {
-            const cost = productCosts.get(item.productId) || 0;
-            return sum + (cost * item.quantity);
-        }, 0);
-
-
-        const journalEntries: JournalEntry[] = [
-            // Debit Finished Goods Inventory with the total production cost
-            { accountId: inventoryAccountId, accountName: 'Persediaan Barang Jadi', debit: totalCost, credit: 0 },
-            // Credit Raw Materials Inventory
-            { accountId: inventoryAccountId, accountName: 'Persediaan Bahan Baku', debit: 0, credit: rawMaterialCost }
-        ];
-
-        // Credit all additional cost accounts
-        additionalCosts.forEach(cost => {
-            journalEntries.push({
-                accountId: cost.accountId,
-                accountName: cost.accountName,
-                debit: 0,
-                credit: cost.amount
-            })
-        })
-
-
-        const newJournal: NewJournal = {
-            date: completionData.date,
-            description: journalDescription,
-            refNumber: newCompletionRef.id,
-            entries: journalEntries,
-            total: totalCost
-        };
-
-        await addJournalEntry(newJournal);
-
         revalidatePath('/(app)/production/worksheet');
         revalidatePath('/(app)/production/work-order');
         revalidatePath('/(app)/products');
