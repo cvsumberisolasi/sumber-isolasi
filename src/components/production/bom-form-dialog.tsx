@@ -119,6 +119,20 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
     }
     setOpen(isOpen);
   };
+  
+  const { totalCost, costPerUnit } = useMemo(() => {
+    const rawMaterialCost = items.reduce((sum, item) => {
+        const product = products.find(p => p.id === item.productId);
+        return sum + (product?.cost || 0) * item.quantity;
+    }, 0);
+
+    const totalAdditionalCost = additionalCosts.reduce((sum, cost) => sum + cost.amount, 0);
+    const total = rawMaterialCost + totalAdditionalCost;
+    const perUnit = quantityProduced > 0 ? total / quantityProduced : 0;
+    
+    return { totalCost: total, costPerUnit: perUnit };
+  }, [items, additionalCosts, quantityProduced, products]);
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,7 +216,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
             </div>
             <div className="space-y-2">
                 <Label htmlFor="quantityProduced">Jumlah Dihasilkan</Label>
-                <Input id="quantityProduced" type="number" value={quantityProduced} onChange={(e) => setQuantityProduced(Number(e.target.value))} onFocus={(e) => e.target.select()} required disabled={isPending} />
+                <Input id="quantityProduced" type="number" value={quantityProduced || ''} onChange={(e) => setQuantityProduced(Number(e.target.value))} onFocus={(e) => e.target.select()} required disabled={isPending} />
             </div>
           </div>
           
@@ -291,7 +305,11 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
           </div>
 
 
-          <DialogFooter className="pt-4">
+          <DialogFooter className="pt-4 flex-col sm:flex-row sm:justify-between sm:items-center">
+             <div className="text-sm text-left">
+                <p className="font-semibold">Estimasi Total Biaya: Rp {totalCost.toLocaleString('id-ID')}</p>
+                <p className="text-muted-foreground">Biaya per Unit: Rp {costPerUnit.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </div>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Simpan Formula
