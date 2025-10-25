@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
 import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { PurchaseOrder, GoodsReceipt, NewGoodsReceipt, GoodsReceiptItem, Account, Product } from '@/lib/types';
+import type { PurchaseOrder, GoodsReceipt, NewGoodsReceipt, GoodsReceiptItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
