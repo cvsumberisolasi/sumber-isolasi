@@ -138,12 +138,17 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
         setProducts(allProducts);
 
         if (bomSnap.exists()) {
-          const bomData = {id: bomSnap.id, ...bomSnap.data()} as BillOfMaterial;
-          setBom(bomData);
-          setConsumedItems(bomData.items.map(item => ({
-            ...item,
-            quantity: item.quantity * wo.quantityToProduce,
-          })));
+          const bomData = bomSnap.data() as Omit<BillOfMaterial, 'id'>;
+          setBom({ id: bomSnap.id, ...bomData });
+          
+          if (bomData.items) {
+             setConsumedItems(bomData.items.map(item => ({
+                productId: item.productId,
+                productName: item.productName,
+                quantity: item.quantity * wo.quantityToProduce,
+              })));
+          }
+
         }
       } catch (error) {
         toast({title: "Gagal memuat data", description: (error as Error).message, variant: 'destructive'});
