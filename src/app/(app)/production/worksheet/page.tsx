@@ -174,8 +174,10 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
         return sum + (itemCost * consumed.quantity);
     }, 0);
 
-    const additionalCost = bom.additionalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
-    const scaledAdditionalCost = additionalCost * (wo.quantityToProduce / bom.quantityProduced);
+    const scaledAdditionalCost = bom.additionalCosts?.reduce((sum, cost) => {
+        const scaledAmount = cost.amount * (wo.quantityToProduce / bom.quantityProduced);
+        return sum + scaledAmount;
+    }, 0) || 0;
 
     return rawMaterialCost + scaledAdditionalCost;
   }, [consumedItems, bom, products, wo.quantityToProduce]);

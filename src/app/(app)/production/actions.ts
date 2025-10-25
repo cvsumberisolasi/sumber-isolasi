@@ -88,30 +88,34 @@ export async function completeProduction(completionData: NewProductionCompletion
                 completionData.finishedGoodId,
                 ...completionData.consumedItems.map(item => item.productId)
             ];
-            const productReads = allProductIds.map(id => transaction.get(doc(db, 'products', id)));
+            const productRefs = allProductIds.map(id => doc(db, 'products', id));
+            const productSnaps = await Promise.all(productRefs.map(ref => transaction.get(ref)));
             
-            const productSnaps = await Promise.all(productReads);
-            const productMap = new Map(productSnaps.map(snap => [snap.id, snap.data() as Product]));
-
+            const productMap = new Map<string, { doc: DocumentData, data: Product }>();
+            productSnaps.forEach((snap, index) => {
+                if (!snap.exists()) throw new Error(`Produk dengan ID ${allProductIds[index]} tidak ditemukan.`);
+                productMap.set(snap.id, { doc: snap, data: snap.data() as Product });
+            });
+            
             // --- Phase 2: Logic & Validation (No DB Writes Yet) ---
             const updates: { ref: FirebaseFirestore.DocumentReference<DocumentData>, newStock: number }[] = [];
 
             // Update raw material stock
             for (const item of completionData.consumedItems) {
-                const productData = productMap.get(item.productId);
-                if (!productData) throw new Error(`Bahan baku ${item.productName} tidak ditemukan.`);
+                const productInfo = productMap.get(item.productId);
+                if (!productInfo) throw new Error(`Bahan baku ${item.productName} tidak ditemukan.`);
                 
-                const newStock = productData.stock - item.quantity;
+                const newStock = productInfo.data.stock - item.quantity;
                 if (newStock < 0) throw new Error(`Stok ${item.productName} tidak mencukupi.`);
                 
                 updates.push({ ref: doc(db, 'products', item.productId), newStock });
             }
             
             // Update finished good stock
-            const finishedGoodData = productMap.get(completionData.finishedGoodId);
-            if (!finishedGoodData) throw new Error(`Barang jadi ${completionData.finishedGoodName} tidak ditemukan.`);
+            const finishedGoodInfo = productMap.get(completionData.finishedGoodId);
+            if (!finishedGoodInfo) throw new Error(`Barang jadi ${completionData.finishedGoodName} tidak ditemukan.`);
             
-            const newFinishedGoodStock = finishedGoodData.stock + completionData.quantityProduced;
+            const newFinishedGoodStock = finishedGoodInfo.data.stock + completionData.quantityProduced;
             updates.push({ ref: doc(db, 'products', completionData.finishedGoodId), newStock: newFinishedGoodStock });
             
             // --- Phase 3: All Writes ---
@@ -134,7 +138,7 @@ export async function completeProduction(completionData: NewProductionCompletion
         // --- Phase 4. Create Journal Entry (outside main transaction) ---
         const { totalCost, consumedItems, additionalCosts = [] } = completionData;
         const settings = await getAccountingSettings();
-        const { inventoryAccountId } = settings; // Using one inventory account for simplicity
+        const { inventoryAccountId } = settings;
         
         if (!inventoryAccountId) {
             throw new Error('Akun Persediaan belum diatur di Pengaturan Akuntansi.');
@@ -142,17 +146,25 @@ export async function completeProduction(completionData: NewProductionCompletion
 
         const journalDescription = `Penyelesaian Produksi WO #${completionData.workOrderId}`;
         
+        // We need to fetch product costs again as we can't do it inside the transaction.
+        const productCosts = new Map<string, number>();
+        const productsSnap = await getDocs(collection(db, 'products'));
+        productsSnap.forEach(doc => productCosts.set(doc.id, doc.data().cost || 0));
+
         const rawMaterialCost = consumedItems.reduce((sum, item) => {
-            const product = Array.from(new Map(Object.entries(db)).values()).find(p => p.id === item.productId)
-            return sum + ((product?.cost || 0) * item.quantity);
+            const cost = productCosts.get(item.productId) || 0;
+            return sum + (cost * item.quantity);
         }, 0);
 
 
         const journalEntries: JournalEntry[] = [
+            // Debit Finished Goods Inventory with the total production cost
             { accountId: inventoryAccountId, accountName: 'Persediaan Barang Jadi', debit: totalCost, credit: 0 },
+            // Credit Raw Materials Inventory
             { accountId: inventoryAccountId, accountName: 'Persediaan Bahan Baku', debit: 0, credit: rawMaterialCost }
         ];
 
+        // Credit all additional cost accounts
         additionalCosts.forEach(cost => {
             journalEntries.push({
                 accountId: cost.accountId,
