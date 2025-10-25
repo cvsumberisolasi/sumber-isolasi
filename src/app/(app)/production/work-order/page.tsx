@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { WorkOrder, BillOfMaterial, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -34,7 +34,7 @@ export default function WorkOrderPage() {
 
   useEffect(() => {
     const woUnsub = onSnapshot(query(collection(db, "workOrders"), orderBy("date", "desc")), (snapshot) => {
-      setWorkOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: doc.data().date.toDate() } as WorkOrder)));
+      setWorkOrders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: doc.data().date.toDate(), startDate: doc.data().startDate.toDate(), endDate: doc.data().endDate.toDate() } as WorkOrder)));
       setLoading(false);
     });
 
@@ -45,13 +45,18 @@ export default function WorkOrderPage() {
     setSelectedWO(wo);
     setView('detail');
   }
+  
+  const handleBackToList = () => {
+    setSelectedWO(null);
+    setView('list');
+  }
 
   if (view === 'new') {
-    return <NewWorkOrderForm onBack={() => setView('list')} />;
+    return <NewWorkOrderForm onBack={handleBackToList} />;
   }
   
   if (view === 'detail' && selectedWO) {
-    return <WorkOrderDetail wo={selectedWO} onBack={() => setView('list')} />
+    return <WorkOrderDetail wo={selectedWO} onBack={handleBackToList} />
   }
 
   return (
@@ -190,7 +195,7 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
                 <div className="space-y-2">
                     <Label>Jumlah Produksi</Label>
                     <Input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min={1}/>
-                    <FormDescription>Jumlah barang jadi yang ingin dihasilkan.</FormDescription>
+                    <p className="text-xs text-muted-foreground">Jumlah barang jadi yang ingin dihasilkan.</p>
                 </div>
             </div>
             {selectedBom && (
@@ -258,12 +263,9 @@ function WorkOrderDetail({ wo, onBack }: { wo: WorkOrder, onBack: () => void }) 
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <p><strong>Rencana Pengerjaan:</strong> {format(wo.startDate.toDate(), "dd MMM yyyy")} - {format(wo.endDate.toDate(), "dd MMM yyyy")}</p>
+                    <p><strong>Rencana Pengerjaan:</strong> {format(wo.startDate, "dd MMM yyyy")} - {format(wo.endDate, "dd MMM yyyy")}</p>
                     {wo.notes && <p><strong>Catatan:</strong> {wo.notes}</p>}
                 </CardContent>
-                 <CardFooter className="flex justify-end gap-2">
-                    {wo.status === 'Belum Diproses' && <Button disabled>Proses Sekarang</Button>}
-                </CardFooter>
             </Card>
          </div>
     );

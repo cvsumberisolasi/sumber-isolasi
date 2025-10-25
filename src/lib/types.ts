@@ -1,6 +1,5 @@
 
 
-
 export type ProductType = 'Barang Jadi' | 'Bahan Baku' | 'Barang Dagang';
 
 export type ProductUnit = {
@@ -447,3 +446,22 @@ export type NewWorkOrder = Omit<WorkOrder, 'id' | 'date' | 'startDate' | 'endDat
     startDate: Date | any;
     endDate: Date | any;
 };
+
+export type ProductionCompletionItem = {
+  productId: string;
+  productName: string;
+  quantity: number;
+};
+
+export type ProductionCompletion = {
+  id: string;
+  date: any; // Timestamp
+  workOrderId: string;
+  finishedGoodId: string;
+  finishedGoodName: string;
+  quantityProduced: number;
+  consumedItems: ProductionCompletionItem[];
+  totalCost: number;
+};
+
+export type NewProductionCompletion = Omit<ProductionCompletion, 'id' | 'date'> & { date: Date };

@@ -2,10 +2,12 @@
 'use server';
 
 import { revalidatePath } from "next/cache";
-import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, Timestamp } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, Timestamp, runTransaction, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { NewBillOfMaterial, NewWorkOrder, WorkOrder } from "@/lib/types";
+import type { NewBillOfMaterial, NewWorkOrder, WorkOrder, Product, BillOfMaterial, NewJournal, JournalEntry, ProductionCompletion, NewProductionCompletion } from "@/lib/types";
 import { generateDocumentId } from "@/lib/utils";
+import { addJournalEntry } from "../accounting/journal/actions";
+import { getAccountingSettings } from "../settings/accounting/actions";
 
 const createResponse = (error: string | null = null, id: string | null = null) => ({ error, id });
 
@@ -66,7 +68,102 @@ export async function updateWorkOrderStatus(id: string, status: WorkOrder['statu
         const woRef = doc(db, 'workOrders', id);
         await updateDoc(woRef, { status });
         revalidatePath('/(app)/production/work-order');
+        revalidatePath('/(app)/production/worksheet');
         return createResponse();
+    } catch (e) {
+        return createResponse(e instanceof Error ? e.message : 'An unknown error occurred.');
+    }
+}
+
+// --- Production Completion Actions ---
+export async function completeProduction(completionData: NewProductionCompletion) {
+    try {
+        const newCompletionRef = await runTransaction(db, async (transaction) => {
+            const completionCol = collection(db, "productionCompletions");
+            const newId = generateDocumentId('PC');
+            const newDocRef = doc(completionCol, newId);
+
+            let totalRawMaterialCost = 0;
+
+            // --- 1. Decrease Raw Material Stock ---
+            for (const item of completionData.consumedItems) {
+                const productRef = doc(db, 'products', item.productId);
+                const productSnap = await transaction.get(productRef);
+                if (!productSnap.exists()) {
+                    throw new Error(`Bahan baku ${item.productName} tidak ditemukan.`);
+                }
+                const productData = productSnap.data() as Product;
+                const newStock = productData.stock - item.quantity;
+                if (newStock < 0) {
+                    throw new Error(`Stok ${item.productName} tidak mencukupi.`);
+                }
+                
+                totalRawMaterialCost += (productData.cost || 0) * item.quantity;
+                transaction.update(productRef, { stock: newStock });
+            }
+
+            // --- 2. Increase Finished Good Stock ---
+            const finishedGoodRef = doc(db, 'products', completionData.finishedGoodId);
+            const finishedGoodSnap = await transaction.get(finishedGoodRef);
+             if (!finishedGoodSnap.exists()) {
+                throw new Error(`Barang jadi ${completionData.finishedGoodName} tidak ditemukan.`);
+            }
+            const finishedGoodData = finishedGoodSnap.data() as Product;
+            const newFinishedGoodStock = finishedGoodData.stock + completionData.quantityProduced;
+            transaction.update(finishedGoodRef, { stock: newFinishedGoodStock });
+            
+            // --- 3. Update Work Order Status ---
+            const woRef = doc(db, 'workOrders', completionData.workOrderId);
+            transaction.update(woRef, { status: 'Selesai' });
+
+            // --- 4. Save Completion Record ---
+            const dataWithTimestamp = {
+                ...completionData,
+                date: Timestamp.fromDate(completionData.date),
+                totalCost: totalRawMaterialCost
+            };
+            transaction.set(newDocRef, dataWithTimestamp);
+
+            return { ref: newDocRef, totalCost: totalRawMaterialCost };
+        });
+
+        // --- 5. Create Journal Entry ---
+        const { totalCost } = newCompletionRef;
+        const settings = await getAccountingSettings();
+        const { inventoryAccountId } = settings; // Using one inventory account for simplicity
+        
+        if (!inventoryAccountId) {
+            throw new Error('Akun Persediaan belum diatur di Pengaturan Akuntansi.');
+        }
+
+        // The journal for manufacturing is complex. For now, we assume one inventory account.
+        // A correct entry would be: Dr. FG Inventory, Cr. RM Inventory, Cr. WIP-Labor, etc.
+        // Simplified: The value is transferred within the same inventory account, so no net change.
+        // We will create a journal to show the transformation.
+        const journalDescription = `Penyelesaian Produksi WO #${completionData.workOrderId}`;
+        const journalEntries: JournalEntry[] = [
+            // This represents finished goods value increasing
+            { accountId: inventoryAccountId, accountName: 'Persediaan Barang Jadi', debit: totalCost, credit: 0 },
+             // This represents raw materials value decreasing
+            { accountId: inventoryAccountId, accountName: 'Persediaan Bahan Baku', debit: 0, credit: totalCost }
+        ];
+
+        const newJournal: NewJournal = {
+            date: completionData.date,
+            description: journalDescription,
+            refNumber: newCompletionRef.ref.id,
+            entries: journalEntries,
+            total: totalCost
+        };
+
+        await addJournalEntry(newJournal);
+
+        revalidatePath('/(app)/production/worksheet');
+        revalidatePath('/(app)/production/work-order');
+        revalidatePath('/(app)/products');
+        revalidatePath('/(app)/accounting/ledger');
+
+        return createResponse(null, newCompletionRef.ref.id);
     } catch (e) {
         return createResponse(e instanceof Error ? e.message : 'An unknown error occurred.');
     }

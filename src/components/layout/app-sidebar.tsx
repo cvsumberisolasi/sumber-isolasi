@@ -65,6 +65,7 @@ import {
   PieChart,
   Hammer,
   FileCog,
+  Workflow,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -148,8 +149,9 @@ const navItems = [
     label: "Produksi",
     icon: Hammer,
     subItems: [
-      { href: "/production/bom", label: "Formula Produksi (BOM)", icon: FileCog, isDev: true },
-      { href: "/production/work-order", label: "Perintah Produksi", icon: FileDigit, isDev: true },
+      { href: "/production/bom", label: "Formula Produksi (BOM)", icon: FileCog },
+      { href: "/production/work-order", label: "Perintah Produksi", icon: FileDigit },
+      { href: "/production/worksheet", label: "Lembar Kerja Produksi", icon: Workflow },
     ],
   },
   {

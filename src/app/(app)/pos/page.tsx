@@ -64,7 +64,7 @@ export default function POSPage() {
   useEffect(() => {
     // Resume cart from local storage if exists
     const resumedCart = localStorage.getItem('resumedCart');
-    if (resumedCart) {
+    if (resumedCart && resumedCart !== '[]' && resumedCart.length > 2) {
       try {
         setCart(JSON.parse(resumedCart));
       } catch (e) {
@@ -480,3 +480,4 @@ function ProductPicker({ products, onSelect }: { products: Product[], onSelect: 
 
     
     
+
