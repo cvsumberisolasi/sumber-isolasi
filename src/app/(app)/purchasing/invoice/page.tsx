@@ -6,7 +6,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { GoodsReceipt, NewSupplierInvoice } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Save, FileKey2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -164,12 +164,12 @@ function InvoiceForm({ gr, onBack }: { gr: GoodsReceipt; onBack: () => void }) {
                 </TableRow>
               ))}
             </TableBody>
-            <CardFooter>
+            <TableFooter>
               <TableRow>
                 <TableCell colSpan={3} className="text-right font-bold text-lg">Total Faktur</TableCell>
                 <TableCell className="text-right font-bold text-lg">Rp {total.toLocaleString('id-ID')}</TableCell>
               </TableRow>
-            </CardFooter>
+            </TableFooter>
           </Table>
         </CardContent>
         <CardFooter className="flex justify-end">
