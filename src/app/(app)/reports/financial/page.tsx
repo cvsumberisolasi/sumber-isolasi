@@ -182,7 +182,7 @@ export default function FinancialReportsPage() {
   return (
     <div className="flex flex-col gap-6">
        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-headline font-bold">Laporan Laba Rugi</h1>
+        <h2 className="text-xl md:text-2xl font-headline font-bold">Laporan Laba Rugi</h2>
         <div className="flex gap-2">
             <Select value={String(month)} onValueChange={(val) => setMonth(Number(val))}>
                 <SelectTrigger className="w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
