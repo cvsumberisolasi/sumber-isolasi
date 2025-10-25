@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/select';
 
 
-export default function PurchaseOrderPage() {
+export default function PurchaseOrderPageContent() {
   const [view, setView] = useState<'list' | 'new'>('list');
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -477,4 +477,3 @@ function SendPOButton({ po }: { po: PurchaseOrder }) {
         </AlertDialog>
     );
 }
-
