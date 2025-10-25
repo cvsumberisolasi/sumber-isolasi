@@ -179,7 +179,7 @@ export default function CashInPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="amount">Jumlah</Label>
-                <Input id="amount" type="number" placeholder="Masukkan jumlah pemasukan" value={amount || ''} onChange={(e) => setAmount(Number(e.target.value))} disabled={isPending} />
+                <Input id="amount" type="number" placeholder="Masukkan jumlah pemasukan" value={amount || ''} onChange={(e) => setAmount(Number(e.target.value))} onFocus={(e) => e.target.select()} disabled={isPending} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="transaction-date">Tanggal Transaksi</Label>

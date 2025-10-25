@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
@@ -229,6 +230,7 @@ function GoodsReceiptForm({ po, onBack }: { po: PurchaseOrder; onBack: () => voi
                                     type="number" 
                                     value={item.receivedQuantity}
                                     onChange={e => handleQuantityChange(item.productId, e.target.value)}
+                                    onFocus={(e) => e.target.select()}
                                     max={item.quantity}
                                     className="text-center"
                                 />

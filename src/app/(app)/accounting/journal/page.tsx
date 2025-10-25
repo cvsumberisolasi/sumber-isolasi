@@ -208,6 +208,7 @@ export default function GeneralJournalPage() {
                         placeholder="0"
                         value={entry.debit === 0 ? '' : entry.debit}
                         onChange={(e) => handleEntryChange(entry.id, 'debit', e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </TableCell>
                     <TableCell>
@@ -216,6 +217,7 @@ export default function GeneralJournalPage() {
                         placeholder="0"
                         value={entry.credit === 0 ? '' : entry.credit}
                         onChange={(e) => handleEntryChange(entry.id, 'credit', e.target.value)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </TableCell>
                     <TableCell>

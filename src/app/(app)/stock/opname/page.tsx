@@ -228,6 +228,7 @@ export default function StockOpnamePage() {
                         placeholder={String(item.product.stock)}
                         value={item.physicalCount ?? ''}
                         onChange={e => handleCountChange(item.product.id, e.target.value)}
+                        onFocus={(e) => e.target.select()}
                         className="text-center"
                         disabled={item.physicalCount === item.product.stock}
                       />

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useTransition } from 'react';
@@ -214,7 +215,7 @@ function CurrencyFormDialog({ children, currency }: { children: React.ReactNode,
             </div>
              <div className="space-y-2">
               <Label htmlFor="exchangeRate">Kurs</Label>
-              <Input id="exchangeRate" type="number" step="any" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} required disabled={isPending} />
+              <Input id="exchangeRate" type="number" step="any" value={exchangeRate} onChange={(e) => setExchangeRate(Number(e.target.value))} onFocus={(e) => e.target.select()} required disabled={isPending} />
               <p className="text-xs text-muted-foreground">Nilai tukar relatif terhadap mata uang dasar (misal, 1 untuk IDR).</p>
             </div>
           <DialogFooter>

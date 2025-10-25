@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
@@ -194,6 +195,7 @@ function PurchaseReturnForm({ gr, onBack }: { gr: GoodsReceipt; onBack: () => vo
                       type="number"
                       value={item.returnQuantity}
                       onChange={e => handleQuantityChange(item.productId, e.target.value)}
+                      onFocus={(e) => e.target.select()}
                       max={item.quantity}
                       min={0}
                       className="text-center"

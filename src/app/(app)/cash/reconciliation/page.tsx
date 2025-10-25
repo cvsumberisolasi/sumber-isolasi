@@ -170,6 +170,7 @@ export default function BankReconciliationPage() {
                     placeholder="Jumlah" 
                     value={item.amount || ''}
                     onChange={e => handleAdjustmentChange(setter, item.id, 'amount', e.target.value)}
+                    onFocus={(e) => e.target.select()}
                     className="h-8 w-32 text-right"
                 />
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeAdjustment(setter, item.id)}>
@@ -219,7 +220,7 @@ export default function BankReconciliationPage() {
                     <h3 className="font-headline text-lg">Saldo Menurut Bank</h3>
                      <div className="space-y-2">
                         <Label>Saldo Akhir Laporan Koran</Label>
-                        <Input type="number" placeholder="Masukkan saldo dari laporan koran" value={bankBalance || ''} onChange={e => setBankBalance(Number(e.target.value))} />
+                        <Input type="number" placeholder="Masukkan saldo dari laporan koran" value={bankBalance || ''} onChange={e => setBankBalance(Number(e.target.value))} onFocus={(e) => e.target.select()} />
                     </div>
                     {renderAdjustmentSection("Ditambah: Setoran dalam Perjalanan", additionsToBank, setAdditionsToBank)}
                     {renderAdjustmentSection("Dikurangi: Cek Beredar", deductionsFromBank, setDeductionsFromBank)}

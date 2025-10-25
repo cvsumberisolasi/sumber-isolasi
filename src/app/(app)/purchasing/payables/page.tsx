@@ -169,7 +169,7 @@ function PaymentDialog({ invoice }: { invoice: SupplierInvoice }) {
                     </div>
                      <div className="space-y-2">
                         <Label>Jumlah Bayar</Label>
-                        <Input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} />
+                        <Input type="number" value={amount} onChange={e => setAmount(Number(e.target.value))} onFocus={(e) => e.target.select()} />
                     </div>
                 </div>
                 <DialogFooter>

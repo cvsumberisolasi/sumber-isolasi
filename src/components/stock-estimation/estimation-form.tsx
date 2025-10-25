@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useTransition } from "react";
@@ -141,7 +142,7 @@ export function EstimationForm({ products, transactions }: EstimationFormProps) 
                   <FormItem>
                     <FormLabel>Lead Time (Hari)</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="Contoh: 7" {...field} />
+                      <Input type="number" placeholder="Contoh: 7" {...field} onFocus={(e) => e.target.select()} />
                     </FormControl>
                     <FormDescription>
                       Waktu yang dibutuhkan untuk restock produk setelah memesan.
@@ -157,7 +158,7 @@ export function EstimationForm({ products, transactions }: EstimationFormProps) 
                   <FormItem>
                     <FormLabel>Kapasitas Penyimpanan</FormLabel>
                     <FormControl>
-                      <Input type="number" placeholder="Contoh: 200" {...field} />
+                      <Input type="number" placeholder="Contoh: 200" {...field} onFocus={(e) => e.target.select()} />
                     </FormControl>
                     <FormDescription>
                       Jumlah maksimum produk yang bisa disimpan di gudang.

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useTransition } from 'react';
@@ -151,7 +152,7 @@ function TaxFormDialog({ children, tax }: { children: React.ReactNode, tax?: Tax
             </div>
             <div className="space-y-2">
               <Label htmlFor="rate">Tarif Pajak (%)</Label>
-              <Input id="rate" type="number" value={rate} onChange={(e) => setRate(Number(e.target.value))} required disabled={isPending} placeholder="Contoh: 11"/>
+              <Input id="rate" type="number" value={rate} onChange={(e) => setRate(Number(e.target.value))} onFocus={(e) => e.target.select()} required disabled={isPending} placeholder="Contoh: 11"/>
             </div>
              <div className="space-y-2">
               <Label htmlFor="description">Deskripsi</Label>
