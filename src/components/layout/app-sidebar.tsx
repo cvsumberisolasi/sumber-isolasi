@@ -187,9 +187,12 @@ const navItems = [
     ],
   },
   {
-    href: "/settings",
     label: "Pengaturan",
     icon: Settings,
+    subItems: [
+      { href: "/settings", label: "Profil & Tema", icon: Palette },
+      { href: "/settings/accounting", label: "Akuntansi", icon: FileCog },
+    ],
   },
 ];
 
