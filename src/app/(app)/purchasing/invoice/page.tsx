@@ -1,10 +1,10 @@
 
 'use client';
 
-import React, { useState, useEffect, useTransition } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import React, { useState, useEffect, useTransition, useMemo } from 'react';
+import { collection, onSnapshot, query, where, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { GoodsReceipt, NewSupplierInvoice } from '@/lib/types';
+import type { GoodsReceipt, NewSupplierInvoice, PurchaseOrder, Tax } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -91,8 +91,27 @@ function InvoiceForm({ gr, onBack }: { gr: GoodsReceipt; onBack: () => void }) {
   const [isPending, startTransition] = useTransition();
   const [invoiceDate, setInvoiceDate] = useState<Date | undefined>(new Date());
   const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [originalPO, setOriginalPO] = useState<PurchaseOrder | null>(null);
 
-  const total = gr.items.reduce((sum, item) => sum + (item.cost * item.receivedQuantity), 0);
+  useEffect(() => {
+    const fetchPO = async () => {
+        if(gr.purchaseOrderId) {
+            const poDoc = await getDoc(doc(db, 'purchaseOrders', gr.purchaseOrderId));
+            if(poDoc.exists()) {
+                setOriginalPO(poDoc.data() as PurchaseOrder);
+            }
+        }
+    }
+    fetchPO();
+  }, [gr.purchaseOrderId]);
+
+  const { subtotal, taxAmount, grandTotal } = useMemo(() => {
+    const sub = gr.items.reduce((sum, item) => sum + (item.cost * item.receivedQuantity), 0);
+    const taxAmt = originalPO?.taxAmount || 0;
+    const grand = sub + taxAmt;
+    return { subtotal: sub, taxAmount: taxAmt, grandTotal: grand };
+  }, [gr.items, originalPO]);
+
 
   const handleSave = () => {
     if (!invoiceDate || !invoiceNumber) {
@@ -107,7 +126,12 @@ function InvoiceForm({ gr, onBack }: { gr: GoodsReceipt; onBack: () => void }) {
       purchaseOrderId: gr.purchaseOrderId,
       supplierId: gr.supplierId,
       supplierName: gr.supplierName,
-      total,
+      subtotal,
+      taxId: originalPO?.taxId,
+      taxName: originalPO?.taxName,
+      taxRate: originalPO?.taxRate,
+      taxAmount,
+      grandTotal,
     };
     
     startTransition(async () => {
@@ -165,10 +189,18 @@ function InvoiceForm({ gr, onBack }: { gr: GoodsReceipt; onBack: () => void }) {
               ))}
             </TableBody>
             <TableFooter>
-              <TableRow>
-                <TableCell colSpan={3} className="text-right font-bold text-lg">Total Faktur</TableCell>
-                <TableCell className="text-right font-bold text-lg">Rp {total.toLocaleString('id-ID')}</TableCell>
-              </TableRow>
+                <TableRow>
+                    <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
+                    <TableCell className="text-right font-mono">Rp {subtotal.toLocaleString('id-ID')}</TableCell>
+                </TableRow>
+                <TableRow>
+                    <TableCell colSpan={3} className="text-right">{originalPO?.taxName || 'Pajak'}</TableCell>
+                    <TableCell className="text-right font-mono">Rp {taxAmount.toLocaleString('id-ID')}</TableCell>
+                </TableRow>
+                <TableRow className="font-bold text-lg">
+                    <TableCell colSpan={3} className="text-right">Grand Total</TableCell>
+                    <TableCell className="text-right font-mono">Rp {grandTotal.toLocaleString('id-ID')}</TableCell>
+                </TableRow>
             </TableFooter>
           </Table>
         </CardContent>
@@ -182,3 +214,4 @@ function InvoiceForm({ gr, onBack }: { gr: GoodsReceipt; onBack: () => void }) {
     </div>
   );
 }
+

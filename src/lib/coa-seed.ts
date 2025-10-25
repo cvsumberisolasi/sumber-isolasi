@@ -6,6 +6,7 @@ export const COA_SEED_DATA: NewAccount[] = [
   { code: '1-10101', name: 'Kas Kecil', type: 'Kas & Bank' },
   { code: '1-10102', name: 'Kas pada Bank ABC', type: 'Kas & Bank' },
   { code: '1-10201', name: 'Piutang Usaha', type: 'Aset Lancar' },
+  { code: '1-10202', name: 'Pajak Dibayar di Muka (PPN Masukan)', type: 'Aset Lancar' },
   { code: '1-10301', name: 'Persediaan Barang Dagang', type: 'Aset Lancar' },
   { code: '1-10302', name: 'Persediaan Bahan Baku', type: 'Aset Lancar' },
   { code: '1-10303', name: 'Persediaan Barang Dalam Proses', type: 'Aset Lancar' },
@@ -21,7 +22,7 @@ export const COA_SEED_DATA: NewAccount[] = [
   { code: '2-10101', name: 'Utang Usaha', type: 'Kewajiban Jangka Pendek' },
   { code: '2-10102', name: 'Utang Barang Diterima', type: 'Kewajiban Jangka Pendek' },
   { code: '2-10201', name: 'Utang Gaji', type: 'Kewajiban Jangka Pendek' },
-  { code: '2-10301', name: 'Utang PPN', type: 'Kewajiban Jangka Pendek' },
+  { code: '2-10301', name: 'Utang PPN (PPN Keluaran)', type: 'Kewajiban Jangka Pendek' },
   { code: '2-10302', name: 'Utang PPh 21', type: 'Kewajiban Jangka Pendek' },
   // 2.2 Kewajiban Jangka Panjang
   { code: '2-20101', name: 'Utang Bank', type: 'Kewajiban Jangka Panjang' },

@@ -2,7 +2,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { collection, doc, updateDoc, Timestamp, runTransaction, writeBatch, setDoc } from "firebase/firestore";
+import { collection, doc, updateDoc, Timestamp, runTransaction, writeBatch, setDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { NewPurchaseOrder, NewGoodsReceipt, Product, JournalEntry, NewJournal, NewSupplierInvoice, NewPurchasePayment, NewPurchaseRequest, PurchaseRequest, PurchaseOrder, NewPurchaseReturn } from "@/lib/types";
 import { addJournalEntry } from "@/app/(app)/accounting/journal/actions";
@@ -152,20 +152,28 @@ export async function addSupplierInvoice(invoiceData: NewSupplierInvoice) {
         batch.update(grRef, { status: 'Invoiced' });
 
         const settings = await getAccountingSettings();
-        const { accruedPayableAccountId, accountsPayableAccountId } = settings;
-        if (!accruedPayableAccountId || !accountsPayableAccountId) {
-            throw new Error('Akun Utang Barang Diterima atau Utang Usaha belum diatur.');
+        const { accruedPayableAccountId, accountsPayableAccountId, taxReceivableAccountId } = settings;
+        if (!accruedPayableAccountId || !accountsPayableAccountId || !taxReceivableAccountId) {
+            throw new Error('Akun Utang atau Pajak Masukan belum diatur.');
         }
 
         const journalDescription = `Faktur Pemasok #${invoiceData.invoiceNumber} dari ${invoiceData.supplierName}`;
-        const journalEntries: JournalEntry[] = [
-            { accountId: accruedPayableAccountId, accountName: '', debit: invoiceData.total, credit: 0 },
-            { accountId: accountsPayableAccountId, accountName: '', debit: 0, credit: invoiceData.total }
-        ];
+        const journalEntries: JournalEntry[] = [];
+        
+        // Debit Utang Barang Diterima (reversing GRN journal)
+        journalEntries.push({ accountId: accruedPayableAccountId, accountName: '', debit: invoiceData.subtotal, credit: 0 });
+
+        // Debit PPN Masukan (if any)
+        if (invoiceData.taxAmount && invoiceData.taxAmount > 0) {
+            journalEntries.push({ accountId: taxReceivableAccountId, accountName: '', debit: invoiceData.taxAmount, credit: 0 });
+        }
+        
+        // Credit Utang Usaha
+        journalEntries.push({ accountId: accountsPayableAccountId, accountName: '', debit: 0, credit: invoiceData.grandTotal });
 
         const newJournal: NewJournal = {
             date: invoiceData.date, description: journalDescription, refNumber: newInvoiceRef.id,
-            entries: journalEntries, total: invoiceData.total
+            entries: journalEntries, total: invoiceData.grandTotal
         };
         
         const journalsCol = collection(db, "journals");

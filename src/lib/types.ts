@@ -1,4 +1,5 @@
 
+
 export type ProductType = 'Barang Jadi' | 'Bahan Baku' | 'Barang Dagang';
 
 export type ProductUnit = {
@@ -195,12 +196,18 @@ export type PurchaseOrder = {
   supplierName: string;
   date: Date;
   items: PurchaseOrderItem[];
-  total: number;
+  subtotal: number;
+  taxId?: string;
+  taxName?: string;
+  taxRate?: number;
+  taxAmount?: number;
+  grandTotal: number;
   status: 'Draft' | 'Sent' | 'Completed' | 'Cancelled';
   purchaseRequestId?: string;
+  total: number; // legacy, replaced by grandTotal
 };
 
-export type NewPurchaseOrder = Omit<PurchaseOrder, 'id' | 'date'> & {
+export type NewPurchaseOrder = Omit<PurchaseOrder, 'id' | 'date' | 'total'> & {
     date: Date | any;
 };
 
@@ -235,11 +242,17 @@ export type SupplierInvoice = {
     purchaseOrderId: string;
     supplierId: string;
     supplierName: string;
-    total: number;
+    subtotal: number;
+    taxId?: string;
+    taxName?: string;
+    taxRate?: number;
+    taxAmount?: number;
+    grandTotal: number;
     status: 'Unpaid' | 'Paid';
+    total: number; // legacy, replaced by grandTotal
 }
 
-export type NewSupplierInvoice = Omit<SupplierInvoice, 'id' | 'status'> & {
+export type NewSupplierInvoice = Omit<SupplierInvoice, 'id' | 'status' | 'total'> & {
   date: Date | any;
 };
 

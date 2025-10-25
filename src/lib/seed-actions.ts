@@ -22,7 +22,7 @@ async function seedCollection(collectionName: string, data: any[], revalidationP
     const colRef = collection(db, collectionName);
     const snapshot = await getDocs(query(colRef));
     
-    if (!snapshot.empty) {
+    if (!snapshot.empty && collectionName !== 'taxes') { // Allow re-seeding taxes
       return createResponse(`${collectionName} sudah berisi data. Proses seed dibatalkan.`);
     }
     
@@ -69,7 +69,8 @@ export async function seedInitialAccounts() {
         inventoryAccountId: docRefs['Persediaan Barang Dagang'],
         retainedEarningsAccountId: docRefs['Laba Ditahan'],
         incomeSummaryAccountId: docRefs['Ikhtisar Laba Rugi'],
-        taxPayableAccountId: docRefs['Utang PPN'],
+        taxPayableAccountId: docRefs['Utang PPN (PPN Keluaran)'],
+        taxReceivableAccountId: docRefs['Pajak Dibayar di Muka (PPN Masukan)'],
         rawMaterialInventoryAccountId: docRefs['Persediaan Bahan Baku'],
         wipAccountId: docRefs['Persediaan Barang Dalam Proses'],
         directLaborAccountId: docRefs['Biaya Tenaga Kerja Langsung'],

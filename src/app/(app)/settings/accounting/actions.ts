@@ -19,7 +19,8 @@ export type AccountingSettings = {
   accruedPayableAccountId?: string; // Goods Received Not Invoiced
   retainedEarningsAccountId?: string;
   incomeSummaryAccountId?: string;
-  taxPayableAccountId?: string;
+  taxPayableAccountId?: string; // PPN Keluaran
+  taxReceivableAccountId?: string; // PPN Masukan
   
   // Production Accounts
   rawMaterialInventoryAccountId?: string;

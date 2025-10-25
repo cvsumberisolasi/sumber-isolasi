@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import { Plus, Save, Loader2, PlusCircle, MinusCircle, X, ChevronsUpDown, Check, ArrowLeft, Send, Eye, CheckCircle, XCircle } from 'lucide-react';
-import type { Product, Supplier, PurchaseOrderItem, NewPurchaseOrder, PurchaseOrder, PurchaseRequest, ProductUnit } from '@/lib/types';
+import type { Product, Supplier, PurchaseOrderItem, NewPurchaseOrder, PurchaseOrder, PurchaseRequest, ProductUnit, Tax } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
@@ -31,6 +31,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
 
 export default function PurchaseOrderPage() {
   const [view, setView] = useState<'list' | 'new'>('list');
@@ -92,7 +100,7 @@ export default function PurchaseOrderPage() {
                     <TableCell className="font-mono text-xs">{po.id}</TableCell>
                     <TableCell>{po.supplierName}</TableCell>
                     <TableCell><POStatusBadge status={po.status} /></TableCell>
-                    <TableCell className="text-right font-medium">Rp {po.total.toLocaleString('id-ID')}</TableCell>
+                    <TableCell className="text-right font-medium">Rp {(po.grandTotal ?? po.total).toLocaleString('id-ID')}</TableCell>
                     <TableCell className="text-right">
                         <SendPOButton po={po} />
                     </TableCell>
@@ -111,10 +119,12 @@ function NewPurchaseOrderForm({ onBack }: { onBack: () => void }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [approvedPRs, setApprovedPRs] = useState<PurchaseRequest[]>([]);
+  const [taxes, setTaxes] = useState<Tax[]>([]);
   
   const [items, setItems] = useState<PurchaseOrderItem[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [selectedPR, setSelectedPR] = useState<PurchaseRequest | null>(null);
+  const [selectedTaxId, setSelectedTaxId] = useState<string | undefined>();
   const [date, setDate] = useState<Date | undefined>();
 
   const [isPending, startTransition] = useTransition();
@@ -131,11 +141,15 @@ function NewPurchaseOrderForm({ onBack }: { onBack: () => void }) {
     const prsUnsub = onSnapshot(query(collection(db, "purchaseRequests"), where("status", "==", "Approved")), (snapshot) => {
       setApprovedPRs(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), date: doc.data().date.toDate() } as PurchaseRequest)));
     });
+     const taxesUnsub = onSnapshot(collection(db, "taxes"), (snapshot) => {
+      setTaxes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tax)));
+    });
 
     return () => {
       productsUnsub();
       suppliersUnsub();
       prsUnsub();
+      taxesUnsub();
     };
   }, []);
 
@@ -199,14 +213,20 @@ function NewPurchaseOrderForm({ onBack }: { onBack: () => void }) {
     });
   };
 
-  const totalPO = useMemo(() => {
-    return items.reduce((total, item) => total + item.cost * item.quantity, 0);
-  }, [items]);
+  const { subtotal, taxAmount, grandTotal } = useMemo(() => {
+    const sub = items.reduce((total, item) => total + item.cost * item.quantity, 0);
+    const tax = taxes.find(t => t.id === selectedTaxId);
+    const taxRate = tax ? tax.rate / 100 : 0;
+    const taxAmt = sub * taxRate;
+    const grand = sub + taxAmt;
+    return { subtotal: sub, taxAmount: taxAmt, grandTotal: grand };
+  }, [items, selectedTaxId, taxes]);
 
   const resetForm = () => {
     setItems([]);
     setSelectedSupplier(null);
     setSelectedPR(null);
+    setSelectedTaxId(undefined);
     setDate(new Date());
     onBack();
   };
@@ -217,11 +237,18 @@ function NewPurchaseOrderForm({ onBack }: { onBack: () => void }) {
       return;
     }
 
+    const selectedTax = taxes.find(t => t.id === selectedTaxId);
+
     startTransition(async () => {
       const newPO: NewPurchaseOrder = {
         date,
         items,
-        total: totalPO,
+        subtotal,
+        taxId: selectedTax?.id,
+        taxName: selectedTax?.name,
+        taxRate: selectedTax?.rate,
+        taxAmount,
+        grandTotal,
         supplierId: selectedSupplier.id,
         supplierName: selectedSupplier.name,
         status: 'Draft',
@@ -233,7 +260,6 @@ function NewPurchaseOrderForm({ onBack }: { onBack: () => void }) {
       if (result.error) {
         toast({ title: 'Gagal Menyimpan PO', description: result.error, variant: 'destructive' });
       } else {
-        // If PO was created from a PR, update the PR status
         if (selectedPR) {
             await updatePurchaseRequestStatus(selectedPR.id, 'Processed');
         }
@@ -319,11 +345,39 @@ function NewPurchaseOrderForm({ onBack }: { onBack: () => void }) {
                )}
                <DataPicker data={products} onSelect={addItem} placeholder="Tambah Produk..." nameKey="name" disabled={!!selectedPR} />
             </div>
+             <div className="flex justify-end">
+                <div className="w-full max-w-sm space-y-4">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span>Rp {subtotal.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <Label>Pajak</Label>
+                        <Select value={selectedTaxId} onValueChange={setSelectedTaxId}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Pilih Pajak" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Tanpa Pajak</SelectItem>
+                                {taxes.map(tax => (
+                                    <SelectItem key={tax.id} value={tax.id}>{tax.name} ({tax.rate}%)</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">PPN Masukan</span>
+                        <span>Rp {taxAmount.toLocaleString('id-ID')}</span>
+                    </div>
+                    <hr/>
+                    <div className="flex justify-between font-bold text-lg">
+                        <span>Grand Total</span>
+                        <span>Rp {grandTotal.toLocaleString('id-ID')}</span>
+                    </div>
+                </div>
+            </div>
           </CardContent>
-          <CardFooter className="flex justify-between items-center bg-muted/50 p-6">
-              <div className="text-lg font-bold">
-                  Total PO: Rp {totalPO.toLocaleString('id-ID')}
-              </div>
+          <CardFooter className="flex justify-end">
             <Button onClick={handleSavePO} disabled={isPending || !selectedSupplier || items.length === 0}>
               {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Simpan Purchase Order
@@ -423,3 +477,4 @@ function SendPOButton({ po }: { po: PurchaseOrder }) {
         </AlertDialog>
     );
 }
+
