@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useTransition, useEffect } from 'react';
@@ -17,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { Product, ProductCategory, ProductUnit } from '@/lib/types';
+import type { Product, ProductCategory, ProductUnit, ProductType } from '@/lib/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -219,6 +220,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
   const [name, setName] = useState(product?.name || '');
   const [sku, setSku] = useState(product?.sku || '');
   const [category, setCategory] = useState(product?.category || '');
+  const [productType, setProductType] = useState<ProductType>(product?.productType || 'Barang Dagang');
   const [stock, setStock] = useState(product?.stock || 0);
   const [cost, setCost] = useState(product?.cost || 0);
   const [minStockThreshold, setMinStockThreshold] = useState(product?.minStockThreshold || 10);
@@ -270,6 +272,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
         name, 
         sku,
         category, 
+        productType,
         stock,
         cost,
         minStockThreshold, 
@@ -303,6 +306,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
       setName(product?.name || '');
       setSku(product?.sku || '');
       setCategory(product?.category || '');
+      setProductType(product?.productType || 'Barang Dagang');
       setStock(product?.stock || 0);
       setCost(product?.cost || 0);
       setMinStockThreshold(product?.minStockThreshold || 10);
@@ -320,7 +324,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
         <DialogHeader>
           <DialogTitle className="font-headline">{isEditing ? 'Edit Produk' : 'Tambah Produk Baru'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nama Produk</Label>
@@ -340,6 +344,19 @@ export function ProductFormDialog({ children, product }: { children: React.React
                       {categories.map(cat => (
                           <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                       ))}
+                  </SelectContent>
+              </Select>
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="productType">Tipe Barang</Label>
+              <Select value={productType} onValueChange={(v) => setProductType(v as ProductType)}>
+                  <SelectTrigger id="productType" disabled={isPending}>
+                      <SelectValue placeholder="Pilih tipe barang" />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="Barang Dagang">Barang Dagang</SelectItem>
+                      <SelectItem value="Bahan Baku">Bahan Baku</SelectItem>
+                      <SelectItem value="Barang Jadi">Barang Jadi</SelectItem>
                   </SelectContent>
               </Select>
             </div>
@@ -391,7 +408,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
               <Input id="minStockThreshold" type="number" value={minStockThreshold} onChange={(e) => setMinStockThreshold(Number(e.target.value))} required disabled={isPending}/>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4">
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Simpan

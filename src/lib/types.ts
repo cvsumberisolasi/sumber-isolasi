@@ -1,5 +1,7 @@
 
 
+export type ProductType = 'Barang Jadi' | 'Bahan Baku' | 'Barang Dagang';
+
 export type ProductUnit = {
   name: string; // e.g., 'Pcs', 'Box', 'Lusin'
   price: number;
@@ -12,6 +14,7 @@ export type Product = {
   sku?: string; // Stock Keeping Unit
   name: string;
   category: string;
+  productType: ProductType;
   stock: number; // Total stock in base unit
   cost?: number; // Base cost of the product
   units: ProductUnit[];
@@ -403,3 +406,44 @@ export type MappedRow = Omit<ParsedRow, 'id'> & { id: string };
 export type ImportRow = MappedRow & {
     mappedProduct: Product | null;
 };
+
+// Production Module Types
+export type BillOfMaterialItem = {
+  productId: string; // Raw material product ID
+  productName: string;
+  quantity: number;
+};
+
+export type BillOfMaterial = {
+  id: string;
+  productId: string; // Finished good product ID
+  productName: string;
+  quantityProduced: number; // Quantity of finished good produced from this BOM
+  items: BillOfMaterialItem[];
+  additionalCosts?: {
+    description: string;
+    amount: number;
+  }[];
+};
+
+export type NewBillOfMaterial = Omit<BillOfMaterial, 'id'>;
+
+export type WorkOrderItem = {
+  productId: string;
+  productName: string;
+  quantity: number;
+}
+
+export type WorkOrder = {
+  id: string;
+  date: Date;
+  finishedGoodId: string;
+  finishedGoodName: string;
+  quantityToProduce: number;
+  bomId: string;
+  status: 'Belum Diproses' | 'Dalam Pengerjaan' | 'Selesai' | 'Dibatalkan';
+  notes?: string;
+  items: WorkOrderItem[]; // List of raw materials needed
+};
+
+export type NewWorkOrder = Omit<WorkOrder, 'id' | 'date'> & { date: Date | any };

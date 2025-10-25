@@ -63,6 +63,8 @@ import {
   BookCheck,
   Palette,
   PieChart,
+  Hammer,
+  FileCog,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -140,6 +142,14 @@ const navItems = [
       { href: "/stock-estimation", label: "Estimasi Stok (AI)", icon: BrainCircuit },
       { href: "/stock/transfer", label: "Transfer Stok", icon: ArrowRightLeft },
       { href: "/stock/opname", label: "Stock Opname", icon: ClipboardCheck },
+    ],
+  },
+   {
+    label: "Produksi",
+    icon: Hammer,
+    subItems: [
+      { href: "/production/bom", label: "Formula Produksi (BOM)", icon: FileCog, isDev: true },
+      { href: "/production/work-order", label: "Perintah Produksi", icon: FileDigit, isDev: true },
     ],
   },
   {
