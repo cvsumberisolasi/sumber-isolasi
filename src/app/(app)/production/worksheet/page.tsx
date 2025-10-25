@@ -4,7 +4,7 @@
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
 import { collection, onSnapshot, query, where, orderBy, getDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { WorkOrder, BillOfMaterial, Product, ProductionCompletionItem, NewProductionCompletion } from '@/lib/types';
+import type { WorkOrder, BillOfMaterial, Product, ProductionCompletionItem, NewProductionCompletion, AdditionalCostItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -138,14 +138,14 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
         setProducts(allProducts);
 
         if (bomSnap.exists()) {
-          const bomData = bomSnap.data() as Omit<BillOfMaterial, 'id'>;
-          setBom({ id: bomSnap.id, ...bomData });
+          const bomData = { id: bomSnap.id, ...bomSnap.data() } as BillOfMaterial;
+          setBom(bomData);
           
           if (bomData.items) {
              setConsumedItems(bomData.items.map(item => ({
                 productId: item.productId,
                 productName: item.productName,
-                quantity: item.quantity,
+                quantity: item.quantity * wo.quantityToProduce / bomData.quantityProduced,
               })));
           }
 
@@ -175,9 +175,10 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
     }, 0);
 
     const additionalCost = bom.additionalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
+    const scaledAdditionalCost = additionalCost * (wo.quantityToProduce / bom.quantityProduced);
 
-    return rawMaterialCost + additionalCost;
-  }, [consumedItems, bom, products]);
+    return rawMaterialCost + scaledAdditionalCost;
+  }, [consumedItems, bom, products, wo.quantityToProduce]);
 
 
   const handleComplete = () => {
@@ -186,6 +187,11 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
       return;
     }
 
+    const scaledAdditionalCosts = bom?.additionalCosts?.map(cost => ({
+        ...cost,
+        amount: cost.amount * (wo.quantityToProduce / bom.quantityProduced)
+    })) || [];
+
     const completionData: NewProductionCompletion = {
       date: new Date(),
       workOrderId: wo.id,
@@ -193,6 +199,7 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
       finishedGoodName: wo.finishedGoodName,
       quantityProduced: wo.quantityToProduce,
       consumedItems,
+      additionalCosts: scaledAdditionalCosts,
       totalCost,
     };
 

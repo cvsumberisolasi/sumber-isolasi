@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { addBillOfMaterial, updateBillOfMaterial } from '@/app/(app)/production/actions';
-import type { Product, BillOfMaterial, NewBillOfMaterial, BillOfMaterialItem } from '@/lib/types';
+import type { Product, BillOfMaterial, NewBillOfMaterial, BillOfMaterialItem, Account, AdditionalCostItem } from '@/lib/types';
 import { Loader2, PlusCircle, Trash2, Edit } from 'lucide-react';
 import {
   Select,
@@ -28,6 +28,8 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ProductFormDialog } from '../products/product-actions';
 import { Separator } from '../ui/separator';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 interface BomFormDialogProps {
   children: React.ReactNode;
@@ -43,7 +45,17 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
   const [finishedGoodId, setFinishedGoodId] = useState(bom?.productId || '');
   const [quantityProduced, setQuantityProduced] = useState(bom?.quantityProduced || 1);
   const [items, setItems] = useState<BillOfMaterialItem[]>(bom?.items || []);
-  const [additionalCosts, setAdditionalCosts] = useState(bom?.additionalCosts || []);
+  const [additionalCosts, setAdditionalCosts] = useState<AdditionalCostItem[]>(bom?.additionalCosts || []);
+
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  
+  useEffect(() => {
+    const q = query(collection(db, 'coa'), where('type', 'in', ['Beban Operasional', 'Beban Lainnya']));
+    const unsub = onSnapshot(q, (snapshot) => {
+        setAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Account)));
+    });
+    return () => unsub();
+  }, []);
 
   const finishedGoods = useMemo(() => products.filter(p => Array.isArray(p.productType) && p.productType.includes('Barang Jadi')), [products]);
   const rawMaterials = useMemo(() => products.filter(p => Array.isArray(p.productType) && p.productType.includes('Bahan Baku')), [products]);
@@ -55,7 +67,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
     if (type === 'material') {
       setItems(prev => [...prev, { productId: '', productName: '', quantity: 0, unit: '' }]);
     } else {
-      setAdditionalCosts(prev => [...prev, { description: '', amount: 0 }]);
+      setAdditionalCosts(prev => [...prev, { accountId: '', accountName: '', amount: 0 }]);
     }
   };
 
@@ -72,10 +84,15 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
     });
   };
 
-  const handleCostChange = (index: number, field: 'description' | 'amount', value: string | number) => {
+  const handleCostChange = (index: number, field: keyof AdditionalCostItem, value: string | number) => {
     setAdditionalCosts(prev => {
       const newCosts = [...prev];
-      (newCosts[index] as any)[field] = value;
+      if (field === 'accountId') {
+        const account = accounts.find(a => a.id === value);
+        newCosts[index] = { ...newCosts[index], accountId: value as string, accountName: account?.name || '' };
+      } else {
+        (newCosts[index] as any)[field] = value;
+      }
       return newCosts;
     });
   };
@@ -237,7 +254,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Deskripsi Biaya</TableHead>
+                            <TableHead>Akun Biaya</TableHead>
                             <TableHead className="w-40">Jumlah (Rp)</TableHead>
                             <TableHead className="w-12"></TableHead>
                         </TableRow>
@@ -246,7 +263,14 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
                         {additionalCosts.map((cost, index) => (
                             <TableRow key={index}>
                                 <TableCell>
-                                    <Input placeholder="Contoh: Biaya Tenaga Kerja" value={cost.description} onChange={e => handleCostChange(index, 'description', e.target.value)}/>
+                                    <Select value={cost.accountId} onValueChange={(v) => handleCostChange(index, 'accountId', v)}>
+                                        <SelectTrigger><SelectValue placeholder="Pilih akun biaya..."/></SelectTrigger>
+                                        <SelectContent>
+                                            {accounts.map(acc => (
+                                                <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </TableCell>
                                 <TableCell>
                                     <Input type="number" value={cost.amount} onChange={e => handleCostChange(index, 'amount', Number(e.target.value))}/>

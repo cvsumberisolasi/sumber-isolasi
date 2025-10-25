@@ -13,7 +13,7 @@ export type Product = {
   sku?: string; // Stock Keeping Unit
   name: string;
   category: string;
-  productType: string[]; // Changed from ProductType to string[]
+  productType: string[];
   stock: number; // Total stock in base unit
   cost?: number; // Base cost of the product
   units: ProductUnit[];
@@ -414,16 +414,19 @@ export type BillOfMaterialItem = {
   unit: string;
 };
 
+export type AdditionalCostItem = {
+    accountId: string;
+    accountName: string;
+    amount: number;
+};
+
 export type BillOfMaterial = {
   id: string;
   productId: string; // Finished good product ID
   productName: string;
   quantityProduced: number; // Quantity of finished good produced from this BOM
   items: BillOfMaterialItem[];
-  additionalCosts?: {
-    description: string;
-    amount: number;
-  }[];
+  additionalCosts?: AdditionalCostItem[];
 };
 
 export type NewBillOfMaterial = Omit<BillOfMaterial, 'id'>;
@@ -461,6 +464,7 @@ export type ProductionCompletion = {
   finishedGoodName: string;
   quantityProduced: number;
   consumedItems: ProductionCompletionItem[];
+  additionalCosts: AdditionalCostItem[];
   totalCost: number;
 };
 

@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, Timestamp, runTransaction, getDoc, DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { NewBillOfMaterial, NewWorkOrder, WorkOrder, Product, BillOfMaterial, NewJournal, JournalEntry, ProductionCompletion, NewProductionCompletion } from "@/lib/types";
+import type { NewBillOfMaterial, NewWorkOrder, WorkOrder, Product, BillOfMaterial, NewJournal, JournalEntry, ProductionCompletion, NewProductionCompletion, AdditionalCostItem } from "@/lib/types";
 import { generateDocumentId } from "@/lib/utils";
 import { addJournalEntry } from "../accounting/journal/actions";
 import { getAccountingSettings } from "../settings/accounting/actions";
@@ -84,38 +84,35 @@ export async function completeProduction(completionData: NewProductionCompletion
             const newDocRef = doc(completionCol, newId);
 
             // --- Phase 1: All Reads ---
-            const rawMaterialReads = completionData.consumedItems.map(item => 
-                transaction.get(doc(db, 'products', item.productId))
-            );
-            const finishedGoodRead = transaction.get(doc(db, 'products', completionData.finishedGoodId));
-
-            const [finishedGoodSnap, ...rawMaterialSnaps] = await Promise.all([finishedGoodRead, ...rawMaterialReads]);
-
-            if (!finishedGoodSnap.exists()) {
-                throw new Error(`Barang jadi ${completionData.finishedGoodName} tidak ditemukan.`);
-            }
+            const allProductIds = [
+                completionData.finishedGoodId,
+                ...completionData.consumedItems.map(item => item.productId)
+            ];
+            const productReads = allProductIds.map(id => transaction.get(doc(db, 'products', id)));
+            
+            const productSnaps = await Promise.all(productReads);
+            const productMap = new Map(productSnaps.map(snap => [snap.id, snap.data() as Product]));
 
             // --- Phase 2: Logic & Validation (No DB Writes Yet) ---
             const updates: { ref: FirebaseFirestore.DocumentReference<DocumentData>, newStock: number }[] = [];
 
-            for (let i = 0; i < completionData.consumedItems.length; i++) {
-                const item = completionData.consumedItems[i];
-                const productSnap = rawMaterialSnaps[i];
-
-                if (!productSnap.exists()) {
-                    throw new Error(`Bahan baku ${item.productName} tidak ditemukan.`);
-                }
-                const productData = productSnap.data() as Product;
+            // Update raw material stock
+            for (const item of completionData.consumedItems) {
+                const productData = productMap.get(item.productId);
+                if (!productData) throw new Error(`Bahan baku ${item.productName} tidak ditemukan.`);
+                
                 const newStock = productData.stock - item.quantity;
-                if (newStock < 0) {
-                    throw new Error(`Stok ${item.productName} tidak mencukupi.`);
-                }
-                updates.push({ ref: productSnap.ref, newStock });
+                if (newStock < 0) throw new Error(`Stok ${item.productName} tidak mencukupi.`);
+                
+                updates.push({ ref: doc(db, 'products', item.productId), newStock });
             }
             
-            const finishedGoodData = finishedGoodSnap.data() as Product;
+            // Update finished good stock
+            const finishedGoodData = productMap.get(completionData.finishedGoodId);
+            if (!finishedGoodData) throw new Error(`Barang jadi ${completionData.finishedGoodName} tidak ditemukan.`);
+            
             const newFinishedGoodStock = finishedGoodData.stock + completionData.quantityProduced;
-            updates.push({ ref: finishedGoodSnap.ref, newStock: newFinishedGoodStock });
+            updates.push({ ref: doc(db, 'products', completionData.finishedGoodId), newStock: newFinishedGoodStock });
             
             // --- Phase 3: All Writes ---
             for (const update of updates) {
@@ -131,11 +128,11 @@ export async function completeProduction(completionData: NewProductionCompletion
             };
             transaction.set(newDocRef, dataWithTimestamp);
 
-            return { ref: newDocRef, totalCost: completionData.totalCost };
+            return newDocRef;
         });
 
         // --- Phase 4. Create Journal Entry (outside main transaction) ---
-        const { totalCost } = newCompletionRef;
+        const { totalCost, consumedItems, additionalCosts = [] } = completionData;
         const settings = await getAccountingSettings();
         const { inventoryAccountId } = settings; // Using one inventory account for simplicity
         
@@ -143,22 +140,33 @@ export async function completeProduction(completionData: NewProductionCompletion
             throw new Error('Akun Persediaan belum diatur di Pengaturan Akuntansi.');
         }
 
-        // The journal for manufacturing is complex. For now, we assume one inventory account.
-        // A correct entry would be: Dr. FG Inventory, Cr. RM Inventory, Cr. WIP-Labor, etc.
-        // Simplified: The value is transferred within the same inventory account, so no net change.
-        // We will create a journal to show the transformation.
         const journalDescription = `Penyelesaian Produksi WO #${completionData.workOrderId}`;
+        
+        const rawMaterialCost = consumedItems.reduce((sum, item) => {
+            const product = Array.from(new Map(Object.entries(db)).values()).find(p => p.id === item.productId)
+            return sum + ((product?.cost || 0) * item.quantity);
+        }, 0);
+
+
         const journalEntries: JournalEntry[] = [
-            // This represents finished goods value increasing
             { accountId: inventoryAccountId, accountName: 'Persediaan Barang Jadi', debit: totalCost, credit: 0 },
-             // This represents raw materials value decreasing
-            { accountId: inventoryAccountId, accountName: 'Persediaan Bahan Baku', debit: 0, credit: totalCost }
+            { accountId: inventoryAccountId, accountName: 'Persediaan Bahan Baku', debit: 0, credit: rawMaterialCost }
         ];
+
+        additionalCosts.forEach(cost => {
+            journalEntries.push({
+                accountId: cost.accountId,
+                accountName: cost.accountName,
+                debit: 0,
+                credit: cost.amount
+            })
+        })
+
 
         const newJournal: NewJournal = {
             date: completionData.date,
             description: journalDescription,
-            refNumber: newCompletionRef.ref.id,
+            refNumber: newCompletionRef.id,
             entries: journalEntries,
             total: totalCost
         };
@@ -170,8 +178,9 @@ export async function completeProduction(completionData: NewProductionCompletion
         revalidatePath('/(app)/products');
         revalidatePath('/(app)/accounting/ledger');
 
-        return createResponse(null, newCompletionRef.ref.id);
+        return createResponse(null, newCompletionRef.id);
     } catch (e) {
+        console.error("Error completing production:", e);
         return createResponse(e instanceof Error ? e.message : 'An unknown error occurred.');
     }
 }
