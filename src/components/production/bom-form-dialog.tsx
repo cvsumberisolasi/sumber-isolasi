@@ -202,7 +202,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
             </div>
             <div className="space-y-2">
                 <Label htmlFor="quantityProduced">Jumlah Dihasilkan</Label>
-                <Input id="quantityProduced" type="number" value={quantityProduced} onChange={(e) => setQuantityProduced(Number(e.target.value))} required disabled={isPending} />
+                <Input id="quantityProduced" type="number" value={quantityProduced} onChange={(e) => setQuantityProduced(Number(e.target.value))} onFocus={(e) => e.target.select()} required disabled={isPending} />
             </div>
           </div>
           
@@ -231,7 +231,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
                                     </Select>
                                 </TableCell>
                                 <TableCell>
-                                    <Input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}/>
+                                    <Input type="number" value={item.quantity || ''} onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))} onFocus={(e) => e.target.select()}/>
                                 </TableCell>
                                 <TableCell>
                                     <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index, 'material')}>
@@ -273,7 +273,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
                                     </Select>
                                 </TableCell>
                                 <TableCell>
-                                    <Input type="number" value={cost.amount} onChange={e => handleCostChange(index, 'amount', Number(e.target.value))}/>
+                                    <Input type="number" value={cost.amount || ''} onChange={e => handleCostChange(index, 'amount', Number(e.target.value))} onFocus={(e) => e.target.select()}/>
                                 </TableCell>
                                 <TableCell>
                                     <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index, 'cost')}>
