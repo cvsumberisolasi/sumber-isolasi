@@ -120,7 +120,6 @@ export default function StockTransferPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl md:text-3xl font-headline font-bold">Transfer Stok Antar Gudang</h1>
       <Card className="max-w-4xl mx-auto w-full">
         <CardHeader>
           <CardTitle className="font-headline">Buat Catatan Transfer</CardTitle>

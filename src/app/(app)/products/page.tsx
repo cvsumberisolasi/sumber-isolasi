@@ -1,29 +1,42 @@
 
-import { db } from '@/lib/firebase';
-import type { Product } from '@/lib/types';
-import { collection, getDocs } from 'firebase/firestore';
-import { ProductsClient } from '@/components/products/product-client';
+'use client';
 
-async function getProducts(): Promise<Product[]> {
-  const productsCol = collection(db, 'products');
-  const productSnapshot = await getDocs(productsCol);
-  const productList = productSnapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      name: data.name,
-      stock: data.stock,
-      category: data.category,
-      cost: data.cost,
-      units: data.units || [],
-      baseUnit: data.baseUnit,
-    } as Product;
-  });
-  return productList;
-}
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProductsListPage from "./list/page";
+import ProductCategoriesPage from "./categories/page";
+import WarehousesPage from "@/app/(app)/stock/warehouses/page";
+import StockTransferPage from "@/app/(app)/stock/transfer/page";
+import StockOpnamePage from "@/app/(app)/stock/opname/page";
 
-export default async function ProductsPage() {
-  const products = await getProducts();
 
-  return <ProductsClient products={products} />;
+export default function ProductsPage() {
+    return (
+        <div className="flex flex-col gap-6">
+            <h1 className="text-2xl md:text-3xl font-headline font-bold">Produk & Stok</h1>
+            <Tabs defaultValue="products-list">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+                    <TabsTrigger value="products-list">Daftar Produk</TabsTrigger>
+                    <TabsTrigger value="categories">Kategori</TabsTrigger>
+                    <TabsTrigger value="warehouses">Gudang</TabsTrigger>
+                    <TabsTrigger value="transfer">Transfer Stok</TabsTrigger>
+                    <TabsTrigger value="opname">Stock Opname</TabsTrigger>
+                </TabsList>
+                <TabsContent value="products-list" className="mt-6">
+                    <ProductsListPage />
+                </TabsContent>
+                <TabsContent value="categories" className="mt-6">
+                    <ProductCategoriesPage />
+                </TabsContent>
+                 <TabsContent value="warehouses" className="mt-6">
+                    <WarehousesPage />
+                </TabsContent>
+                 <TabsContent value="transfer" className="mt-6">
+                    <StockTransferPage />
+                </TabsContent>
+                 <TabsContent value="opname" className="mt-6">
+                    <StockOpnamePage />
+                </TabsContent>
+            </Tabs>
+        </div>
+    )
 }

@@ -14,7 +14,6 @@ import { Loader2, Save, AlertTriangle, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { processStockOpname } from './actions';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -167,7 +166,6 @@ export default function StockOpnamePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl md:text-3xl font-headline font-bold">Penyesuaian Stok (Stock Opname)</h1>
       <Card>
         <CardHeader>
           <CardTitle>Sesi Stock Opname</CardTitle>

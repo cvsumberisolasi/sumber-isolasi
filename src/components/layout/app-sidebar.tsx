@@ -132,18 +132,19 @@ const navItems = [
     ],
   },
   {
+    href: "/products",
     label: "Produk & Stok",
     icon: Package,
+  },
+  {
+    label: "Stok (Lanjutan)",
+    icon: Warehouse,
     subItems: [
-      { href: "/products", label: "Daftar Produk", icon: Package },
-      { href: "/products/categories", label: "Kategori Produk", icon: BookUser },
-      { href: "/products/import", label: "Impor Produk", icon: FileUp },
-      { href: "/stock/warehouses", label: "Gudang", icon: Warehouse },
-      { href: "/stock/notifications", label: "Stok Menipis", icon: Bell },
-      { href: "/stock-estimation", label: "Estimasi Stok (AI)", icon: BrainCircuit },
-      { href: "/stock/transfer", label: "Transfer Stok", icon: ArrowRightLeft },
-      { href: "/stock/opname", label: "Stock Opname", icon: ClipboardCheck },
+        { href: "/products/import", label: "Impor Produk", icon: FileUp },
+        { href: "/stock/notifications", label: "Stok Menipis", icon: Bell },
+        { href: "/stock-estimation", label: "Estimasi Stok (AI)", icon: BrainCircuit },
     ],
+    isAdvanced: true,
   },
    {
     href: "/production",
@@ -214,7 +215,14 @@ const navItems = [
 export function AppSidebar({ companyName }: { companyName: string }) {
   const pathname = usePathname();
 
-  const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+  const isActive = (href: string) => {
+    if (href === '/products') {
+        // Special case for the new tabbed page
+        return pathname.startsWith('/products') || pathname.startsWith('/stock/warehouses') || pathname.startsWith('/stock/transfer') || pathname.startsWith('/stock/opname');
+    }
+    return pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+  };
+
   const isSubActive = (subItems: any[]) =>
     subItems.some((item) => item.href && isActive(item.href));
 
