@@ -38,15 +38,19 @@ import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { getCompanySettings, CompanySettings } from '@/app/(app)/settings/actions';
+import Image from 'next/image';
 
 export default function PrintReceiptPage() {
   const [txId, setTxId] = useState('');
   const [isPending, startTransition] = useTransition();
   const [receipt, setReceipt] = useState<Transaction | null>(null);
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    getCompanySettings().then(setCompanySettings);
     const q = query(collection(db, 'transactions'), orderBy('date', 'desc'));
     const unsub = onSnapshot(q, (snapshot) => {
       setAllTransactions(snapshot.docs.map(doc => ({
@@ -125,7 +129,10 @@ export default function PrintReceiptPage() {
             </DialogHeader>
             <div className="printable-area font-mono text-xs p-2">
               <div className="text-center space-y-1 mb-4">
-                <h2 className="text-base font-bold font-headline">Toko Kilat</h2>
+                 {companySettings?.logoDataUrl && <Image src={companySettings.logoDataUrl} alt="Logo" width={40} height={40} className="mx-auto" />}
+                <h2 className="text-base font-bold font-headline">{companySettings?.companyName || "Toko Kilat"}</h2>
+                <p className="text-xs">{companySettings?.address}</p>
+                <p className="text-xs">{companySettings?.phone}</p>
                 <p>{new Date(receipt.date).toLocaleString('id-ID')}</p>
                 <p>#{receipt.id}</p>
               </div>

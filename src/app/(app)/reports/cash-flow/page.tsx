@@ -361,7 +361,7 @@ function ReportRowComponent({ row, isSubRow = false, isSubSubRow = false }: { ro
       );
     }
     
-    return <span className={cn(isClickable && "group")}>{content}</span>;
+    return <span className={cn(isClickable && "group cursor-pointer")}>{content}</span>;
   }
 
   return (

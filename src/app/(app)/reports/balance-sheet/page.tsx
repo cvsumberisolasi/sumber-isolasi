@@ -158,15 +158,23 @@ export default function BalanceSheetPage() {
     const settings = await getCompanySettings();
     const companyName = settings.companyName || 'Toko Kilat';
     const period = `Per tanggal: ${reportDate ? format(reportDate, 'd MMMM yyyy', { locale: id }) : '...'}`;
+    let y = 15;
+
+    if (settings.logoDataUrl) {
+      doc.addImage(settings.logoDataUrl, 'PNG', 14, y, 20, 20);
+    }
     
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(companyName, 105, 15, { align: 'center' });
+    doc.text(companyName, 105, y + 5, { align: 'center' });
+    y += 7;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text('Laporan Posisi Keuangan', 105, 22, { align: 'center' });
+    doc.text('Laporan Posisi Keuangan', 105, y + 5, { align: 'center' });
+    y += 5;
     doc.setFontSize(10);
-    doc.text(period, 105, 27, { align: 'center' });
+    doc.text(period, 105, y + 5, { align: 'center' });
+    y += 15;
     
     const assetBody = [
         [{ content: 'Aset Lancar', colSpan: 2, styles: { fontStyle: 'bold' } }],
@@ -177,13 +185,13 @@ export default function BalanceSheetPage() {
         [{ content: 'Total Aset Tetap', styles: { fontStyle: 'bold' } }, { content: reportData.fixedAssets.reduce((s, r) => s + r.amount, 0).toLocaleString('id-ID'), styles: { halign: 'right' } }]
     ];
      autoTable(doc, {
-        startY: 35,
+        startY: y,
         head: [['Aset', '']],
         body: assetBody,
         theme: 'plain',
         tableWidth: 90,
         columnStyles: { 0: { cellWidth: 60 }, 1: { cellWidth: 30 } },
-        didDrawPage: (data) => { data.cursor!.x = 115; data.cursor!.y = 35; }
+        didDrawPage: (data) => { data.cursor!.x = 115; data.cursor!.y = y; }
     });
 
     const liabEquityBody = [

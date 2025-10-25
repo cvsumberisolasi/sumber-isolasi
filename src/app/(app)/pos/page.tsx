@@ -47,6 +47,8 @@ import {
 import { cn } from '@/lib/utils';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { CompanySettings, getCompanySettings } from '@/app/(app)/settings/actions';
+import Image from 'next/image';
 
 export default function POSPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -54,6 +56,7 @@ export default function POSPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [receipt, setReceipt] = useState<Transaction | null>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -62,6 +65,7 @@ export default function POSPage() {
   const [isParkDialogOpen, setIsParkDialogOpen] = useState(false);
 
   useEffect(() => {
+    getCompanySettings().then(setCompanySettings);
     // Resume cart from local storage if exists
     try {
         const resumedCart = localStorage.getItem('resumedCart');
@@ -385,7 +389,10 @@ export default function POSPage() {
             </DialogHeader>
             <div id="printable-area" className="font-mono text-xs p-2">
               <div className="text-center space-y-1 mb-4">
-                <h2 className="text-base font-bold font-headline">Toko Kilat</h2>
+                {companySettings?.logoDataUrl && <Image src={companySettings.logoDataUrl} alt="Logo" width={40} height={40} className="mx-auto" />}
+                <h2 className="text-base font-bold font-headline">{companySettings?.companyName || "Toko Kilat"}</h2>
+                <p className="text-xs">{companySettings?.address}</p>
+                <p className="text-xs">{companySettings?.phone}</p>
                 <p>{new Date(receipt.date).toLocaleString('id-ID')}</p>
                 <p>#{receipt.id}</p>
               </div>
@@ -484,5 +491,6 @@ function ProductPicker({ products, onSelect }: { products: Product[], onSelect: 
 
     
     
+
 
 
