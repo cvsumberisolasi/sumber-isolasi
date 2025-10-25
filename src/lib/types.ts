@@ -1,5 +1,6 @@
 
 
+
 export type ProductType = 'Barang Jadi' | 'Bahan Baku' | 'Barang Dagang';
 
 export type ProductUnit = {
@@ -428,12 +429,6 @@ export type BillOfMaterial = {
 
 export type NewBillOfMaterial = Omit<BillOfMaterial, 'id'>;
 
-export type WorkOrderItem = {
-  productId: string;
-  productName: string;
-  quantity: number;
-}
-
 export type WorkOrder = {
   id: string;
   date: Date;
@@ -443,7 +438,12 @@ export type WorkOrder = {
   bomId: string;
   status: 'Belum Diproses' | 'Dalam Pengerjaan' | 'Selesai' | 'Dibatalkan';
   notes?: string;
-  items: WorkOrderItem[]; // List of raw materials needed
+  startDate: any; // Timestamp
+  endDate: any; // Timestamp
 };
 
-export type NewWorkOrder = Omit<WorkOrder, 'id' | 'date'> & { date: Date | any };
+export type NewWorkOrder = Omit<WorkOrder, 'id' | 'date' | 'startDate' | 'endDate'> & {
+    date: Date | any;
+    startDate: Date | any;
+    endDate: Date | any;
+};
