@@ -138,7 +138,7 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
         setProducts(allProducts);
 
         if (bomSnap.exists()) {
-          const bomData = bomSnap.data() as BillOfMaterial;
+          const bomData = {id: bomSnap.id, ...bomSnap.data()} as BillOfMaterial;
           setBom(bomData);
           setConsumedItems(bomData.items.map(item => ({
             ...item,
