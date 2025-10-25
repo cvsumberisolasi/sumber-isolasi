@@ -2,26 +2,39 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { collection, writeBatch, getDocs, query, doc, getDoc, where, Query } from "firebase/firestore";
+import { collection, writeBatch, getDocs, query, doc, getDoc, where, Query, QueryDocumentSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { Transaction, SalesReturn, GoodsReceipt, PurchaseReturn, StockOpname, Product } from "@/lib/types";
 
 const createResponse = (error: string | null = null) => ({ error });
 
-async function deleteDocuments(q: Query) {
-    const batch = writeBatch(db);
+async function deleteDocumentsInBatches(q: Query) {
     const snapshot = await getDocs(q);
-    snapshot.forEach(doc => {
+    if (snapshot.empty) return;
+    
+    const BATCH_SIZE = 500;
+    let i = 0;
+    let batch = writeBatch(db);
+    
+    for (const doc of snapshot.docs) {
         batch.delete(doc.ref);
-    });
-    await batch.commit();
+        i++;
+        if (i % BATCH_SIZE === 0) {
+            await batch.commit();
+            batch = writeBatch(db);
+        }
+    }
+    
+    if (i % BATCH_SIZE !== 0) {
+        await batch.commit();
+    }
 }
 
 
 export async function deleteCashInJournals() {
     try {
         const q = query(collection(db, "journals"), where('description', '>=', 'Kas Masuk:'), where('description', '<', 'Kas Masuk:' + '\uf8ff'));
-        await deleteDocuments(q);
+        await deleteDocumentsInBatches(q);
         revalidateAllPaths();
         return createResponse();
     } catch(e) {
@@ -32,7 +45,7 @@ export async function deleteCashInJournals() {
 export async function deleteCashOutJournals() {
     try {
         const q = query(collection(db, "journals"), where('description', '>=', 'Kas Keluar:'), where('description', '<', 'Kas Keluar:' + '\uf8ff'));
-        await deleteDocuments(q);
+        await deleteDocumentsInBatches(q);
         revalidateAllPaths();
         return createResponse();
     } catch(e) {
@@ -43,7 +56,7 @@ export async function deleteCashOutJournals() {
 export async function deleteCashTransferJournals() {
     try {
         const q = query(collection(db, "journals"), where('description', '>=', 'Transfer:'), where('description', '<', 'Transfer:' + '\uf8ff'));
-        await deleteDocuments(q);
+        await deleteDocumentsInBatches(q);
         revalidateAllPaths();
         return createResponse();
     } catch(e) {
@@ -54,12 +67,16 @@ export async function deleteCashTransferJournals() {
 
 export async function deleteSingleCollection(collectionName: string) {
     try {
-        const batch = writeBatch(db);
         const docsToDelete = await getDocs(query(collection(db, collectionName)));
         const stockAdjustments: { [productId: string]: number } = {};
 
         if (!docsToDelete.empty) {
+            const BATCH_SIZE = 500;
+            let i = 0;
+            let batch = writeBatch(db);
+            
             for (const docSnap of docsToDelete.docs) {
+                batch.delete(docSnap.ref);
                 const data = docSnap.data();
 
                 // Logic for stock reversion based on collection type
@@ -95,21 +112,43 @@ export async function deleteSingleCollection(collectionName: string) {
                         });
                         break;
                 }
-                batch.delete(docSnap.ref);
+                
+                i++;
+                if (i % BATCH_SIZE === 0) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                }
+            }
+            if (i % BATCH_SIZE !== 0) {
+                await batch.commit();
             }
 
-            for (const productId in stockAdjustments) {
-                const productRef = doc(db, 'products', productId);
-                const productSnap = await getDoc(productRef);
-                if (productSnap.exists()) {
-                    const productData = productSnap.data() as Product;
-                    const currentStock = productData.stock || 0;
-                    batch.update(productRef, { stock: currentStock + stockAdjustments[productId] });
+            // Apply stock adjustments
+            const productIds = Object.keys(stockAdjustments);
+            if (productIds.length > 0) {
+                let productBatch = writeBatch(db);
+                let j = 0;
+                for (const productId of productIds) {
+                    const productRef = doc(db, 'products', productId);
+                    const productSnap = await getDoc(productRef);
+                    if (productSnap.exists()) {
+                        const productData = productSnap.data() as Product;
+                        const currentStock = productData.stock || 0;
+                        productBatch.update(productRef, { stock: currentStock + stockAdjustments[productId] });
+                        
+                        j++;
+                        if (j % BATCH_SIZE === 0) {
+                            await productBatch.commit();
+                            productBatch = writeBatch(db);
+                        }
+                    }
+                }
+                 if (j % BATCH_SIZE !== 0) {
+                    await productBatch.commit();
                 }
             }
         }
         
-        await batch.commit();
         revalidateAllPaths();
         return createResponse();
     } catch(e) {
@@ -120,18 +159,29 @@ export async function deleteSingleCollection(collectionName: string) {
 
 export async function resetAllProductStock() {
     try {
-        const batch = writeBatch(db);
         const productsSnapshot = await getDocs(collection(db, 'products'));
 
         if (productsSnapshot.empty) {
             return createResponse("Tidak ada produk untuk direset.");
         }
-
-        productsSnapshot.forEach(doc => {
+        
+        const BATCH_SIZE = 500;
+        let i = 0;
+        let batch = writeBatch(db);
+        
+        for (const doc of productsSnapshot.docs) {
             batch.update(doc.ref, { stock: 0 });
-        });
+            i++;
+            if (i % BATCH_SIZE === 0) {
+                await batch.commit();
+                batch = writeBatch(db);
+            }
+        }
 
-        await batch.commit();
+        if (i % BATCH_SIZE !== 0) {
+            await batch.commit();
+        }
+
         revalidateAllPaths();
         return createResponse();
     } catch (e) {
@@ -148,11 +198,13 @@ function revalidateAllPaths() {
         "/(app)/pos",
         "/(app)/pos/parked",
         "/(app)/transactions",
-        "/(app)/sales/receivables",
+        "/(app)/sales",
         "/(app)/sales/manual-input",
+        "/(app)/sales/receivables",
         "/(app)/sales/returns",
         "/(app)/sales/import",
         "/(app)/products",
+        "/(app)/products/list",
         "/(app)/products/categories",
         "/(app)/products/import",
         "/(app)/stock/warehouses",
@@ -161,6 +213,7 @@ function revalidateAllPaths() {
         "/(app)/stock/opname",
         "/(app)/customers",
         "/(app)/suppliers",
+        "/(app)/purchasing",
         "/(app)/purchasing/request",
         "/(app)/purchasing/order",
         "/(app)/purchasing/goods-receipt",
@@ -173,11 +226,14 @@ function revalidateAllPaths() {
         "/(app)/accounting/closing",
         "/(app)/accounting/post-closing-trial-balance",
         "/(app)/reports",
+        "/(app)/reports/sales",
+        "/(app)/reports/purchasing",
+        "/(app)/reports/stock",
+        "/(app)/reports/production",
+        "/(app)/reports/expenses",
         "/(app)/reports/financial",
         "/(app)/reports/balance-sheet",
         "/(app)/reports/cash-flow",
-        "/(app)/reports/purchasing",
-        "/(app)/reports/stock",
         "/(app)/settings",
         "/(app)/settings/accounting",
         "/(app)/settings/marketplace",
@@ -188,6 +244,7 @@ function revalidateAllPaths() {
         "/(app)/cash/in",
         "/(app)/cash/out",
         "/(app)/cash/transfer",
+        "/(app)/production",
     ];
     paths.forEach(path => revalidatePath(path));
 }

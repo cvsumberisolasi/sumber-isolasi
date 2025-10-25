@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Handshake, DollarSign, Package, ShoppingCart, AlertCircle } from "lucide-react";
-import { collection, query, where, onSnapshot, Timestamp } from 'firebase/firestore';
+import { Handshake, DollarSign, Package, ShoppingCart, AlertCircle, Workflow } from "lucide-react";
+import { collection, query, where, onSnapshot, Timestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Product, Transaction, SalesData, SupplierInvoice } from '@/lib/types';
+import type { Product, Transaction, SupplierInvoice, WorkOrder, ProductionCompletion } from '@/lib/types';
 import {
   Card,
   CardContent,
@@ -24,13 +24,16 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { WeeklySalesChart } from "@/components/dashboard/weekly-sales-chart";
+import { format } from 'date-fns';
 
 export default function DashboardPage() {
   const [dailySales, setDailySales] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
-  const [weeklySales, setWeeklySales] = useState<SalesData[]>([]);
+  const [weeklySales, setWeeklySales] = useState<any[]>([]);
   const [totalReceivables, setTotalReceivables] = useState(0);
   const [totalPayables, setTotalPayables] = useState(0);
+  const [activeWorkOrders, setActiveWorkOrders] = useState<WorkOrder[]>([]);
+  const [recentCompletions, setRecentCompletions] = useState<ProductionCompletion[]>([]);
 
   useEffect(() => {
     // --- Transactions Listener (Daily Sales & Weekly Trend) ---
@@ -100,19 +103,33 @@ export default function DashboardPage() {
         setTotalPayables(total);
     });
 
+    // --- Active Work Orders Listener ---
+    const qActiveWOs = query(collection(db, 'workOrders'), where('status', '==', 'Dalam Pengerjaan'));
+    const unsubscribeActiveWOs = onSnapshot(qActiveWOs, (snapshot) => {
+        setActiveWorkOrders(snapshot.docs.map(doc => doc.data() as WorkOrder));
+    });
+
+    // --- Recent Production Completions Listener ---
+    const qRecentCompletions = query(collection(db, 'productionCompletions'), orderBy('date', 'desc'), limit(5));
+    const unsubscribeRecentCompletions = onSnapshot(qRecentCompletions, (snapshot) => {
+        setRecentCompletions(snapshot.docs.map(doc => ({id: doc.id, ...doc.data(), date: doc.data().date.toDate()} as ProductionCompletion)));
+    });
+
 
     return () => {
       unsubscribeTransactions();
       unsubscribeLowStock();
       unsubscribeReceivables();
       unsubscribePayables();
+      unsubscribeActiveWOs();
+      unsubscribeRecentCompletions();
     };
   }, []);
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl md:text-3xl font-headline font-bold">Dashboard</h1>
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
         <Link href="/transactions">
           <Card className="hover:bg-muted/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -163,6 +180,20 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </Link>
+        <Link href="/production">
+            <Card className="hover:bg-muted/50 transition-colors">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium font-body">Produksi Berjalan</CardTitle>
+                <Workflow className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                <div className="text-2xl font-bold">{activeWorkOrders.length}</div>
+                <p className="text-xs text-muted-foreground">
+                    Jumlah perintah produksi yang aktif
+                </p>
+                </CardContent>
+            </Card>
+        </Link>
         <Link href="/stock/notifications">
           <Card className="hover:bg-muted/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -172,7 +203,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl font-bold">{lowStockProducts.length}</div>
               <p className="text-xs text-muted-foreground">
-                Produk dengan stok di bawah batas minimum
+                Produk di bawah batas minimum
               </p>
             </CardContent>
           </Card>
@@ -204,7 +235,7 @@ export default function DashboardPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {lowStockProducts.map((product) => (
+                  {lowStockProducts.slice(0, 5).map((product) => (
                     <TableRow key={product.id}>
                       <TableCell>
                         <div className="font-medium">{product.name}</div>
@@ -223,6 +254,53 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+       <Card>
+          <CardHeader>
+            <CardTitle className="font-headline">Aktivitas Produksi Terbaru</CardTitle>
+            <CardDescription>
+              Menampilkan 5 penyelesaian produksi yang terakhir dicatat.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tanggal Selesai</TableHead>
+                    <TableHead>Produk Jadi</TableHead>
+                    <TableHead className="text-right">Jumlah</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentCompletions.length === 0 ? (
+                     <TableRow>
+                        <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                            Belum ada aktivitas produksi.
+                        </TableCell>
+                     </TableRow>
+                  ) : (
+                    recentCompletions.map((pc) => (
+                        <TableRow key={pc.id}>
+                        <TableCell>
+                            {format(pc.date, "dd MMM yyyy, HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                            <div className="font-medium">{pc.finishedGoodName}</div>
+                            <div className="text-sm text-muted-foreground font-mono text-xs">
+                            WO: {pc.workOrderId}
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                            <Badge variant="secondary">{pc.quantityProduced} unit</Badge>
+                        </TableCell>
+                        </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
     </div>
   );
 }
