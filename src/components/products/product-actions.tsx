@@ -262,10 +262,20 @@ export function ProductFormDialog({ children, product }: { children: React.React
         toast({ title: "Kategori harus dipilih", variant: "destructive" });
         return;
     }
-    if (units.some(u => !u.name || u.conversionRate <= 0 || u.price <= 0)) {
-        toast({ title: "Data satuan tidak valid", description: "Nama satuan, harga, dan rasio konversi harus diisi dengan benar.", variant: "destructive" });
-        return;
+    
+    // Custom validation based on product type
+    if (productType !== 'Barang Jadi') {
+      if (units.some(u => !u.name || u.conversionRate <= 0 || u.price <= 0)) {
+          toast({ title: "Data satuan tidak valid", description: "Nama satuan, harga, dan rasio konversi harus diisi dengan benar.", variant: "destructive" });
+          return;
+      }
+    } else { // For 'Barang Jadi', only name and conversion rate are mandatory
+      if (units.some(u => !u.name || u.conversionRate <= 0)) {
+          toast({ title: "Data satuan tidak valid", description: "Nama satuan dan rasio konversi harus diisi dengan benar.", variant: "destructive" });
+          return;
+      }
     }
+
 
     startTransition(async () => {
       const productData = { 
@@ -362,7 +372,8 @@ export function ProductFormDialog({ children, product }: { children: React.React
             </div>
              <div className="space-y-2">
               <Label htmlFor="cost">Harga Pokok Satuan Dasar</Label>
-              <Input id="cost" type="number" value={cost || ''} onChange={(e) => setCost(Number(e.target.value))} required disabled={isPending}/>
+              <Input id="cost" type="number" value={cost || ''} onChange={(e) => setCost(Number(e.target.value))} required={productType !== 'Barang Jadi'} disabled={isPending || productType === 'Barang Jadi'}/>
+               {productType === 'Barang Jadi' && <p className="text-xs text-muted-foreground">Harga pokok akan dihitung otomatis dari biaya produksi.</p>}
             </div>
           </div>
           
@@ -383,7 +394,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
                         {units.map((unit, index) => (
                             <TableRow key={index}>
                                 <TableCell><Input placeholder={index === 0 ? "Pcs" : "Box"} value={unit.name} onChange={e => handleUnitChange(index, 'name', e.target.value)} required/></TableCell>
-                                <TableCell><Input type="number" placeholder="10000" value={unit.price || ''} onChange={e => handleUnitChange(index, 'price', Number(e.target.value))} required/></TableCell>
+                                <TableCell><Input type="number" placeholder="10000" value={unit.price || ''} onChange={e => handleUnitChange(index, 'price', Number(e.target.value))} required={productType !== 'Barang Jadi'} disabled={productType === 'Barang Jadi'}/></TableCell>
                                 <TableCell><Input type="number" placeholder={index === 0 ? "1" : "12"} value={unit.conversionRate || ''} onChange={e => handleUnitChange(index, 'conversionRate', Number(e.target.value))} required disabled={index === 0} /></TableCell>
                                 <TableCell>
                                     {index > 0 && <Button type="button" variant="ghost" size="icon" onClick={() => removeUnit(index)}><XCircle className="w-4 h-4 text-destructive" /></Button>}
