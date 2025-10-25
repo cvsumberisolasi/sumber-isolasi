@@ -9,17 +9,19 @@ import ExpensesReportPage from "./expenses/page";
 import FinancialReportsPage from "./financial/page";
 import BalanceSheetPage from "./balance-sheet/page";
 import CashFlowPage from "./cash-flow/page";
+import ProductionReportPage from "./production/page";
 
 export default function ReportsPage() {
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl md:text-3xl font-headline font-bold">Laporan</h1>
             <Tabs defaultValue="sales" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-7">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 md:grid-cols-8">
                     <TabsTrigger value="sales">Penjualan</TabsTrigger>
                     <TabsTrigger value="purchasing">Pembelian</TabsTrigger>
                     <TabsTrigger value="stock">Stok</TabsTrigger>
-                    <TabsTrigger value="expenses">Pengeluaran</TabsTrigger>
+                    <TabsTrigger value="production">Produksi</TabsTrigger>
+                    <TabsTrigger value="expenses">Beban</TabsTrigger>
                     <TabsTrigger value="profit-loss">Laba Rugi</TabsTrigger>
                     <TabsTrigger value="balance-sheet">Neraca</TabsTrigger>
                     <TabsTrigger value="cash-flow">Arus Kas</TabsTrigger>
@@ -32,6 +34,9 @@ export default function ReportsPage() {
                 </TabsContent>
                 <TabsContent value="stock" className="mt-6">
                     <StockReportsPage />
+                </TabsContent>
+                <TabsContent value="production" className="mt-6">
+                    <ProductionReportPage />
                 </TabsContent>
                 <TabsContent value="expenses" className="mt-6">
                     <ExpensesReportPage />
