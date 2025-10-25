@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { revalidatePath } from "next/cache";
@@ -83,12 +84,26 @@ export async function completeProduction(completionData: NewProductionCompletion
             const newId = generateDocumentId('PC');
             const newDocRef = doc(completionCol, newId);
 
-            let totalRawMaterialCost = 0;
+            // --- Phase 1: All Reads ---
+            const rawMaterialReads = completionData.consumedItems.map(item => 
+                transaction.get(doc(db, 'products', item.productId))
+            );
+            const finishedGoodRead = transaction.get(doc(db, 'products', completionData.finishedGoodId));
 
-            // --- 1. Decrease Raw Material Stock ---
-            for (const item of completionData.consumedItems) {
-                const productRef = doc(db, 'products', item.productId);
-                const productSnap = await transaction.get(productRef);
+            const [finishedGoodSnap, ...rawMaterialSnaps] = await Promise.all([finishedGoodRead, ...rawMaterialReads]);
+
+            if (!finishedGoodSnap.exists()) {
+                throw new Error(`Barang jadi ${completionData.finishedGoodName} tidak ditemukan.`);
+            }
+
+            // --- Phase 2: Logic & Validation (No DB Writes Yet) ---
+            let totalRawMaterialCost = 0;
+            const updates: { ref: FirebaseFirestore.DocumentReference<DocumentData>, newStock: number }[] = [];
+
+            for (let i = 0; i < completionData.consumedItems.length; i++) {
+                const item = completionData.consumedItems[i];
+                const productSnap = rawMaterialSnaps[i];
+
                 if (!productSnap.exists()) {
                     throw new Error(`Bahan baku ${item.productName} tidak ditemukan.`);
                 }
@@ -97,26 +112,22 @@ export async function completeProduction(completionData: NewProductionCompletion
                 if (newStock < 0) {
                     throw new Error(`Stok ${item.productName} tidak mencukupi.`);
                 }
-                
                 totalRawMaterialCost += (productData.cost || 0) * item.quantity;
-                transaction.update(productRef, { stock: newStock });
+                updates.push({ ref: productSnap.ref, newStock });
             }
-
-            // --- 2. Increase Finished Good Stock ---
-            const finishedGoodRef = doc(db, 'products', completionData.finishedGoodId);
-            const finishedGoodSnap = await transaction.get(finishedGoodRef);
-             if (!finishedGoodSnap.exists()) {
-                throw new Error(`Barang jadi ${completionData.finishedGoodName} tidak ditemukan.`);
-            }
+            
             const finishedGoodData = finishedGoodSnap.data() as Product;
             const newFinishedGoodStock = finishedGoodData.stock + completionData.quantityProduced;
-            transaction.update(finishedGoodRef, { stock: newFinishedGoodStock });
+            updates.push({ ref: finishedGoodSnap.ref, newStock: newFinishedGoodStock });
             
-            // --- 3. Update Work Order Status ---
+            // --- Phase 3: All Writes ---
+            for (const update of updates) {
+                transaction.update(update.ref, { stock: update.newStock });
+            }
+
             const woRef = doc(db, 'workOrders', completionData.workOrderId);
             transaction.update(woRef, { status: 'Selesai' });
 
-            // --- 4. Save Completion Record ---
             const dataWithTimestamp = {
                 ...completionData,
                 date: Timestamp.fromDate(completionData.date),
@@ -127,7 +138,7 @@ export async function completeProduction(completionData: NewProductionCompletion
             return { ref: newDocRef, totalCost: totalRawMaterialCost };
         });
 
-        // --- 5. Create Journal Entry ---
+        // --- Phase 4. Create Journal Entry (outside main transaction) ---
         const { totalCost } = newCompletionRef;
         const settings = await getAccountingSettings();
         const { inventoryAccountId } = settings; // Using one inventory account for simplicity
