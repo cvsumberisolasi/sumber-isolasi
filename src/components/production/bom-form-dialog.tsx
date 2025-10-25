@@ -26,6 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ProductFormDialog } from '../products/product-actions';
+import { Separator } from '../ui/separator';
 
 interface BomFormDialogProps {
   children: React.ReactNode;
@@ -49,7 +51,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
   const isDropdownItem = React.isValidElement(children) && (children.type as any).displayName === 'DropdownMenuItem';
 
   const handleAddItem = () => {
-    setItems(prev => [...prev, { productId: '', productName: '', quantity: 0 }]);
+    setItems(prev => [...prev, { productId: '', productName: '', quantity: 0, unit: '' }]);
   };
 
   const handleItemChange = (index: number, field: keyof BillOfMaterialItem, value: string | number) => {
@@ -57,7 +59,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
       const newItems = [...prev];
       if (field === 'productId') {
         const product = rawMaterials.find(p => p.id === value);
-        newItems[index] = { ...newItems[index], productId: value as string, productName: product?.name || '' };
+        newItems[index] = { ...newItems[index], productId: value as string, productName: product?.name || '', unit: product?.baseUnit || '' };
       } else {
         (newItems[index] as any)[field] = value;
       }
@@ -144,9 +146,21 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
                   <SelectValue placeholder="Pilih produk jadi..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {finishedGoods.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
+                  {finishedGoods.length === 0 ? (
+                    <div className="p-4 text-sm text-center text-muted-foreground">
+                      Belum ada produk bertipe "Barang Jadi".
+                    </div>
+                  ) : (
+                    finishedGoods.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))
+                  )}
+                  <Separator className="my-1"/>
+                   <ProductFormDialog>
+                      <div onSelect={(e) => e.preventDefault()} className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
+                        <PlusCircle className="mr-2 h-4 w-4"/> Tambah Produk Jadi Baru...
+                      </div>
+                  </ProductFormDialog>
                 </SelectContent>
               </Select>
             </div>
@@ -158,7 +172,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
           
           <div className="space-y-2">
             <Label>Bahan Baku (Input)</Label>
-            <div className="border rounded-md">
+            <div className="border rounded-lg">
                 <Table>
                     <TableHeader>
                         <TableRow>
