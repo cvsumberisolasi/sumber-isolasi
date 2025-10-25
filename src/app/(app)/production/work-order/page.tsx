@@ -132,7 +132,7 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
 
   const [boms, setBoms] = useState<BillOfMaterial[]>([]);
   const [selectedBomId, setSelectedBomId] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  const [productionCycles, setProductionCycles] = useState(1);
   const [startDate, setStartDate] = useState<Date|undefined>(new Date());
   const [endDate, setEndDate] = useState<Date|undefined>();
   const [notes, setNotes] = useState('');
@@ -151,16 +151,19 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
 
   const selectedBom = useMemo(() => boms.find(b => b.id === selectedBomId), [boms, selectedBomId]);
 
+  const totalQuantityToProduce = useMemo(() => {
+    if (!selectedBom) return 0;
+    return (selectedBom.quantityProduced || 1) * productionCycles;
+  }, [selectedBom, productionCycles]);
+
   useEffect(() => {
     if (selectedBom) {
-        setQuantity(selectedBom.quantityProduced || 1);
-    } else {
-        setQuantity(1);
+        setProductionCycles(1);
     }
   }, [selectedBom]);
 
   const handleSave = () => {
-    if (!selectedBom || !startDate || !endDate || quantity <= 0) {
+    if (!selectedBom || !startDate || !endDate || totalQuantityToProduce <= 0) {
         toast({ title: 'Data tidak lengkap', description: 'Mohon isi semua field yang diperlukan.', variant: 'destructive'});
         return;
     }
@@ -169,7 +172,7 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
         date: new Date(),
         finishedGoodId: selectedBom.productId,
         finishedGoodName: selectedBom.productName,
-        quantityToProduce: quantity,
+        quantityToProduce: totalQuantityToProduce,
         bomId: selectedBom.id,
         status: 'Belum Diproses',
         notes,
@@ -200,7 +203,7 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
             <CardDescription>Pilih produk yang akan diproduksi dan tentukan jumlahnya.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                 <div className="space-y-2">
                     <Label>Produk yang akan Dibuat</Label>
                     <Select value={selectedBomId} onValueChange={setSelectedBomId}>
@@ -212,10 +215,15 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-2">
-                    <Label>Jumlah Produksi</Label>
-                    <Input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min={1} onFocus={(e) => e.target.select()}/>
-                    <p className="text-xs text-muted-foreground">Jumlah barang jadi yang ingin dihasilkan.</p>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>Jumlah Siklus Produksi</Label>
+                        <Input type="number" value={productionCycles} onChange={e => setProductionCycles(Number(e.target.value))} min={1} onFocus={(e) => e.target.select()}/>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Total Jumlah Produksi</Label>
+                        <Input type="number" value={totalQuantityToProduce} disabled className="font-bold"/>
+                    </div>
                 </div>
             </div>
             {selectedBom && (
@@ -228,7 +236,7 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
                                 {selectedBom.items.map(item => (
                                     <TableRow key={item.productId}>
                                         <TableCell>{item.productName}</TableCell>
-                                        <TableCell className="text-right">{item.quantity * (quantity / selectedBom.quantityProduced)} unit</TableCell>
+                                        <TableCell className="text-right">{item.quantity * productionCycles} {item.unit}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
