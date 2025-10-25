@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useTransition, useMemo } from 'react';
+import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import { collection, onSnapshot, query, orderBy, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { WorkOrder, BillOfMaterial, Product } from '@/lib/types';
@@ -151,6 +151,14 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
 
   const selectedBom = useMemo(() => boms.find(b => b.id === selectedBomId), [boms, selectedBomId]);
 
+  useEffect(() => {
+    if (selectedBom) {
+        setQuantity(selectedBom.quantityProduced || 1);
+    } else {
+        setQuantity(1);
+    }
+  }, [selectedBom]);
+
   const handleSave = () => {
     if (!selectedBom || !startDate || !endDate || quantity <= 0) {
         toast({ title: 'Data tidak lengkap', description: 'Mohon isi semua field yang diperlukan.', variant: 'destructive'});
@@ -199,14 +207,14 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
                         <SelectTrigger><SelectValue placeholder="Pilih produk dari BOM..." /></SelectTrigger>
                         <SelectContent>
                             {boms.map(bom => (
-                                <SelectItem key={bom.id} value={bom.id}>{bom.productName} (x{bom.quantityProduced})</SelectItem>
+                                <SelectItem key={bom.id} value={bom.id}>{bom.productName} (menghasilkan x{bom.quantityProduced})</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
                 </div>
                 <div className="space-y-2">
                     <Label>Jumlah Produksi</Label>
-                    <Input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min={1}/>
+                    <Input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min={1} onFocus={(e) => e.target.select()}/>
                     <p className="text-xs text-muted-foreground">Jumlah barang jadi yang ingin dihasilkan.</p>
                 </div>
             </div>
@@ -220,7 +228,7 @@ function NewWorkOrderForm({ onBack }: { onBack: () => void }) {
                                 {selectedBom.items.map(item => (
                                     <TableRow key={item.productId}>
                                         <TableCell>{item.productName}</TableCell>
-                                        <TableCell className="text-right">{item.quantity * quantity} unit</TableCell>
+                                        <TableCell className="text-right">{item.quantity * (quantity / selectedBom.quantityProduced)} unit</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
