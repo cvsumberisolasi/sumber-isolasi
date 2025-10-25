@@ -14,7 +14,7 @@ export type Product = {
   sku?: string; // Stock Keeping Unit
   name: string;
   category: string;
-  productType: ProductType;
+  productType: string[]; // Changed from ProductType to string[]
   stock: number; // Total stock in base unit
   cost?: number; // Base cost of the product
   units: ProductUnit[];

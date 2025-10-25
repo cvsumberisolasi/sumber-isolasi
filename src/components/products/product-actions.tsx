@@ -48,6 +48,7 @@ import {
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Checkbox } from '../ui/checkbox';
 
 
 export function ProductActions({ hasProducts }: { hasProducts: boolean }) {
@@ -220,7 +221,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
   const [name, setName] = useState(product?.name || '');
   const [sku, setSku] = useState(product?.sku || '');
   const [category, setCategory] = useState(product?.category || '');
-  const [productType, setProductType] = useState<ProductType>(product?.productType || 'Barang Dagang');
+  const [productTypes, setProductTypes] = useState<string[]>(product?.productType ? (Array.isArray(product.productType) ? product.productType : [product.productType]) : ['Barang Dagang']);
   const [stock, setStock] = useState(product?.stock || 0);
   const [cost, setCost] = useState(product?.cost || 0);
   const [minStockThreshold, setMinStockThreshold] = useState(product?.minStockThreshold || 10);
@@ -256,20 +257,31 @@ export function ProductFormDialog({ children, product }: { children: React.React
     }
   };
 
+  const handleProductTypeChange = (type: ProductType, checked: boolean) => {
+    setProductTypes(prev => {
+        const newTypes = new Set(prev);
+        if (checked) {
+            newTypes.add(type);
+        } else {
+            newTypes.delete(type);
+        }
+        return Array.from(newTypes);
+    })
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!category) {
-        toast({ title: "Kategori harus dipilih", variant: "destructive" });
+    if (!category || productTypes.length === 0) {
+        toast({ title: "Data tidak lengkap", description: "Kategori dan Tipe Barang harus diisi.", variant: "destructive" });
         return;
     }
     
-    // Custom validation based on product type
-    if (productType !== 'Barang Jadi') {
+    if (!productTypes.includes('Barang Jadi')) {
       if (units.some(u => !u.name || u.conversionRate <= 0 || u.price <= 0)) {
           toast({ title: "Data satuan tidak valid", description: "Nama satuan, harga, dan rasio konversi harus diisi dengan benar.", variant: "destructive" });
           return;
       }
-    } else { // For 'Barang Jadi', only name and conversion rate are mandatory
+    } else {
       if (units.some(u => !u.name || u.conversionRate <= 0)) {
           toast({ title: "Data satuan tidak valid", description: "Nama satuan dan rasio konversi harus diisi dengan benar.", variant: "destructive" });
           return;
@@ -282,7 +294,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
         name, 
         sku,
         category, 
-        productType,
+        productType: productTypes,
         stock,
         cost,
         minStockThreshold, 
@@ -316,7 +328,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
       setName(product?.name || '');
       setSku(product?.sku || '');
       setCategory(product?.category || '');
-      setProductType(product?.productType || 'Barang Dagang');
+      setProductTypes(product?.productType ? (Array.isArray(product.productType) ? product.productType : [product.productType]) : ['Barang Dagang']);
       setStock(product?.stock || 0);
       setCost(product?.cost || 0);
       setMinStockThreshold(product?.minStockThreshold || 10);
@@ -324,6 +336,8 @@ export function ProductFormDialog({ children, product }: { children: React.React
     }
     setOpen(isOpen);
   }
+
+  const isFinishedGood = productTypes.includes('Barang Jadi');
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -358,22 +372,26 @@ export function ProductFormDialog({ children, product }: { children: React.React
               </Select>
             </div>
              <div className="space-y-2">
-              <Label htmlFor="productType">Tipe Barang</Label>
-              <Select value={productType} onValueChange={(v) => setProductType(v as ProductType)}>
-                  <SelectTrigger id="productType" disabled={isPending}>
-                      <SelectValue placeholder="Pilih tipe barang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="Barang Dagang">Barang Dagang</SelectItem>
-                      <SelectItem value="Bahan Baku">Bahan Baku</SelectItem>
-                      <SelectItem value="Barang Jadi">Barang Jadi</SelectItem>
-                  </SelectContent>
-              </Select>
+              <Label>Tipe Barang</Label>
+                <div className="flex items-center space-x-4 rounded-md border p-3">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="type-dagang" checked={productTypes.includes('Barang Dagang')} onCheckedChange={(c) => handleProductTypeChange('Barang Dagang', !!c)} />
+                        <Label htmlFor="type-dagang">Barang Dagang</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="type-baku" checked={productTypes.includes('Bahan Baku')} onCheckedChange={(c) => handleProductTypeChange('Bahan Baku', !!c)} />
+                        <Label htmlFor="type-baku">Bahan Baku</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="type-jadi" checked={productTypes.includes('Barang Jadi')} onCheckedChange={(c) => handleProductTypeChange('Barang Jadi', !!c)} />
+                        <Label htmlFor="type-jadi">Barang Jadi</Label>
+                    </div>
+                </div>
             </div>
              <div className="space-y-2">
               <Label htmlFor="cost">Harga Pokok Satuan Dasar</Label>
-              <Input id="cost" type="number" value={cost || ''} onChange={(e) => setCost(Number(e.target.value))} required={productType !== 'Barang Jadi'} disabled={isPending || productType === 'Barang Jadi'}/>
-               {productType === 'Barang Jadi' && <p className="text-xs text-muted-foreground">Harga pokok akan dihitung otomatis dari biaya produksi.</p>}
+              <Input id="cost" type="number" value={cost || ''} onChange={(e) => setCost(Number(e.target.value))} required={!isFinishedGood} disabled={isPending || isFinishedGood}/>
+               {isFinishedGood && <p className="text-xs text-muted-foreground">Harga pokok akan dihitung otomatis dari biaya produksi.</p>}
             </div>
           </div>
           
@@ -394,7 +412,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
                         {units.map((unit, index) => (
                             <TableRow key={index}>
                                 <TableCell><Input placeholder={index === 0 ? "Pcs" : "Box"} value={unit.name} onChange={e => handleUnitChange(index, 'name', e.target.value)} required/></TableCell>
-                                <TableCell><Input type="number" placeholder="10000" value={unit.price || ''} onChange={e => handleUnitChange(index, 'price', Number(e.target.value))} required={productType !== 'Barang Jadi'} disabled={productType === 'Barang Jadi'}/></TableCell>
+                                <TableCell><Input type="number" placeholder="10000" value={unit.price || ''} onChange={e => handleUnitChange(index, 'price', Number(e.target.value))} required={!isFinishedGood} disabled={isFinishedGood}/></TableCell>
                                 <TableCell><Input type="number" placeholder={index === 0 ? "1" : "12"} value={unit.conversionRate || ''} onChange={e => handleUnitChange(index, 'conversionRate', Number(e.target.value))} required disabled={index === 0} /></TableCell>
                                 <TableCell>
                                     {index > 0 && <Button type="button" variant="ghost" size="icon" onClick={() => removeUnit(index)}><XCircle className="w-4 h-4 text-destructive" /></Button>}

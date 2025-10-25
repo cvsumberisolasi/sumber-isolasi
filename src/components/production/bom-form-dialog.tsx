@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useTransition, useEffect, useMemo } from 'react';
@@ -44,8 +45,8 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
   const [quantityProduced, setQuantityProduced] = useState(bom?.quantityProduced || 1);
   const [items, setItems] = useState<BillOfMaterialItem[]>(bom?.items || []);
 
-  const finishedGoods = useMemo(() => products.filter(p => p.productType === 'Barang Jadi'), [products]);
-  const rawMaterials = useMemo(() => products.filter(p => p.productType === 'Bahan Baku'), [products]);
+  const finishedGoods = useMemo(() => products.filter(p => Array.isArray(p.productType) && p.productType.includes('Barang Jadi')), [products]);
+  const rawMaterials = useMemo(() => products.filter(p => Array.isArray(p.productType) && p.productType.includes('Bahan Baku')), [products]);
 
   const isEditing = !!bom;
   const isDropdownItem = React.isValidElement(children) && (children.type as any).displayName === 'DropdownMenuItem';
@@ -172,7 +173,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
           
           <div className="space-y-2">
             <Label>Bahan Baku (Input)</Label>
-            <div className="border rounded-lg">
+            <div className="border rounded-lg p-2">
                 <Table>
                     <TableHeader>
                         <TableRow>
