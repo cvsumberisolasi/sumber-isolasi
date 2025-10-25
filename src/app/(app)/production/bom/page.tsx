@@ -42,18 +42,19 @@ export default function BillOfMaterialsPage() {
   useEffect(() => {
     const bomUnsub = onSnapshot(query(collection(db, "billOfMaterials"), orderBy("productName")), (snapshot) => {
       setBoms(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BillOfMaterial)));
-      setLoading(false);
+      if (products.length > 0) setLoading(false);
     });
 
     const productsUnsub = onSnapshot(collection(db, "products"), (snapshot) => {
       setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
+      if (boms.length > 0 || snapshot.docs.length > 0) setLoading(false);
     });
 
     return () => {
       bomUnsub();
       productsUnsub();
     };
-  }, []);
+  }, [boms.length, products.length]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -164,4 +165,3 @@ function BomRow({ bom, products }: { bom: BillOfMaterial, products: Product[] })
         </TableRow>
     );
 }
-
