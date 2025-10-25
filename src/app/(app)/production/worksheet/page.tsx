@@ -145,7 +145,7 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
              setConsumedItems(bomData.items.map(item => ({
                 productId: item.productId,
                 productName: item.productName,
-                quantity: item.quantity * wo.quantityToProduce,
+                quantity: item.quantity,
               })));
           }
 
@@ -167,11 +167,16 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
   
   const totalCost = useMemo(() => {
     if (!bom) return 0;
-    return consumedItems.reduce((sum, consumed) => {
+    
+    const rawMaterialCost = consumedItems.reduce((sum, consumed) => {
         const productInfo = products.find(p => p.id === consumed.productId);
         const itemCost = productInfo?.cost || 0;
         return sum + (itemCost * consumed.quantity);
     }, 0);
+
+    const additionalCost = bom.additionalCosts?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
+
+    return rawMaterialCost + additionalCost;
   }, [consumedItems, bom, products]);
 
 
@@ -251,7 +256,7 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
         <CardFooter className="flex justify-end">
           <Button onClick={handleComplete} disabled={isPending}>
             {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-            Selesaikan Produksi & Update Stok
+            Selesaikan Produksi &amp; Update Stok
           </Button>
         </CardFooter>
       </Card>

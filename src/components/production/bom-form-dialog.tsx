@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useTransition, useEffect, useMemo } from 'react';
@@ -44,6 +43,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
   const [finishedGoodId, setFinishedGoodId] = useState(bom?.productId || '');
   const [quantityProduced, setQuantityProduced] = useState(bom?.quantityProduced || 1);
   const [items, setItems] = useState<BillOfMaterialItem[]>(bom?.items || []);
+  const [additionalCosts, setAdditionalCosts] = useState(bom?.additionalCosts || []);
 
   const finishedGoods = useMemo(() => products.filter(p => Array.isArray(p.productType) && p.productType.includes('Barang Jadi')), [products]);
   const rawMaterials = useMemo(() => products.filter(p => Array.isArray(p.productType) && p.productType.includes('Bahan Baku')), [products]);
@@ -51,8 +51,12 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
   const isEditing = !!bom;
   const isDropdownItem = React.isValidElement(children) && (children.type as any).displayName === 'DropdownMenuItem';
 
-  const handleAddItem = () => {
-    setItems(prev => [...prev, { productId: '', productName: '', quantity: 0, unit: '' }]);
+  const handleAddItem = (type: 'material' | 'cost') => {
+    if (type === 'material') {
+      setItems(prev => [...prev, { productId: '', productName: '', quantity: 0, unit: '' }]);
+    } else {
+      setAdditionalCosts(prev => [...prev, { description: '', amount: 0 }]);
+    }
   };
 
   const handleItemChange = (index: number, field: keyof BillOfMaterialItem, value: string | number) => {
@@ -68,14 +72,27 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
     });
   };
 
-  const handleRemoveItem = (index: number) => {
-    setItems(prev => prev.filter((_, i) => i !== index));
+  const handleCostChange = (index: number, field: 'description' | 'amount', value: string | number) => {
+    setAdditionalCosts(prev => {
+      const newCosts = [...prev];
+      (newCosts[index] as any)[field] = value;
+      return newCosts;
+    });
+  };
+
+  const handleRemoveItem = (index: number, type: 'material' | 'cost') => {
+    if (type === 'material') {
+      setItems(prev => prev.filter((_, i) => i !== index));
+    } else {
+      setAdditionalCosts(prev => prev.filter((_, i) => i !== index));
+    }
   };
   
   const resetForm = () => {
     setFinishedGoodId(bom?.productId || '');
     setQuantityProduced(bom?.quantityProduced || 1);
     setItems(bom?.items || []);
+    setAdditionalCosts(bom?.additionalCosts || []);
   };
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -105,6 +122,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
         productName: finishedGood.name,
         quantityProduced,
         items,
+        additionalCosts,
       };
 
       const result = isEditing
@@ -199,7 +217,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
                                     <Input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', Number(e.target.value))}/>
                                 </TableCell>
                                 <TableCell>
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index, 'material')}>
                                         <Trash2 className="h-4 w-4 text-destructive" />
                                     </Button>
                                 </TableCell>
@@ -208,10 +226,46 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
                     </TableBody>
                 </Table>
             </div>
-            <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
-                <PlusCircle className="mr-2 h-4 w-4"/> Tambah Bahan
+            <Button type="button" variant="outline" size="sm" onClick={() => handleAddItem('material')}>
+                <PlusCircle className="mr-2 h-4 w-4"/> Tambah Bahan Baku
             </Button>
           </div>
+          
+          <div className="space-y-2">
+            <Label>Biaya Tambahan (Tenaga Kerja, Overhead, dll)</Label>
+            <div className="border rounded-lg p-2">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Deskripsi Biaya</TableHead>
+                            <TableHead className="w-40">Jumlah (Rp)</TableHead>
+                            <TableHead className="w-12"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {additionalCosts.map((cost, index) => (
+                            <TableRow key={index}>
+                                <TableCell>
+                                    <Input placeholder="Contoh: Biaya Tenaga Kerja" value={cost.description} onChange={e => handleCostChange(index, 'description', e.target.value)}/>
+                                </TableCell>
+                                <TableCell>
+                                    <Input type="number" value={cost.amount} onChange={e => handleCostChange(index, 'amount', Number(e.target.value))}/>
+                                </TableCell>
+                                <TableCell>
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItem(index, 'cost')}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => handleAddItem('cost')}>
+                <PlusCircle className="mr-2 h-4 w-4"/> Tambah Biaya
+            </Button>
+          </div>
+
 
           <DialogFooter className="pt-4">
             <Button type="submit" disabled={isPending}>

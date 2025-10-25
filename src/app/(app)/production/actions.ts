@@ -1,9 +1,8 @@
 
-
 'use server';
 
 import { revalidatePath } from "next/cache";
-import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, Timestamp, runTransaction, getDoc } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, Timestamp, runTransaction, getDoc, DocumentData } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { NewBillOfMaterial, NewWorkOrder, WorkOrder, Product, BillOfMaterial, NewJournal, JournalEntry, ProductionCompletion, NewProductionCompletion } from "@/lib/types";
 import { generateDocumentId } from "@/lib/utils";
@@ -97,7 +96,6 @@ export async function completeProduction(completionData: NewProductionCompletion
             }
 
             // --- Phase 2: Logic & Validation (No DB Writes Yet) ---
-            let totalRawMaterialCost = 0;
             const updates: { ref: FirebaseFirestore.DocumentReference<DocumentData>, newStock: number }[] = [];
 
             for (let i = 0; i < completionData.consumedItems.length; i++) {
@@ -112,7 +110,6 @@ export async function completeProduction(completionData: NewProductionCompletion
                 if (newStock < 0) {
                     throw new Error(`Stok ${item.productName} tidak mencukupi.`);
                 }
-                totalRawMaterialCost += (productData.cost || 0) * item.quantity;
                 updates.push({ ref: productSnap.ref, newStock });
             }
             
@@ -131,11 +128,10 @@ export async function completeProduction(completionData: NewProductionCompletion
             const dataWithTimestamp = {
                 ...completionData,
                 date: Timestamp.fromDate(completionData.date),
-                totalCost: totalRawMaterialCost
             };
             transaction.set(newDocRef, dataWithTimestamp);
 
-            return { ref: newDocRef, totalCost: totalRawMaterialCost };
+            return { ref: newDocRef, totalCost: completionData.totalCost };
         });
 
         // --- Phase 4. Create Journal Entry (outside main transaction) ---

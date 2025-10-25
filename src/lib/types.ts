@@ -1,5 +1,4 @@
 
-
 export type ProductType = 'Barang Jadi' | 'Bahan Baku' | 'Barang Dagang';
 
 export type ProductUnit = {
@@ -412,6 +411,7 @@ export type BillOfMaterialItem = {
   productId: string; // Raw material product ID
   productName: string;
   quantity: number;
+  unit: string;
 };
 
 export type BillOfMaterial = {
