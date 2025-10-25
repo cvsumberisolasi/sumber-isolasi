@@ -25,14 +25,20 @@ export default function ProductionWorksheetPage() {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    const q = query(collection(db, "workOrders"), where("status", "in", ["Belum Diproses", "Dalam Pengerjaan"]), orderBy("date", "desc"));
+    const q = query(collection(db, "workOrders"), orderBy("date", "desc"));
     const unsub = onSnapshot(q, (snapshot) => {
-      setWorkOrders(snapshot.docs.map(doc => ({ 
+      const allWorkOrders = snapshot.docs.map(doc => ({ 
           id: doc.id, ...doc.data(), 
           date: doc.data().date.toDate(),
           startDate: doc.data().startDate.toDate(),
           endDate: doc.data().endDate.toDate(),
-        } as WorkOrder)));
+        } as WorkOrder));
+      
+      const activeWorkOrders = allWorkOrders.filter(wo => 
+        wo.status === 'Belum Diproses' || wo.status === 'Dalam Pengerjaan'
+      );
+        
+      setWorkOrders(activeWorkOrders);
       setLoading(false);
     });
 
