@@ -1,5 +1,4 @@
 
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -68,6 +67,7 @@ export async function seedInitialAccounts() {
         inventoryAccountId: docRefs['Persediaan Barang Dagang'],
         retainedEarningsAccountId: docRefs['Laba Ditahan'],
         incomeSummaryAccountId: docRefs['Ikhtisar Laba Rugi'],
+        vatPayableAccountId: docRefs['PPN Keluaran'],
         rawMaterialInventoryAccountId: docRefs['Persediaan Bahan Baku'],
         wipAccountId: docRefs['Persediaan Barang Dalam Proses'],
         directLaborAccountId: docRefs['Biaya Tenaga Kerja Langsung'],

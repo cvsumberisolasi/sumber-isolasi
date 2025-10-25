@@ -46,7 +46,12 @@ export type Transaction = {
   id: string;
   date: Date;
   items: TransactionItem[];
-  total: number; // Gross total
+  subtotal: number;
+  taxId?: string;
+  taxName?: string;
+  taxRate?: number;
+  taxAmount?: number;
+  grandTotal: number;
   discount?: number;
   fee?: number;
   netTotal?: number;
@@ -91,7 +96,7 @@ export type SalesReturn = {
   date: Date;
   originalTransactionId: string;
   items: SalesReturnItem[];
-  total: number;
+  total: number; // This is the total value of returned goods, equivalent to subtotal
   originalPaymentMethod: 'Tunai' | 'Transfer' | 'Kredit';
 }
 

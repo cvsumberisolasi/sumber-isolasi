@@ -38,6 +38,7 @@ export function AccountingSettingsForm({ initialData, accounts }: AccountingSett
   const [accruedPayableAccountId, setAccruedPayableAccountId] = useState(initialData.accruedPayableAccountId || '');
   const [retainedEarningsAccountId, setRetainedEarningsAccountId] = useState(initialData.retainedEarningsAccountId || '');
   const [incomeSummaryAccountId, setIncomeSummaryAccountId] = useState(initialData.incomeSummaryAccountId || '');
+  const [vatPayableAccountId, setVatPayableAccountId] = useState(initialData.vatPayableAccountId || '');
   
   const [rawMaterialInventoryAccountId, setRawMaterialInventoryAccountId] = useState(initialData.rawMaterialInventoryAccountId || '');
   const [wipAccountId, setWipAccountId] = useState(initialData.wipAccountId || '');
@@ -60,6 +61,7 @@ export function AccountingSettingsForm({ initialData, accounts }: AccountingSett
         accruedPayableAccountId,
         retainedEarningsAccountId,
         incomeSummaryAccountId,
+        vatPayableAccountId,
         rawMaterialInventoryAccountId,
         wipAccountId,
         directLaborAccountId,
@@ -167,6 +169,21 @@ export function AccountingSettingsForm({ initialData, accounts }: AccountingSett
           </SelectContent>
         </Select>
       </div>
+
+      <div className="space-y-2">
+        <Label>Akun Utang PPN (PPN Keluaran)</Label>
+        <Select value={vatPayableAccountId} onValueChange={setVatPayableAccountId} disabled={isPending}>
+          <SelectTrigger>
+            <SelectValue placeholder="Pilih akun utang PPN..." />
+          </SelectTrigger>
+          <SelectContent>
+            {accounts.filter(a => a.type === 'Kewajiban Jangka Pendek').map(acc => (
+              <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
 
       <Separator />
       <h3 className="text-lg font-medium">Pembelian & Persediaan</h3>
