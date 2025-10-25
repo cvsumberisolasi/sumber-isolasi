@@ -19,9 +19,6 @@ export default function ThemeSettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl md:text-3xl font-headline font-bold">
-        Tema & Tampilan
-      </h1>
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">Pilih Tema</CardTitle>

@@ -185,15 +185,9 @@ const navItems = [
     ],
   },
   {
+    href: "/settings",
     label: "Pengaturan",
     icon: Settings,
-    subItems: [
-      { href: "/settings", label: "Profil Perusahaan", icon: Building },
-      { href: "/settings/accounting", label: "Akuntansi", icon: SlidersHorizontal },
-      { href: "/settings/marketplace", label: "Marketplace", icon: Store },
-      { href: "/settings/theme", label: "Tema & Tampilan", icon: Palette },
-      { href: "/settings/danger", label: "Data & Reset", icon: DatabaseZap },
-    ],
   },
 ];
 
@@ -209,6 +203,9 @@ export function AppSidebar({ companyName }: { companyName: string }) {
     }
     if (href === '/reports') {
       return pathname.startsWith('/reports');
+    }
+    if (href === '/settings') {
+        return pathname.startsWith('/settings');
     }
     return pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
   };

@@ -217,7 +217,7 @@ export default function DangerZonePage() {
 
   if (!isAuthorized) {
     return (
-        <div className="flex flex-col gap-6 items-center justify-center h-[60vh]">
+        <div className="flex flex-col gap-6 items-center justify-center h-full">
             <Card className="w-full max-w-sm">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -250,39 +250,36 @@ export default function DangerZonePage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl md:text-3xl font-headline font-bold">Data &amp; Reset</h1>
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="font-headline text-destructive flex items-center gap-2">
-            <AlertTriangle />
-            Zona Berbahaya
-          </CardTitle>
-          <CardDescription>
-            Tindakan di area ini bersifat permanen dan tidak dapat diurungkan. Lakukan dengan sangat hati-hati.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Target Data</TableHead>
-                        <TableHead>Deskripsi</TableHead>
-                        <TableHead>Aksi</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <ResetStockAction />
-                    <SpecificDeleteAction name="Kas Masuk" description="Menghapus semua jurnal dari menu Kas Masuk." action={deleteCashInJournals} />
-                    <SpecificDeleteAction name="Kas Keluar" description="Menghapus semua jurnal dari menu Kas Keluar." action={deleteCashOutJournals} />
-                    <SpecificDeleteAction name="Transfer Kas" description="Menghapus semua jurnal dari menu Transfer Antar Kas." action={deleteCashTransferJournals} />
-                    {ALL_COLLECTIONS.map(collection => (
-                        <DeleteAction key={collection.name} collection={collection} />
-                    ))}
-                </TableBody>
-            </Table>
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="border-destructive">
+    <CardHeader>
+        <CardTitle className="font-headline text-destructive flex items-center gap-2">
+        <AlertTriangle />
+        Zona Berbahaya
+        </CardTitle>
+        <CardDescription>
+        Tindakan di area ini bersifat permanen dan tidak dapat diurungkan. Lakukan dengan sangat hati-hati.
+        </CardDescription>
+    </CardHeader>
+    <CardContent>
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Target Data</TableHead>
+                    <TableHead>Deskripsi</TableHead>
+                    <TableHead>Aksi</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                <ResetStockAction />
+                <SpecificDeleteAction name="Kas Masuk" description="Menghapus semua jurnal dari menu Kas Masuk." action={deleteCashInJournals} />
+                <SpecificDeleteAction name="Kas Keluar" description="Menghapus semua jurnal dari menu Kas Keluar." action={deleteCashOutJournals} />
+                <SpecificDeleteAction name="Transfer Kas" description="Menghapus semua jurnal dari menu Transfer Antar Kas." action={deleteCashTransferJournals} />
+                {ALL_COLLECTIONS.map(collection => (
+                    <DeleteAction key={collection.name} collection={collection} />
+                ))}
+            </TableBody>
+        </Table>
+    </CardContent>
+    </Card>
   );
 }

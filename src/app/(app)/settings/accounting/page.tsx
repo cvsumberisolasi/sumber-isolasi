@@ -33,20 +33,17 @@ export default async function AccountingSettingsPage() {
   const accounts = await getAccounts();
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl md:text-3xl font-headline font-bold">Pengaturan Akuntansi</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline">Pemetaan Akun Otomatis</CardTitle>
-          <CardDescription>
-            Pilih akun default yang akan digunakan untuk pembuatan jurnal otomatis dari transaksi.
-            Pastikan semua akun yang diperlukan sudah dibuat di Bagan Akun (COA).
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AccountingSettingsForm initialData={settings} accounts={accounts} />
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline">Pemetaan Akun Otomatis</CardTitle>
+        <CardDescription>
+          Pilih akun default yang akan digunakan untuk pembuatan jurnal otomatis dari transaksi.
+          Pastikan semua akun yang diperlukan sudah dibuat di Bagan Akun (COA).
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <AccountingSettingsForm initialData={settings} accounts={accounts} />
+      </CardContent>
+    </Card>
   );
 }

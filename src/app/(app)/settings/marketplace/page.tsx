@@ -31,24 +31,19 @@ export default function MarketplaceSettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-headline font-bold">
-          Pengaturan Marketplace
-        </h1>
-        <MarketplaceActions />
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-headline">Daftar Toko</CardTitle>
-           <CardDescription>
-            Kelola daftar toko Anda di berbagai marketplace untuk integrasi data.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MarketplaceStoreTable data={stores} />
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="font-headline">Daftar Toko</CardTitle>
+          <CardDescription>
+          Kelola daftar toko Anda di berbagai marketplace untuk integrasi data.
+        </CardDescription>
+        <div className="pt-4">
+            <MarketplaceActions />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <MarketplaceStoreTable data={stores} />
+      </CardContent>
+    </Card>
   );
 }
