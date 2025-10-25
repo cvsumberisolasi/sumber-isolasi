@@ -127,42 +127,42 @@ export default function PostClosingTrialBalancePage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
              </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Kode Akun</TableHead>
-                  <TableHead>Nama Akun</TableHead>
-                  <TableHead className="text-right">Debit (Rp)</TableHead>
-                  <TableHead className="text-right">Kredit (Rp)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {reportData.map((row, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="font-mono">{row.accountCode}</TableCell>
-                    <TableCell>{row.accountName}</TableCell>
-                    <TableCell className="text-right font-mono">{row.debit > 0 ? row.debit.toLocaleString('id-ID') : '-'}</TableCell>
-                    <TableCell className="text-right font-mono">{row.credit > 0 ? row.credit.toLocaleString('id-ID') : '-'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow className="font-bold text-base">
-                  <TableCell colSpan={2}>Total</TableCell>
-                  <TableCell className={cn("text-right font-mono", totals.debit !== totals.credit && "text-destructive")}>
-                    {totals.debit.toLocaleString('id-ID')}
-                  </TableCell>
-                  <TableCell className={cn("text-right font-mono", totals.debit !== totals.credit && "text-destructive")}>
-                    {totals.credit.toLocaleString('id-ID')}
-                  </TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Kode Akun</TableHead>
+                    <TableHead>Nama Akun</TableHead>
+                    <TableHead className="text-right">Debit (Rp)</TableHead>
+                    <TableHead className="text-right">Kredit (Rp)</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {reportData.map((row, index) => (
+                    <TableRow key={index}>
+                        <TableCell className="font-mono">{row.accountCode}</TableCell>
+                        <TableCell>{row.accountName}</TableCell>
+                        <TableCell className="text-right font-mono">{row.debit > 0 ? row.debit.toLocaleString('id-ID') : '-'}</TableCell>
+                        <TableCell className="text-right font-mono">{row.credit > 0 ? row.credit.toLocaleString('id-ID') : '-'}</TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+                <TableFooter>
+                    <TableRow className="font-bold text-base">
+                    <TableCell colSpan={2}>Total</TableCell>
+                    <TableCell className={cn("text-right font-mono", totals.debit !== totals.credit && "text-destructive")}>
+                        {totals.debit.toLocaleString('id-ID')}
+                    </TableCell>
+                    <TableCell className={cn("text-right font-mono", totals.debit !== totals.credit && "text-destructive")}>
+                        {totals.credit.toLocaleString('id-ID')}
+                    </TableCell>
+                    </TableRow>
+                </TableFooter>
+                </Table>
+            </div>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    

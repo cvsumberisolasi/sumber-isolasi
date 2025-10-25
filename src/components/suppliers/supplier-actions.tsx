@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useTransition } from 'react';
@@ -48,25 +49,25 @@ export function SupplierActions({ hasSuppliers }: { hasSuppliers: boolean }) {
       if (result.error) {
         toast({ title: 'Gagal', description: result.error, variant: 'destructive' });
       } else {
-        toast({ title: 'Berhasil', description: 'Contoh data supplier berhasil ditambahkan.' });
+        toast({ title: 'Berhasil', description: 'Contoh data pemasok berhasil ditambahkan.' });
       }
     });
   }
 
   return (
-     <div className="flex gap-2">
+     <div className="flex flex-col sm:flex-row gap-2 w-full">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-             <Button variant="outline" disabled={hasSuppliers || isPending}>
-                <Database className="mr-2 h-4 w-4" /> Seed Supplier
+             <Button variant="outline" className="w-full" disabled={hasSuppliers || isPending}>
+                <Database className="mr-2 h-4 w-4" /> Seed Pemasok
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Anda yakin?</AlertDialogTitle>
               <AlertDialogDescription>
-                Tindakan ini akan menambahkan beberapa contoh data supplier ke database Anda.
-                Tindakan ini hanya bisa dilakukan jika daftar supplier Anda masih kosong.
+                Tindakan ini akan menambahkan beberapa contoh data pemasok ke database Anda.
+                Tindakan ini hanya bisa dilakukan jika daftar pemasok Anda masih kosong.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -80,9 +81,9 @@ export function SupplierActions({ hasSuppliers }: { hasSuppliers: boolean }) {
         </AlertDialog>
        
         <SupplierFormDialog>
-            <Button>
+            <Button className="w-full">
                 <Plus className="mr-2 h-4 w-4" />
-                Tambah Supplier
+                Tambah Pemasok
             </Button>
         </SupplierFormDialog>
     </div>

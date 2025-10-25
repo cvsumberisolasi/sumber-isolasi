@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -46,7 +47,9 @@ export default function CustomersPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl md:text-3xl font-headline font-bold">Manajemen Pelanggan</h1>
-        <CustomerActions hasCustomers={customers.length > 0} />
+        <div className="w-full sm:w-auto">
+         <CustomerActions hasCustomers={customers.length > 0} />
+        </div>
       </div>
       <Card>
         <CardHeader>
@@ -66,7 +69,9 @@ export default function CustomersPage() {
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : (
-            <CustomerTable data={filteredCustomers} />
+            <div className="overflow-x-auto">
+                <CustomerTable data={filteredCustomers} />
+            </div>
           )}
         </CardContent>
       </Card>

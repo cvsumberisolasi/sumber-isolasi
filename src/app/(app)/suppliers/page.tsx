@@ -28,15 +28,19 @@ export default async function SuppliersPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-headline font-bold">Manajemen Supplier</h1>
-        <SupplierActions hasSuppliers={suppliers.length > 0} />
+        <h1 className="text-2xl md:text-3xl font-headline font-bold">Manajemen Pemasok</h1>
+        <div className="w-full sm:w-auto">
+            <SupplierActions hasSuppliers={suppliers.length > 0} />
+        </div>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="font-headline">Daftar Supplier</CardTitle>
+          <CardTitle className="font-headline">Daftar Pemasok</CardTitle>
         </CardHeader>
         <CardContent>
-          <SupplierTable data={suppliers} />
+          <div className="overflow-x-auto">
+            <SupplierTable data={suppliers} />
+          </div>
         </CardContent>
       </Card>
     </div>

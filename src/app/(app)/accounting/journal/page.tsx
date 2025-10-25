@@ -182,8 +182,8 @@ export default function GeneralJournalPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[250px]">Akun</TableHead>
-                  <TableHead className="w-[150px]">Debit</TableHead>
-                  <TableHead className="w-[150px]">Kredit</TableHead>
+                  <TableHead className="min-w-[150px]">Debit</TableHead>
+                  <TableHead className="min-w-[150px]">Kredit</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -240,7 +240,7 @@ export default function GeneralJournalPage() {
                   {isBalanced ? 'Seimbang' : 'Tidak Seimbang'}
                 </Badge>
               </div>
-              <div className="grid grid-cols-2 gap-4 min-w-[300px] font-mono">
+              <div className="grid grid-cols-2 gap-4 min-w-[200px] sm:min-w-[300px] font-mono text-base">
                 <div>Rp {totalDebit.toLocaleString('id-ID')}</div>
                 <div>Rp {totalCredit.toLocaleString('id-ID')}</div>
               </div>

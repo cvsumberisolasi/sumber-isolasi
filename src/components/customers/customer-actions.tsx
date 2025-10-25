@@ -55,10 +55,10 @@ export function CustomerActions({ hasCustomers }: { hasCustomers: boolean }) {
   }
 
   return (
-     <div className="flex gap-2">
+     <div className="flex flex-col sm:flex-row gap-2 w-full">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-             <Button variant="outline" disabled={hasCustomers || isPending}>
+             <Button variant="outline" className="w-full" disabled={hasCustomers || isPending}>
                 <Database className="mr-2 h-4 w-4" /> Seed Pelanggan
             </Button>
           </AlertDialogTrigger>
@@ -81,7 +81,7 @@ export function CustomerActions({ hasCustomers }: { hasCustomers: boolean }) {
         </AlertDialog>
        
         <CustomerFormDialog>
-            <Button>
+            <Button className="w-full">
                 <Plus className="mr-2 h-4 w-4" />
                 Tambah Pelanggan
             </Button>
@@ -252,4 +252,3 @@ function CustomerFormDialog({ children, customer }: { children: React.ReactNode,
     </Dialog>
   );
 }
-

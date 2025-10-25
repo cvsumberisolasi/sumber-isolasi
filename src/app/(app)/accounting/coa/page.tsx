@@ -30,14 +30,18 @@ export default async function ChartOfAccountsPage() {
         <h1 className="text-2xl md:text-3xl font-headline font-bold">
           Bagan Akun (Chart of Accounts)
         </h1>
-        <CoaActions hasAccounts={accounts.length > 0} />
+        <div className="w-full sm:w-auto">
+         <CoaActions hasAccounts={accounts.length > 0} />
+        </div>
       </div>
       <Card>
         <CardHeader>
           <CardTitle className="font-headline">Daftar Akun</CardTitle>
         </CardHeader>
         <CardContent>
-          <CoaTable data={accounts} />
+          <div className="overflow-x-auto">
+            <CoaTable data={accounts} />
+          </div>
         </CardContent>
       </Card>
     </div>

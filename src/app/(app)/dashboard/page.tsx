@@ -225,32 +225,30 @@ export default function DashboardPage() {
               Produk dengan jumlah stok di bawah batas minimum.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Produk</TableHead>
-                    <TableHead className="text-right">Stok / Min.</TableHead>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produk</TableHead>
+                  <TableHead className="text-right">Stok / Min.</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lowStockProducts.slice(0, 5).map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell>
+                      <div className="font-medium">{product.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {product.category}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant="destructive">{product.stock} / {product.minStockThreshold || 10}</Badge>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lowStockProducts.slice(0, 5).map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell>
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {product.category}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="destructive">{product.stock} / {product.minStockThreshold || 10}</Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
@@ -261,44 +259,42 @@ export default function DashboardPage() {
               Menampilkan 5 penyelesaian produksi yang terakhir dicatat.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tanggal Selesai</TableHead>
-                    <TableHead>Produk Jadi</TableHead>
-                    <TableHead className="text-right">Jumlah</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentCompletions.length === 0 ? (
-                     <TableRow>
-                        <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
-                            Belum ada aktivitas produksi.
-                        </TableCell>
-                     </TableRow>
-                  ) : (
-                    recentCompletions.map((pc) => (
-                        <TableRow key={pc.id}>
-                        <TableCell>
-                            {format(pc.date, "dd MMM yyyy, HH:mm")}
-                        </TableCell>
-                        <TableCell>
-                            <div className="font-medium">{pc.finishedGoodName}</div>
-                            <div className="text-sm text-muted-foreground font-mono text-xs">
-                            WO: {pc.workOrderId}
-                            </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                            <Badge variant="secondary">{pc.quantityProduced} unit</Badge>
-                        </TableCell>
-                        </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tanggal Selesai</TableHead>
+                  <TableHead>Produk Jadi</TableHead>
+                  <TableHead className="text-right">Jumlah</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentCompletions.length === 0 ? (
+                   <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                          Belum ada aktivitas produksi.
+                      </TableCell>
+                   </TableRow>
+                ) : (
+                  recentCompletions.map((pc) => (
+                      <TableRow key={pc.id}>
+                      <TableCell>
+                          {format(pc.date, "dd MMM yyyy, HH:mm")}
+                      </TableCell>
+                      <TableCell>
+                          <div className="font-medium">{pc.finishedGoodName}</div>
+                          <div className="text-sm text-muted-foreground font-mono text-xs">
+                          WO: {pc.workOrderId}
+                          </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                          <Badge variant="secondary">{pc.quantityProduced} unit</Badge>
+                      </TableCell>
+                      </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
     </div>

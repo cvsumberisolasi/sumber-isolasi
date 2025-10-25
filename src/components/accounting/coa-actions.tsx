@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useTransition } from 'react';
@@ -66,10 +67,10 @@ export function CoaActions({ hasAccounts }: { hasAccounts: boolean }) {
   }
 
   return (
-     <div className="flex gap-2">
+     <div className="flex flex-col sm:flex-row gap-2 w-full">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-             <Button variant="outline" disabled={hasAccounts || isPending}>
+             <Button variant="outline" className="w-full" disabled={hasAccounts || isPending}>
                 <Database className="mr-2 h-4 w-4" /> Gunakan Akun Standar
             </Button>
           </AlertDialogTrigger>
@@ -92,7 +93,7 @@ export function CoaActions({ hasAccounts }: { hasAccounts: boolean }) {
         </AlertDialog>
        
         <AccountFormDialog>
-            <Button>
+            <Button className="w-full">
                 <Plus className="mr-2 h-4 w-4" />
                 Tambah Akun
             </Button>

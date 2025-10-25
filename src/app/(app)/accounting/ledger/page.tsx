@@ -194,9 +194,9 @@ export default function GeneralLedgerPage() {
         <h1 className="text-2xl md:text-3xl font-headline font-bold">
           Buku Besar (General Ledger)
         </h1>
-         <div className="flex items-center gap-2">
-            <DateRangePicker onSelect={setDateRange} />
-            <Button variant="outline">
+         <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+            <DateRangePicker onSelect={setDateRange} className="w-full" />
+            <Button variant="outline" className="w-full sm:w-auto">
               <Download className="mr-2 h-4 w-4" />
               Ekspor
             </Button>
@@ -318,5 +318,3 @@ declare module '@/components/ui/date-range-picker' {
         onSelect?: (date?: DateRange) => void;
     }
 }
-
-    

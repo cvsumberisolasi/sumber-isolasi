@@ -100,10 +100,10 @@ export function ProductActions({ hasProducts }: { hasProducts: boolean }) {
   };
 
   return (
-     <div className="flex gap-2">
+     <div className="flex flex-col sm:flex-row gap-2 w-full">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-             <Button variant="outline" disabled={hasProducts || isPending}>
+             <Button variant="outline" className="w-full" disabled={hasProducts || isPending}>
                 <Database className="mr-2 h-4 w-4" /> Seed Produk
             </Button>
           </AlertDialogTrigger>
@@ -125,13 +125,13 @@ export function ProductActions({ hasProducts }: { hasProducts: boolean }) {
           </AlertDialogContent>
         </AlertDialog>
         
-        <Button variant="outline" onClick={handleExport} disabled={!hasProducts || isExporting}>
+        <Button variant="outline" className="w-full" onClick={handleExport} disabled={!hasProducts || isExporting}>
           {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
           Ekspor Excel
         </Button>
        
         <ProductFormDialog>
-            <Button>
+            <Button className="w-full">
                 <Plus className="mr-2 h-4 w-4" />
                 Tambah Produk
             </Button>
@@ -398,7 +398,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
           <div className="space-y-2">
             <Label>Satuan Produk</Label>
             <p className="text-xs text-muted-foreground">Satuan pertama akan menjadi satuan dasar (stok dihitung berdasarkan satuan ini).</p>
-            <div className="border rounded-lg p-2">
+            <div className="border rounded-lg p-2 overflow-x-auto">
                 <Table>
                     <TableHeader>
                         <TableRow>
