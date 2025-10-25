@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -10,6 +11,7 @@ import { CUSTOMERS_SEED_DATA } from "@/lib/customers-seed";
 import { PRODUCTS_SEED_DATA } from "@/lib/products-seed";
 import { SUPPLIERS_SEED_DATA } from "@/lib/suppliers-seed";
 import { CURRENCIES_SEED_DATA } from "@/lib/currencies-seed";
+import { TAXES_SEED_DATA } from "@/lib/taxes-seed";
 import type { NewAccount } from "./types";
 import type { AccountingSettings } from "@/app/(app)/settings/accounting/actions";
 
@@ -67,7 +69,7 @@ export async function seedInitialAccounts() {
         inventoryAccountId: docRefs['Persediaan Barang Dagang'],
         retainedEarningsAccountId: docRefs['Laba Ditahan'],
         incomeSummaryAccountId: docRefs['Ikhtisar Laba Rugi'],
-        vatPayableAccountId: docRefs['PPN Keluaran'],
+        taxPayableAccountId: docRefs['Utang PPN'],
         rawMaterialInventoryAccountId: docRefs['Persediaan Bahan Baku'],
         wipAccountId: docRefs['Persediaan Barang Dalam Proses'],
         directLaborAccountId: docRefs['Biaya Tenaga Kerja Langsung'],
@@ -105,4 +107,8 @@ export async function seedInitialSuppliers() {
 
 export async function seedInitialCurrencies() {
   return seedCollection("currencies", CURRENCIES_SEED_DATA, "/(app)/currencies");
+}
+
+export async function seedInitialTaxes() {
+  return seedCollection("taxes", TAXES_SEED_DATA, "/(app)/taxes");
 }

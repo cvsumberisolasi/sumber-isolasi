@@ -1,4 +1,5 @@
 
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -18,7 +19,7 @@ export type AccountingSettings = {
   accruedPayableAccountId?: string; // Goods Received Not Invoiced
   retainedEarningsAccountId?: string;
   incomeSummaryAccountId?: string;
-  vatPayableAccountId?: string; // Utang PPN
+  taxPayableAccountId?: string;
   
   // Production Accounts
   rawMaterialInventoryAccountId?: string;

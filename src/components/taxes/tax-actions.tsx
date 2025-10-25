@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { Plus, MoreHorizontal, Loader2, Edit, Trash2 } from 'lucide-react';
+import { Plus, MoreHorizontal, Loader2, Edit, Trash2, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,16 +24,66 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { addTax, updateTax, deleteTax } from '@/app/(app)/taxes/actions';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '../ui/textarea';
+import { seedInitialTaxes } from '@/lib/seed-actions';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function TaxActions() {
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
+  const handleSeed = () => {
+    startTransition(async () => {
+      const result = await seedInitialTaxes();
+      if (result.error) {
+        toast({ title: 'Gagal', description: result.error, variant: 'destructive' });
+      } else {
+        toast({ title: 'Berhasil', description: 'Contoh data pajak berhasil ditambahkan.' });
+      }
+    });
+  }
+
+
   return (
-    <TaxFormDialog>
-      <Button>
-        <Plus className="mr-2 h-4 w-4" />
-        Tambah Pajak
-      </Button>
-    </TaxFormDialog>
+    <div className="flex items-center gap-2">
+       <AlertDialog>
+          <AlertDialogTrigger asChild>
+             <Button variant="outline" disabled={isPending}>
+                <Database className="mr-2 h-4 w-4" /> Seed Pajak
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Anda yakin?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tindakan ini akan menambahkan beberapa contoh data pajak (PPN & PPh 23) ke database Anda.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleSeed} disabled={isPending}>
+                {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Lanjutkan
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <TaxFormDialog>
+        <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Tambah Pajak
+        </Button>
+        </TaxFormDialog>
+    </div>
   );
 }
 

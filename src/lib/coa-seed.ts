@@ -21,7 +21,8 @@ export const COA_SEED_DATA: NewAccount[] = [
   { code: '2-10101', name: 'Utang Usaha', type: 'Kewajiban Jangka Pendek' },
   { code: '2-10102', name: 'Utang Barang Diterima', type: 'Kewajiban Jangka Pendek' },
   { code: '2-10201', name: 'Utang Gaji', type: 'Kewajiban Jangka Pendek' },
-  { code: '2-10301', name: 'PPN Keluaran', type: 'Kewajiban Jangka Pendek' },
+  { code: '2-10301', name: 'Utang PPN', type: 'Kewajiban Jangka Pendek' },
+  { code: '2-10302', name: 'Utang PPh 21', type: 'Kewajiban Jangka Pendek' },
   // 2.2 Kewajiban Jangka Panjang
   { code: '2-20101', name: 'Utang Bank', type: 'Kewajiban Jangka Panjang' },
 

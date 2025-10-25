@@ -16,7 +16,7 @@ import {
   where
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import type { NewTransaction, Product, JournalEntry, NewJournal, NewParkedTransaction, NewSalesReturn, Transaction } from "@/lib/types";
+import type { NewTransaction, Product, JournalEntry, NewJournal, NewParkedTransaction, NewSalesReturn, Transaction, Tax } from "@/lib/types";
 import { addJournalEntry } from "../accounting/journal/actions";
 import { getAccountingSettings } from "../settings/accounting/actions";
 import { generateDocumentId } from "@/lib/utils";
@@ -107,7 +107,7 @@ export async function createTransaction(transactionData: NewTransaction, isPOS: 
     });
 
     const { totalCost } = newTransactionRef;
-    const { total, paymentMethod } = transactionData;
+    const { subtotal, taxAmount, grandTotal, paymentMethod } = transactionData;
     const description = `Penjualan ${isPOS ? 'POS' : 'Manual'} #${newTransactionRef.ref.id}`;
 
     const settings = await getAccountingSettings();
@@ -125,7 +125,8 @@ export async function createTransaction(transactionData: NewTransaction, isPOS: 
       paymentAccountId,
       settings.salesRevenueAccountId,
       settings.cogsAccountId,
-      settings.inventoryAccountId
+      settings.inventoryAccountId,
+      taxAmount && taxAmount > 0 ? settings.taxPayableAccountId : 'dummy' // only require tax account if tax is applied
     ];
 
     if (requiredAccountIds.some(id => !id)) {
@@ -135,15 +136,25 @@ export async function createTransaction(transactionData: NewTransaction, isPOS: 
     const journalEntries: JournalEntry[] = [];
     
     journalEntries.push(
-        { accountId: paymentAccountId!, accountName: '', debit: total, credit: 0 },
-        { accountId: settings.salesRevenueAccountId!, accountName: '', debit: 0, credit: total }
+        { accountId: paymentAccountId!, accountName: '', debit: grandTotal, credit: 0 },
+        { accountId: settings.salesRevenueAccountId!, accountName: '', debit: 0, credit: subtotal }
     );
+    if(taxAmount && taxAmount > 0 && settings.taxPayableAccountId) {
+        journalEntries.push({ accountId: settings.taxPayableAccountId, accountName: '', debit: 0, credit: taxAmount });
+    }
     
     if (totalCost > 0) {
-        journalEntries.push(
-            { accountId: settings.cogsAccountId!, accountName: '', debit: totalCost, credit: 0 },
-            { accountId: settings.inventoryAccountId!, accountName: '', debit: 0, credit: totalCost }
-        );
+        const cogsJournal: NewJournal = {
+            date: transactionData.date,
+            description: `HPP untuk ${description}`,
+            refNumber: newTransactionRef.ref.id,
+            entries: [
+                { accountId: settings.cogsAccountId!, accountName: '', debit: totalCost, credit: 0 },
+                { accountId: settings.inventoryAccountId!, accountName: '', debit: 0, credit: totalCost }
+            ],
+            total: totalCost, 
+        };
+        await addJournalEntry(cogsJournal);
     }
     
     const newJournal: NewJournal = {
@@ -151,7 +162,7 @@ export async function createTransaction(transactionData: NewTransaction, isPOS: 
       description,
       refNumber: newTransactionRef.ref.id,
       entries: journalEntries,
-      total: total, 
+      total: grandTotal, 
     };
 
     await addJournalEntry(newJournal);
@@ -203,7 +214,8 @@ export async function processSalesReturn(returnData: NewSalesReturn) {
         if (originalTxSnap.exists()) {
             const originalTxData = originalTxSnap.data() as Transaction;
             if (originalTxData.status === 'Belum Lunas') {
-                t.update(originalTxRef, { total: originalTxData.total - returnData.total });
+                const newGrandTotal = (originalTxData.grandTotal || originalTxData.total) - returnData.total;
+                t.update(originalTxRef, { grandTotal: newGrandTotal, total: newGrandTotal });
             }
         }
         
@@ -298,11 +310,13 @@ export async function settleReceivable(transactionId: string, paymentAccountId: 
     const localBatch = batch || writeBatch(db);
 
     localBatch.update(txRef, { status: 'Lunas' });
+    
+    const totalToSettle = transaction.grandTotal || transaction.total;
 
     const description = `Pelunasan piutang untuk transaksi #${transactionId}`;
     const journalEntries: JournalEntry[] = [
-        { accountId: paymentAccountId, accountName: '', debit: transaction.total, credit: 0 },
-        { accountId: settings.accountsReceivableAccountId, accountName: '', debit: 0, credit: transaction.total },
+        { accountId: paymentAccountId, accountName: '', debit: totalToSettle, credit: 0 },
+        { accountId: settings.accountsReceivableAccountId, accountName: '', debit: 0, credit: totalToSettle },
     ];
     
     const newJournal: NewJournal = {
@@ -310,7 +324,7 @@ export async function settleReceivable(transactionId: string, paymentAccountId: 
         description,
         refNumber: `PEL-${transactionId}`,
         entries: journalEntries,
-        total: transaction.total,
+        total: totalToSettle,
     };
 
     const journalsCol = collection(db, "journals");
@@ -343,4 +357,3 @@ export async function settleMultipleReceivables(transactionIds: string[], paymen
     }
 }
     
-

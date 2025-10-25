@@ -50,7 +50,8 @@ export default function AccountsReceivablePage() {
     const unsubTotal = onSnapshot(qTotal, (snapshot) => {
       let total = 0;
       snapshot.forEach(doc => {
-        total += doc.data().total;
+        const tx = doc.data() as Transaction;
+        total += tx.grandTotal || tx.total;
       });
       setTotalReceivables(total);
     });
@@ -130,7 +131,7 @@ export default function AccountsReceivablePage() {
   
   const totalSelectedAmount = receivables
     .filter(tx => selectedRows.includes(tx.id))
-    .reduce((sum, tx) => sum + tx.total, 0);
+    .reduce((sum, tx) => sum + (tx.grandTotal || tx.total), 0);
 
 
   return (
@@ -208,7 +209,7 @@ export default function AccountsReceivablePage() {
                                 <TableCell>
                                     <Badge variant="destructive">{tx.status}</Badge>
                                 </TableCell>
-                                <TableCell className="text-right font-medium">Rp {tx.total.toLocaleString('id-ID')}</TableCell>
+                                <TableCell className="text-right font-medium">Rp {(tx.grandTotal || tx.total).toLocaleString('id-ID')}</TableCell>
                             </TableRow>
                         ))
                     )}
@@ -302,3 +303,4 @@ function MultiSettleDialog({ transactionIds, onSettled }: { transactionIds: stri
         </Dialog>
     );
 }
+
