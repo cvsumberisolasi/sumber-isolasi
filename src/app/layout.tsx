@@ -89,7 +89,9 @@ export default function RootLayout({
           cinzel.variable,
           raleway.variable
         )}>
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>

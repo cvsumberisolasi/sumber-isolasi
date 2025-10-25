@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 
-export default function ProductionWorksheetPage() {
+export default function WorksheetPageContent() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
@@ -35,7 +35,7 @@ export default function ProductionWorksheetPage() {
         } as WorkOrder));
       
       const activeWorkOrders = allWorkOrders.filter(wo => 
-        wo.status === 'Belum Diproses' || wo.status === 'Dalam Pengerjaan'
+        wo.status === 'Dalam Pengerjaan'
       );
         
       setWorkOrders(activeWorkOrders);
@@ -46,19 +46,7 @@ export default function ProductionWorksheetPage() {
   }, []);
   
   const handleProcess = (wo: WorkOrder) => {
-    if (wo.status === 'Belum Diproses') {
-        startTransition(async () => {
-            const result = await updateWorkOrderStatus(wo.id, 'Dalam Pengerjaan');
-            if (result.error) {
-                toast({title: 'Gagal Memulai', description: result.error, variant: 'destructive'});
-            } else {
-                toast({title: 'Dimulai', description: `Produksi untuk WO #${wo.id} telah dimulai.`});
-                setSelectedWO(wo);
-            }
-        });
-    } else {
-        setSelectedWO(wo);
-    }
+    setSelectedWO(wo);
   }
 
 
@@ -68,11 +56,13 @@ export default function ProductionWorksheetPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl md:text-3xl font-headline font-bold">Lembar Kerja Produksi</h1>
+      <div className="flex-1">
+        <h2 className="text-xl md:text-2xl font-headline font-bold">Lembar Kerja Produksi</h2>
+        <p className="text-muted-foreground text-sm">Pilih WO untuk mencatat penyelesaian produksi dan konsumsi bahan.</p>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Daftar Perintah Produksi Aktif</CardTitle>
-          <CardDescription>Pilih perintah kerja (Work Order) untuk memulai atau melanjutkan eksekusi produksi.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -90,7 +80,7 @@ export default function ProductionWorksheetPage() {
               {loading ? (
                 <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
               ) : workOrders.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Tidak ada perintah produksi yang aktif.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Tidak ada perintah produksi yang sedang dikerjakan.</TableCell></TableRow>
               ) : (
                 workOrders.map(wo => (
                   <TableRow key={wo.id}>
@@ -99,13 +89,13 @@ export default function ProductionWorksheetPage() {
                     <TableCell className="font-medium">{wo.finishedGoodName}</TableCell>
                     <TableCell>{wo.quantityToProduce}</TableCell>
                     <TableCell>
-                        <Badge variant={wo.status === 'Dalam Pengerjaan' ? 'default' : 'secondary'}>{wo.status}</Badge>
+                        <Badge variant={'default'}>{wo.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" onClick={() => handleProcess(wo)} disabled={isPending}>
                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
                         <Workflow className="mr-2 h-4 w-4" /> 
-                        {wo.status === 'Belum Diproses' ? 'Mulai Produksi' : 'Lanjutkan'}
+                        Selesaikan
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -255,6 +245,7 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
                       value={item.quantity}
                       onChange={e => handleQuantityChange(item.productId, e.target.value)}
                       className="text-center"
+                      onFocus={(e) => e.target.select()}
                     />
                   </TableCell>
                 </TableRow>

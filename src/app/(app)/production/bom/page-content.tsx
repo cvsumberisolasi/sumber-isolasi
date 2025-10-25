@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 
-export default function BillOfMaterialsPage() {
+export default function BomPageContent() {
   const [boms, setBoms] = useState<BillOfMaterial[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,24 +42,33 @@ export default function BillOfMaterialsPage() {
   useEffect(() => {
     const bomUnsub = onSnapshot(query(collection(db, "billOfMaterials"), orderBy("productName")), (snapshot) => {
       setBoms(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as BillOfMaterial)));
-      if (products.length > 0) setLoading(false);
+      setLoading(products.length === 0);
     });
 
     const productsUnsub = onSnapshot(collection(db, "products"), (snapshot) => {
       setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
-      if (boms.length > 0 || snapshot.docs.length > 0) setLoading(false);
+      setLoading(boms.length === 0 && snapshot.docs.length > 0 ? true : false);
     });
+    
+    // Initial loading state
+    setTimeout(() => {
+      if(loading) setLoading(false);
+    }, 1000);
+
 
     return () => {
       bomUnsub();
       productsUnsub();
     };
-  }, [boms.length, products.length]);
+  }, []);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-headline font-bold">Formula Produksi (Bill of Materials)</h1>
+        <div className="flex-1">
+          <h2 className="text-xl md:text-2xl font-headline font-bold">Formula Produksi (Bill of Materials)</h2>
+          <p className="text-muted-foreground text-sm">Resep untuk memproduksi barang jadi dari bahan baku.</p>
+        </div>
         <BomFormDialog products={products}>
             <Button>
                 <Plus className="mr-2 h-4 w-4" /> Buat Formula Baru
@@ -70,7 +79,6 @@ export default function BillOfMaterialsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Daftar Formula Produksi</CardTitle>
-          <CardDescription>Resep untuk memproduksi barang jadi dari bahan baku.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -165,3 +173,4 @@ function BomRow({ bom, products }: { bom: BillOfMaterial, products: Product[] })
         </TableRow>
     );
 }
+

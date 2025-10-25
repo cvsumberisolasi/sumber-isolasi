@@ -146,13 +146,9 @@ const navItems = [
     ],
   },
    {
+    href: "/production",
     label: "Produksi",
     icon: Hammer,
-    subItems: [
-      { href: "/production/bom", label: "Formula Produksi (BOM)", icon: FileCog },
-      { href: "/production/work-order", label: "Perintah Produksi", icon: FileDigit },
-      { href: "/production/worksheet", label: "Lembar Kerja Produksi", icon: Workflow },
-    ],
   },
   {
     href: "/cash/out",
@@ -218,7 +214,7 @@ const navItems = [
 export function AppSidebar({ companyName }: { companyName: string }) {
   const pathname = usePathname();
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) => pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
   const isSubActive = (subItems: any[]) =>
     subItems.some((item) => item.href && isActive(item.href));
 

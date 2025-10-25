@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
@@ -26,7 +25,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import Link from 'next/link';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,7 +37,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export default function WorkOrderPage() {
+export default function WorkOrderPageContent() {
   const [view, setView] = useState<'list' | 'new' | 'detail'>('list');
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +73,10 @@ export default function WorkOrderPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-headline font-bold">Perintah Produksi (Work Order)</h1>
+        <div className="flex-1">
+          <h2 className="text-xl md:text-2xl font-headline font-bold">Perintah Produksi (Work Order)</h2>
+          <p className="text-muted-foreground text-sm">Dokumen internal untuk memulai dan melacak proses produksi.</p>
+        </div>
         <Button onClick={() => setView('new')}>
           <Plus className="mr-2 h-4 w-4" /> Buat Perintah Baru
         </Button>
@@ -83,7 +84,6 @@ export default function WorkOrderPage() {
       <Card>
         <CardHeader>
           <CardTitle>Daftar Perintah Produksi</CardTitle>
-          <CardDescription>Dokumen internal untuk memulai dan melacak proses produksi.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -441,9 +441,6 @@ function WOActions({ wo }: { wo: WorkOrder }) {
     if (wo.status === 'Dalam Pengerjaan') {
         return (
             <div className="flex gap-2">
-                <Button asChild>
-                    <Link href="/production/worksheet"><CheckCircle className="mr-2 h-4 w-4"/> Selesaikan di Lembar Kerja</Link>
-                </Button>
                  <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button variant="destructive" disabled={isPending}>
