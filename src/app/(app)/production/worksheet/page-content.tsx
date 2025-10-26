@@ -2,9 +2,9 @@
 'use client';
 
 import React, { useState, useEffect, useTransition, useMemo } from 'react';
-import { collection, onSnapshot, query, where, orderBy, getDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { WorkOrder, BillOfMaterial, Product, ProductionCompletionItem, NewProductionCompletion, AdditionalCostItem } from '@/lib/types';
+import type { WorkOrder, BillOfMaterial, Product, NewProductionCompletion, AdditionalCostItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { Loader2, ArrowLeft, Save, Workflow, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { completeProduction, updateWorkOrderStatus } from '../actions';
+import { completeProduction } from '../actions';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
@@ -21,22 +21,16 @@ export default function WorksheetPageContent() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
-  const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    const q = query(collection(db, "workOrders"), orderBy("date", "desc"));
+    const q = query(collection(db, "workOrders"), where("status", "==", "Dalam Pengerjaan"), orderBy("date", "desc"));
     const unsub = onSnapshot(q, (snapshot) => {
-      const allWorkOrders = snapshot.docs.map(doc => ({ 
+      const activeWorkOrders = snapshot.docs.map(doc => ({ 
           id: doc.id, ...doc.data(), 
           date: doc.data().date.toDate(),
           startDate: doc.data().startDate.toDate(),
           endDate: doc.data().endDate.toDate(),
         } as WorkOrder));
-      
-      const activeWorkOrders = allWorkOrders.filter(wo => 
-        wo.status === 'Dalam Pengerjaan'
-      );
         
       setWorkOrders(activeWorkOrders);
       setLoading(false);
@@ -48,7 +42,6 @@ export default function WorksheetPageContent() {
   const handleProcess = (wo: WorkOrder) => {
     setSelectedWO(wo);
   }
-
 
   if (selectedWO) {
     return <ProductionExecutionForm wo={selectedWO} onBack={() => setSelectedWO(null)} />;
@@ -92,8 +85,7 @@ export default function WorksheetPageContent() {
                         <Badge variant={'default'}>{wo.status}</Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" onClick={() => handleProcess(wo)} disabled={isPending}>
-                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                      <Button size="sm" onClick={() => handleProcess(wo)}>
                         <Workflow className="mr-2 h-4 w-4" /> 
                         Selesaikan
                       </Button>
@@ -114,7 +106,7 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
   const [isPending, startTransition] = useTransition();
   const [bom, setBom] = useState<BillOfMaterial | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [consumedItems, setConsumedItems] = useState<ProductionCompletionItem[]>([]);
+  const [consumedItems, setConsumedItems] = useState<Omit<NewProductionCompletion['consumedItems'][0], 'cost'>[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -138,7 +130,6 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
                 quantity: item.quantity * wo.quantityToProduce / bomData.quantityProduced,
               })));
           }
-
         }
       } catch (error) {
         toast({title: "Gagal memuat data", description: (error as Error).message, variant: 'destructive'});
