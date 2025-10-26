@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
-import { PlusCircle, MinusCircle, X, Save, Loader2, UserPlus } from 'lucide-react';
-import type { Product, CartItem, NewTransaction, Customer, ProductUnit } from '@/lib/types';
+import { PlusCircle, MinusCircle, X, Save, Loader2, UserPlus, Printer } from 'lucide-react';
+import type { Product, CartItem, NewTransaction, Customer, ProductUnit, Transaction } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
@@ -18,8 +18,11 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Textarea } from '@/components/ui/textarea';
 import { CustomerFormDialog } from '@/components/customers/customer-actions';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { CompanySettings, getCompanySettings } from '@/app/(app)/settings/actions';
+import Image from 'next/image';
+import { format } from 'date-fns';
 
 export default function ManualSalesInputPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -27,11 +30,14 @@ export default function ManualSalesInputPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [date, setDate] = useState<Date | undefined>();
+  const [invoice, setInvoice] = useState<Transaction | null>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
 
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   useEffect(() => {
+    getCompanySettings().then(setCompanySettings);
     setDate(new Date());
     const productsUnsub = onSnapshot(collection(db, "products"), (snapshot) => {
       setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
@@ -82,7 +88,16 @@ export default function ManualSalesInputPage() {
     setCart([]);
     setSelectedCustomer(null);
     setDate(new Date());
+    setInvoice(null);
   };
+  
+  const handlePrint = () => {
+      window.print();
+  }
+  
+  const handleDialogClose = () => {
+    resetForm();
+  }
 
   const handleSaveInvoice = () => {
     if (cart.length === 0 || !selectedCustomer || !date) {
@@ -112,91 +127,197 @@ export default function ManualSalesInputPage() {
       if (result.error) {
         toast({ title: 'Gagal Menyimpan Invoice', description: result.error, variant: 'destructive' });
       } else {
+        const fullTransaction: Transaction = {
+            id: result.id!,
+            ...newTransaction,
+            status: 'Belum Lunas',
+            date: date
+        }
+        setInvoice(fullTransaction);
         toast({ title: 'Invoice Berhasil Disimpan', description: `Invoice untuk ${selectedCustomer.name} telah dibuat.` });
-        resetForm();
       }
     });
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl md:text-3xl font-headline font-bold">Input Penjualan Manual (Invoice)</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Detail Invoice</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Pelanggan</Label>
-              <div className="flex gap-2">
-                <CustomerPicker customers={customers} selected={selectedCustomer} onSelect={setSelectedCustomer} />
-                <CustomerFormDialog>
-                    <Button variant="outline" size="icon" aria-label="Tambah pelanggan baru">
-                        <UserPlus className="h-4 w-4" />
-                    </Button>
-                </CustomerFormDialog>
+    <>
+      <div className="flex flex-col gap-6 print:hidden">
+        <h1 className="text-2xl md:text-3xl font-headline font-bold">Input Penjualan Manual (Invoice)</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>Detail Invoice</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Pelanggan</Label>
+                <div className="flex gap-2">
+                  <CustomerPicker customers={customers} selected={selectedCustomer} onSelect={setSelectedCustomer} />
+                  <CustomerFormDialog>
+                      <Button variant="outline" size="icon" aria-label="Tambah pelanggan baru">
+                          <UserPlus className="h-4 w-4" />
+                      </Button>
+                  </CustomerFormDialog>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Tanggal Invoice</Label>
+                <DatePicker date={date} setDate={setDate} />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Tanggal Invoice</Label>
-              <DatePicker date={date} setDate={setDate} />
+              <Label>Item Invoice</Label>
+              {cart.length > 0 && (
+                  <div className="border rounded-md overflow-x-auto">
+                      <Table>
+                          <TableHeader>
+                              <TableRow>
+                                  <TableHead>Produk</TableHead>
+                                  <TableHead className="w-[120px]">Jumlah</TableHead>
+                                  <TableHead className="text-right">Subtotal</TableHead>
+                                  <TableHead className="w-[50px]"></TableHead>
+                              </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                              {cart.map(item => (
+                              <TableRow key={item.product.id}>
+                                  <TableCell className="font-medium">{item.product.name}</TableCell>
+                                  <TableCell>
+                                  <div className="flex items-center gap-1">
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, item.quantity - 1)}>
+                                      <MinusCircle className="h-4 w-4" />
+                                      </Button>
+                                      <span>{item.quantity}</span>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, item.quantity + 1)}>
+                                      <PlusCircle className="h-4 w-4" />
+                                      </Button>
+                                  </div>
+                                  </TableCell>
+                                  <TableCell className="text-right">Rp {(item.unit.price * item.quantity).toLocaleString('id-ID')}</TableCell>
+                                  <TableCell>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, 0)}>
+                                      <X className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                  </TableCell>
+                              </TableRow>
+                              ))}
+                          </TableBody>
+                      </Table>
+                  </div>
+              )}
+              <ProductPicker products={products} onSelect={addToCart} />
             </div>
-          </div>
-          <div className="space-y-2">
-             <Label>Item Invoice</Label>
-             {cart.length > 0 && (
-                <div className="border rounded-md overflow-x-auto">
-                    <Table>
-                        <TableHeader>
+          </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-muted/50 p-6">
+              <div className="text-lg font-bold">
+                  Total Invoice: Rp {cartTotal.toLocaleString('id-ID')}
+              </div>
+            <Button onClick={handleSaveInvoice} disabled={isPending || !selectedCustomer || cart.length === 0} className="w-full sm:w-auto">
+              {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Simpan & Pratinjau Invoice
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+      
+      {invoice && selectedCustomer && companySettings && (
+        <Dialog open={!!invoice} onOpenChange={(open) => !open && handleDialogClose()}>
+            <DialogContent className="max-w-4xl print:max-w-none print:border-none print:shadow-none print:p-0">
+                <DialogHeader className="print:hidden">
+                    <DialogTitle>Pratinjau Invoice</DialogTitle>
+                    <DialogDescription>Invoice berhasil dibuat. Anda dapat mencetaknya sekarang.</DialogDescription>
+                </DialogHeader>
+                <div id="printable-invoice" className="p-2 print:p-0">
+                    <div className="p-8 border rounded-lg bg-background">
+                         <header className="flex justify-between items-start pb-6 border-b">
+                            <div className="space-y-1">
+                                {companySettings.logoDataUrl && (
+                                    <Image src={companySettings.logoDataUrl} alt="Company Logo" width={80} height={80} className="object-contain" />
+                                )}
+                                <h1 className="text-2xl font-bold font-headline">{companySettings.companyName}</h1>
+                                <p className="text-sm text-muted-foreground">{companySettings.address}</p>
+                                <p className="text-sm text-muted-foreground">{companySettings.phone} | {companySettings.email}</p>
+                            </div>
+                            <div className="text-right">
+                                <h2 className="text-3xl font-bold font-headline text-primary">INVOICE</h2>
+                                <p className="font-mono text-sm">#{invoice.id}</p>
+                                <p className="text-sm">Tanggal: {format(invoice.date, 'dd MMMM yyyy')}</p>
+                            </div>
+                        </header>
+                         <section className="grid grid-cols-2 gap-8 my-6">
+                             <div>
+                                <h3 className="font-semibold mb-1">Ditagihkan Kepada:</h3>
+                                <p className="font-bold">{selectedCustomer.name}</p>
+                                <p className="text-sm text-muted-foreground">{selectedCustomer.address}</p>
+                                <p className="text-sm text-muted-foreground">{selectedCustomer.phone}</p>
+                             </div>
+                         </section>
+
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Deskripsi</TableHead>
+                                    <TableHead className="text-center">Jumlah</TableHead>
+                                    <TableHead className="text-right">Harga Satuan</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {invoice.items.map(item => (
+                                    <TableRow key={item.productId}>
+                                        <TableCell>{item.productName}</TableCell>
+                                        <TableCell className="text-center">{item.quantity} {item.unit}</TableCell>
+                                        <TableCell className="text-right font-mono">Rp {item.price.toLocaleString('id-ID')}</TableCell>
+                                        <TableCell className="text-right font-mono">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
                             <TableRow>
-                                <TableHead>Produk</TableHead>
-                                <TableHead className="w-[120px]">Jumlah</TableHead>
-                                <TableHead className="text-right">Subtotal</TableHead>
-                                <TableHead className="w-[50px]"></TableHead>
+                                <TableCell colSpan={3} className="text-right font-bold text-lg">GRAND TOTAL</TableCell>
+                                <TableCell className="text-right font-bold font-mono text-lg">Rp {invoice.total.toLocaleString('id-ID')}</TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {cart.map(item => (
-                            <TableRow key={item.product.id}>
-                                <TableCell className="font-medium">{item.product.name}</TableCell>
-                                <TableCell>
-                                <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, item.quantity - 1)}>
-                                    <MinusCircle className="h-4 w-4" />
-                                    </Button>
-                                    <span>{item.quantity}</span>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, item.quantity + 1)}>
-                                    <PlusCircle className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                                </TableCell>
-                                <TableCell className="text-right">Rp {(item.unit.price * item.quantity).toLocaleString('id-ID')}</TableCell>
-                                <TableCell>
-                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, 0)}>
-                                    <X className="h-4 w-4 text-destructive" />
-                                </Button>
-                                </TableCell>
-                            </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                        </Table>
+                         <footer className="mt-8 pt-4 border-t text-center text-xs text-muted-foreground">
+                            <p>Terima kasih atas bisnis Anda!</p>
+                        </footer>
+                    </div>
                 </div>
-             )}
-             <ProductPicker products={products} onSelect={addToCart} />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-muted/50 p-6">
-            <div className="text-lg font-bold">
-                Total Invoice: Rp {cartTotal.toLocaleString('id-ID')}
-            </div>
-          <Button onClick={handleSaveInvoice} disabled={isPending || !selectedCustomer || cart.length === 0} className="w-full sm:w-auto">
-            {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Simpan Sebagai Piutang
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
+                <DialogFooter className="print:hidden">
+                    <Button variant="outline" onClick={handleDialogClose}>Tutup & Buat Baru</Button>
+                    <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Cetak Invoice</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
+
+      <style jsx global>{`
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .print-hidden, .print-hidden * {
+                visibility: hidden;
+            }
+            #printable-invoice, #printable-invoice * {
+                visibility: visible;
+            }
+            #printable-invoice {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            @page {
+                size: A4;
+                margin: 0.5cm;
+            }
+        }
+      `}</style>
+    </>
   );
 }
 
