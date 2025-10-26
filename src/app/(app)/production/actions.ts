@@ -1,4 +1,3 @@
-
 'use server';
 
 import { revalidatePath } from "next/cache";
@@ -115,7 +114,7 @@ export async function completeProduction(completionData: NewProductionCompletion
                 if (!productInfo) throw new Error(`Bahan baku ${item.productName} tidak ditemukan.`);
                 
                 const newStock = productInfo.data.stock - item.quantity;
-                if (newStock < 0) throw new Error(`Stok ${item.productName} tidak mencukupi.`);
+                // if (newStock < 0) throw new Error(`Stok ${item.productName} tidak mencukupi.`);
                 
                 const itemCost = (productInfo.data.cost || 0) * item.quantity;
                 totalRawMaterialCost += itemCost;
