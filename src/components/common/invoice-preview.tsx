@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import type { CompanySettings } from '@/app/(app)/settings/actions';
@@ -107,16 +108,18 @@ export function InvoicePreview({ transaction, companySettings, customer }: Invoi
           </div>
           <div className="w-1/3 text-right">
              <Table>
-                {transaction.discount || transaction.fee ? (
-                <>
-                <TableRow className="border-none"><TableCell className="p-1 text-right">Subtotal</TableCell><TableCell className="p-1 text-right font-mono">{transaction.total.toLocaleString('id-ID')}</TableCell></TableRow>
-                {transaction.discount > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Diskon</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.discount.toLocaleString('id-ID')}</TableCell></TableRow>)}
-                {transaction.fee > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Biaya</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.fee.toLocaleString('id-ID')}</TableCell></TableRow>)}
-                <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {(transaction.netTotal ?? transaction.total).toLocaleString('id-ID')}</TableCell></TableRow>
-                </>
-                ) : (
-                <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {transaction.total.toLocaleString('id-ID')}</TableCell></TableRow>
-                )}
+                <TableBody>
+                  {transaction.discount || transaction.fee ? (
+                  <>
+                  <TableRow className="border-none"><TableCell className="p-1 text-right">Subtotal</TableCell><TableCell className="p-1 text-right font-mono">{transaction.total.toLocaleString('id-ID')}</TableCell></TableRow>
+                  {transaction.discount > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Diskon</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.discount.toLocaleString('id-ID')}</TableCell></TableRow>)}
+                  {transaction.fee > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Biaya</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.fee.toLocaleString('id-ID')}</TableCell></TableRow>)}
+                  <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {(transaction.netTotal ?? transaction.total).toLocaleString('id-ID')}</TableCell></TableRow>
+                  </>
+                  ) : (
+                  <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {transaction.total.toLocaleString('id-ID')}</TableCell></TableRow>
+                  )}
+                </TableBody>
              </Table>
               <div className="mt-4 text-center">
                 <p>Hormat Kami,</p>
@@ -128,4 +131,3 @@ export function InvoicePreview({ transaction, companySettings, customer }: Invoi
     </div>
   );
 }
-
