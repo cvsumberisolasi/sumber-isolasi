@@ -69,9 +69,12 @@ export default function PeriodClosingPage() {
         setMonth(today.getMonth());
       }
       
-      const q = query(collection(db, 'periodClosings'), orderBy('year', 'desc'), orderBy('month', 'desc'));
+      const q = query(collection(db, 'periodClosings'), orderBy('year', 'desc'));
       const unsub = onSnapshot(q, (snapshot) => {
-          setClosingHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PeriodClosing)));
+          const history = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PeriodClosing));
+          // Sort by month client-side
+          history.sort((a, b) => b.month - a.month);
+          setClosingHistory(history);
           setLoadingHistory(false);
       });
       
