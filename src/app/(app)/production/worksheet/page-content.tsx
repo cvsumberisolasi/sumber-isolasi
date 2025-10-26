@@ -40,16 +40,16 @@ export default function WorksheetPageContent() {
 
 
   useEffect(() => {
-    const q = query(collection(db, "workOrders"), where("status", "==", "Dalam Pengerjaan"), orderBy("date", "desc"));
+    const q = query(collection(db, "workOrders"), orderBy("date", "desc"));
     const unsub = onSnapshot(q, (snapshot) => {
-      const activeWorkOrders = snapshot.docs.map(doc => ({ 
+      const allWorkOrders = snapshot.docs.map(doc => ({ 
           id: doc.id, ...doc.data(), 
           date: doc.data().date.toDate(),
           startDate: doc.data().startDate.toDate(),
           endDate: doc.data().endDate.toDate(),
         } as WorkOrder));
         
-      setWorkOrders(activeWorkOrders);
+      setWorkOrders(allWorkOrders.filter(wo => wo.status === 'Dalam Pengerjaan'));
       setLoading(false);
     });
 
@@ -249,11 +249,7 @@ function ProductionExecutionForm({ wo, onBack }: { wo: WorkOrder; onBack: () => 
 
 
   const handleComplete = () => {
-    if (consumedItems.some(item => item.quantity <= 0)) {
-      toast({ title: 'Kuantitas tidak valid', description: 'Jumlah bahan baku yang digunakan harus lebih dari nol.', variant: 'destructive' });
-      return;
-    }
-
+    
     const scaledAdditionalCosts = bom?.additionalCosts?.map(cost => ({
         ...cost,
         amount: cost.amount * (wo.quantityToProduce / bom.quantityProduced)
