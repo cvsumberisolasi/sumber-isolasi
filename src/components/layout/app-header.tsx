@@ -1,19 +1,48 @@
 
 'use client';
 
+import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { usePathname } from 'next/navigation';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator, BreadcrumbPage } from '@/components/ui/breadcrumb';
+
+function generateBreadcrumbs(pathname: string) {
+    const pathSegments = pathname.split('/').filter(segment => segment);
+    const breadcrumbs = pathSegments.map((segment, index) => {
+        const href = `/${pathSegments.slice(0, index + 1).join('/')}`;
+        const label = segment.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const isLast = index === pathSegments.length - 1;
+        return { href, label, isLast };
+    });
+    return [{ href: '/dashboard', label: 'Dashboard', isLast: false }, ...breadcrumbs];
+}
 
 export function AppHeader() {
-  const { isMobile } = useSidebar();
+  const pathname = usePathname();
+  const breadcrumbs = generateBreadcrumbs(pathname);
+
   return (
     <header
       className={cn(
         'sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6'
       )}
     >
-      <SidebarTrigger className="-ml-2" />
-
+        <Breadcrumb className="hidden md:flex">
+            <BreadcrumbList>
+                {breadcrumbs.map((crumb, index) => (
+                    <React.Fragment key={crumb.href}>
+                        <BreadcrumbItem>
+                            {crumb.isLast ? (
+                                <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                            ) : (
+                                <BreadcrumbLink href={crumb.href}>{crumb.label}</BreadcrumbLink>
+                            )}
+                        </BreadcrumbItem>
+                        {!crumb.isLast && <BreadcrumbSeparator />}
+                    </React.Fragment>
+                ))}
+            </BreadcrumbList>
+      </Breadcrumb>
     </header>
   );
 }

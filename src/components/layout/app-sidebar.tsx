@@ -67,6 +67,7 @@ import {
   Hammer,
   FileCog,
   Workflow,
+  PanelLeft,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -76,23 +77,15 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarTrigger,
-  useSidebar,
-  SidebarFooter,
-  SidebarMenuSubItem,
-} from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+    Sheet,
+    SheetContent,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
 import { ThemeToggle } from "./theme-toggle";
 import { TokoKilatLogo } from "../icons/logo";
 import type { CompanySettings } from "@/app/(app)/settings/actions";
+import { Button } from "../ui/button";
 
 const navItems = [
   {
@@ -196,6 +189,52 @@ const navItems = [
   },
 ];
 
+function NavItem({ item, isActive, isSubActive }: { item: any, isActive: (href: string) => boolean, isSubActive: (items: any[]) => boolean }) {
+    const pathname = usePathname();
+
+    if (item.subItems) {
+        return (
+             <Collapsible defaultOpen={isSubActive(item.subItems)}>
+                <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                        <item.icon className="h-5 w-5"/>
+                        {item.label}
+                        <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                    </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4">
+                    <div className="flex flex-col gap-1 py-1 pl-4 border-l">
+                    {item.subItems.map((sub: any) => (
+                         <Button asChild key={sub.href} variant={isActive(sub.href) ? 'secondary' : 'ghost'} className="justify-start gap-2">
+                            <Link href={sub.href}>
+                                {sub.icon && <sub.icon className="h-4 w-4"/>}
+                                {sub.label}
+                            </Link>
+                        </Button>
+                    ))}
+                    </div>
+                </CollapsibleContent>
+            </Collapsible>
+        )
+    }
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button asChild variant={isActive(item.href) ? 'secondary' : 'ghost'} className="justify-center sm:justify-start gap-2" aria-label={item.label}>
+                    <Link href={item.href}>
+                        <item.icon className="h-5 w-5"/>
+                        <span className="hidden sm:inline">{item.label}</span>
+                    </Link>
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="sm:hidden">
+                {item.label}
+            </TooltipContent>
+        </Tooltip>
+    )
+}
+
 export function AppSidebar({ companySettings }: { companySettings: CompanySettings }) {
   const pathname = usePathname();
 
@@ -217,91 +256,67 @@ export function AppSidebar({ companySettings }: { companySettings: CompanySettin
 
   const isSubActive = (subItems: any[]) =>
     subItems.some((item) => item.href && isActive(item.href));
+    
+  const NavContent = () => (
+     <nav className="grid gap-1 p-2">
+        {navItems.map((item, index) => (
+            <NavItem key={index} item={item} isActive={isActive} isSubActive={isSubActive}/>
+        ))}
+    </nav>
+  )
 
   return (
-    <Sidebar
-      className="border-r"
-    >
-       <SidebarHeader className="flex items-center gap-2">
-        {companySettings.logoDataUrl ? (
-          <Image src={companySettings.logoDataUrl} alt="Logo Perusahaan" width={40} height={40} className="object-contain" />
-        ) : (
-          <TokoKilatLogo />
-        )}
-        <span className="text-lg font-headline font-semibold text-primary">
-          {companySettings.companyName || "Toko Kilat"}
-        </span>
-      </SidebarHeader>
-        <SidebarContent>
-        <SidebarMenu>
-          {navItems.map((item, index) =>
-            item.subItems ? (
-              <SidebarMenuItem key={`${item.label}-${index}`}>
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      className="w-full justify-between font-headline"
-                      isActive={isSubActive(item.subItems)}
-                       tooltip={{
-                        children: item.label,
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </div>
-                      <ChevronDown className="size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {item.subItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.href}>
-                           <SidebarMenuSubButton
-                              href={subItem.href || "#"}
-                              isActive={isActive(subItem.href || "#")}
-                            >
-                              {subItem.icon && <subItem.icon />}
-                              <span>{subItem.label}</span>
-                              {subItem.isDev && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Wrench className="ml-auto h-3 w-3 text-muted-foreground" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="right" align="center">
-                                    <p>Dalam Pengembangan</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-                            </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </Collapsible>
-              </SidebarMenuItem>
-            ) : (
-              <SidebarMenuItem key={item.href}>
-                <Link href={item.href || "#"}>
-                  <SidebarMenuButton
-                    isActive={isActive(item.href || "#")}
-                    tooltip={{
-                      children: item.label,
-                    }}
-                    className="font-headline"
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
+    <>
+        {/* Mobile Sidebar */}
+        <Sheet>
+            <SheetTrigger asChild>
+                <Button size="icon" variant="outline" className="sm:hidden fixed bottom-4 right-4 z-50">
+                    <PanelLeft className="h-5 w-5" />
+                    <span className="sr-only">Toggle Menu</span>
+                </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="sm:max-w-xs overflow-y-auto">
+                <Link href="/dashboard" className="group flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                    {companySettings.logoDataUrl ? (
+                        <Image src={companySettings.logoDataUrl} alt="Logo" width={32} height={32} />
+                    ) : (
+                        <TokoKilatLogo className="h-8 w-8" />
+                    )}
+                    <span className="font-semibold text-lg">{companySettings.companyName || "Toko Kilat"}</span>
                 </Link>
-              </SidebarMenuItem>
-            )
-          )}
-        </SidebarMenu>
-      </SidebarContent>
-       <SidebarFooter>
-        <ThemeToggle />
-      </SidebarFooter>
-    </Sidebar>
+                <NavContent />
+            </SheetContent>
+        </Sheet>
+        
+        {/* Desktop Sidebar */}
+        <aside className="hidden sm:flex h-screen w-14 flex-col border-r bg-background sm:fixed sm:z-50">
+            <TooltipProvider>
+                <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+                    <Link href="/dashboard" className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base">
+                        {companySettings.logoDataUrl ? (
+                            <Image src={companySettings.logoDataUrl} alt="Logo" width={24} height={24} />
+                        ) : (
+                            <TokoKilatLogo className="h-5 w-5 transition-all group-hover:scale-110" />
+                        )}
+                        <span className="sr-only">{companySettings.companyName || "Toko Kilat"}</span>
+                    </Link>
+                     {navItems.map((item, index) => (
+                        <Tooltip key={index}>
+                            <TooltipTrigger asChild>
+                                <Link href={item.href || item.subItems?.[0]?.href || '#'} className={cn("flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8", (item.href && isActive(item.href) || (item.subItems && isSubActive(item.subItems))) && "bg-accent text-accent-foreground")}>
+                                    <item.icon className="h-5 w-5" />
+                                    <span className="sr-only">{item.label}</span>
+                                </Link>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">{item.label}</TooltipContent>
+                        </Tooltip>
+                    ))}
+                </nav>
+                 <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
+                    <ThemeToggle />
+                </nav>
+            </TooltipProvider>
+        </aside>
+    </>
   );
 }
