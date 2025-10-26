@@ -103,7 +103,7 @@ export function InvoicePreview({ transaction, companySettings, customer }: Invoi
           <div className="w-2/3">
              <p className="font-semibold">Terbilang:</p>
              <p className="italic bg-muted p-1 rounded-sm text-xs">{amountInWords}</p>
-             <p className="mt-4">Penerima,</p>
+             <p className="mt-4">Diterima oleh,</p>
              <div className="mt-12">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
           </div>
           <div className="w-1/3 text-right">
@@ -122,7 +122,7 @@ export function InvoicePreview({ transaction, companySettings, customer }: Invoi
                 </TableBody>
              </Table>
               <div className="mt-4 text-center">
-                <p>Hormat Kami,</p>
+                <p>Hormat kami,</p>
                 <div className="mt-12">({companySettings.companyName})</div>
               </div>
           </div>
