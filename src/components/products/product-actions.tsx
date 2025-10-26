@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useTransition, useEffect } from 'react';
-import { Plus, MoreHorizontal, Loader2, Edit, Trash2, Database, PlusCircle, XCircle, Download } from 'lucide-react';
+import { Plus, MoreHorizontal, Loader2, Edit, Trash2, Database, PlusCircle, XCircle, Download, Copy } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { Button } from '@/components/ui/button';
 import {
@@ -179,6 +179,11 @@ export function ProductRowActions({ product }: { product: Product }) {
                 <Edit className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
           </ProductFormDialog>
+           <ProductFormDialog product={product} isCopy={true}>
+             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <Copy className="mr-2 h-4 w-4" /> Salin
+            </DropdownMenuItem>
+          </ProductFormDialog>
           <DropdownMenuItem
             className="text-destructive"
             onSelect={() => setIsDeleteDialogOpen(true)}
@@ -213,7 +218,7 @@ export function ProductRowActions({ product }: { product: Product }) {
 }
 
 
-export function ProductFormDialog({ children, product }: { children: React.ReactNode, product?: Product }) {
+export function ProductFormDialog({ children, product, isCopy = false }: { children: React.ReactNode, product?: Product, isCopy?: boolean }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -236,7 +241,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
     return () => unsub();
   }, []);
 
-  const isEditing = !!product;
+  const isEditing = !!product && !isCopy;
   const isDropdownItem = React.isValidElement(children) && (children.type as any).displayName === 'DropdownMenuItem';
   
   const handleUnitChange = (index: number, field: keyof ProductUnit, value: string | number) => {
@@ -333,6 +338,26 @@ export function ProductFormDialog({ children, product }: { children: React.React
       setCost(product?.cost || 0);
       setMinStockThreshold(product?.minStockThreshold || 10);
       setUnits(product?.units || [{ name: '', price: 0, cost: 0, conversionRate: 1 }]);
+    } else {
+      if (isCopy && product) {
+        setName(`${product.name} (Salinan)`);
+        setSku('');
+        setStock(0);
+        setCategory(product.category);
+        setProductTypes(product.productType ? (Array.isArray(product.productType) ? product.productType : [product.productType]) : ['Barang Dagang']);
+        setCost(product.cost || 0);
+        setMinStockThreshold(product.minStockThreshold || 10);
+        setUnits(product.units || [{ name: '', price: 0, cost: 0, conversionRate: 1 }]);
+      } else if (product) {
+        setName(product.name);
+        setSku(product.sku || '');
+        setCategory(product.category);
+        setProductTypes(product.productType ? (Array.isArray(product.productType) ? product.productType : [product.productType]) : ['Barang Dagang']);
+        setStock(product.stock);
+        setCost(product.cost || 0);
+        setMinStockThreshold(product.minStockThreshold || 10);
+        setUnits(product.units || [{ name: '', price: 0, cost: 0, conversionRate: 1 }]);
+      }
     }
     setOpen(isOpen);
   }
@@ -346,7 +371,7 @@ export function ProductFormDialog({ children, product }: { children: React.React
       </DialogTrigger>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="font-headline">{isEditing ? 'Edit Produk' : 'Tambah Produk Baru'}</DialogTitle>
+          <DialogTitle className="font-headline">{isEditing ? 'Edit Produk' : (isCopy ? 'Salin Produk' : 'Tambah Produk Baru')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 max-h-[80vh] overflow-y-auto p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
