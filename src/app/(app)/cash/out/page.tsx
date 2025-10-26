@@ -71,14 +71,10 @@ export default function CashOutPage() {
       setDestinationAccounts(accounts.filter(a => a.type.startsWith('Beban') || a.type.startsWith('Aset')));
     });
 
-    const qHistory = query(
-      collection(db, 'journals'), 
-      orderBy('date', 'desc'),
-      where('description', '>=', 'Kas Keluar:'), 
-      where('description', '<', 'Kas Keluar:' + '\uf8ff')
-    );
+    const qHistory = query(collection(db, 'journals'), orderBy('date', 'desc'));
     const unsubHistory = onSnapshot(qHistory, (snapshot) => {
-        setHistory(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, date: doc.data().date.toDate() } as Journal)));
+        const allJournals = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, date: doc.data().date.toDate() } as Journal));
+        setHistory(allJournals.filter(j => j.description.startsWith('Kas Keluar:')));
         setLoadingHistory(false);
     });
 

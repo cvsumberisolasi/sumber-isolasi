@@ -74,14 +74,10 @@ export default function CashInPage() {
       setDestinationAccounts(accounts.filter(a => a.type === 'Kas & Bank'));
     });
 
-    const qHistory = query(
-      collection(db, 'journals'), 
-      orderBy('date', 'desc'),
-      where('description', '>=', 'Kas Masuk:'), 
-      where('description', '<', 'Kas Masuk:' + '\uf8ff')
-    );
+    const qHistory = query(collection(db, 'journals'), orderBy('date', 'desc'));
     const unsubHistory = onSnapshot(qHistory, (snapshot) => {
-        setHistory(snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, date: doc.data().date.toDate() } as Journal)));
+        const allJournals = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id, date: doc.data().date.toDate() } as Journal));
+        setHistory(allJournals.filter(j => j.description.startsWith('Kas Masuk:')));
         setLoadingHistory(false);
     });
     
