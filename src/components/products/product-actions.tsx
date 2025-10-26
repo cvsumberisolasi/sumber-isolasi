@@ -364,10 +364,21 @@ export function ProductFormDialog({ children, product, isCopy = false }: { child
 
   const isFinishedGood = productTypes.includes('Barang Jadi');
 
+  const getTriggerContent = () => {
+    if (isDropdownItem) {
+        const commonClasses = "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50";
+        if (isCopy) {
+            return <div className={commonClasses}><Copy className="mr-2 h-4 w-4" /> Salin</div>
+        }
+        return <div className={commonClasses}><Edit className="mr-2 h-4 w-4" /> Edit</div>
+    }
+    return children;
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        { isDropdownItem ? <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"><Edit className="mr-2 h-4 w-4" /> Edit</div> : children }
+        {getTriggerContent()}
       </DialogTrigger>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
