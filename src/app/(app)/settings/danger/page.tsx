@@ -48,6 +48,7 @@ const ALL_COLLECTIONS = [
     { name: "taxes", group: 'Master', description: 'Semua tarif pajak.' },
     { name: "currencies", group: 'Master', description: 'Semua data mata uang.' },
     { name: "marketplaceStores", group: 'Master', description: 'Semua pengaturan toko marketplace.' },
+    { name: "users", group: 'Master', description: 'Semua data pengguna (fitur belum diimplementasikan).' },
     { name: "coa", group: 'Akuntansi', description: 'Seluruh Bagan Akun (Chart of Accounts).' },
 ];
 
