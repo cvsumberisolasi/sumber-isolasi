@@ -13,7 +13,7 @@ export default function AccountingPage() {
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl md:text-3xl font-headline font-bold">Akuntansi</h1>
             <Tabs defaultValue="coa">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5">
+                <TabsList className="w-full justify-start overflow-x-auto">
                     <TabsTrigger value="coa">Bagan Akun (COA)</TabsTrigger>
                     <TabsTrigger value="journal">Jurnal Umum</TabsTrigger>
                     <TabsTrigger value="ledger">Buku Besar</TabsTrigger>

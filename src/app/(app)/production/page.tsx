@@ -11,7 +11,7 @@ export default function ProductionPage() {
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl md:text-3xl font-headline font-bold">Manufaktur & Produksi</h1>
             <Tabs defaultValue="work-order">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="w-full justify-start overflow-x-auto">
                     <TabsTrigger value="bom">Formula (BOM)</TabsTrigger>
                     <TabsTrigger value="work-order">Perintah Produksi (WO)</TabsTrigger>
                     <TabsTrigger value="worksheet">Lembar Kerja</TabsTrigger>

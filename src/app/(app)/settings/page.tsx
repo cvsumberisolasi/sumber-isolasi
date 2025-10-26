@@ -13,7 +13,7 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl md:text-3xl font-headline font-bold">Pengaturan</h1>
             <Tabs defaultValue="profile" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-2 md:grid-cols-5">
+                <TabsList className="w-full justify-start overflow-x-auto">
                     <TabsTrigger value="profile">Profil Perusahaan</TabsTrigger>
                     <TabsTrigger value="accounting">Akuntansi</TabsTrigger>
                     <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
