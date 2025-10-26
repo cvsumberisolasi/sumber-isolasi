@@ -8,12 +8,12 @@ import type { WorkOrder, BillOfMaterial, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, ArrowLeft, Save, Eye, CheckCircle, XCircle, PlayCircle } from 'lucide-react';
+import { Loader2, Plus, ArrowLeft, Save, Eye, CheckCircle, XCircle, PlayCircle, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { addWorkOrder, updateWorkOrderStatus } from '../actions';
+import { addWorkOrder, updateMultipleWorkOrderStatus, updateWorkOrderStatus } from '../actions';
 import { DatePicker } from '@/components/ui/date-picker';
 import {
   Select,
@@ -36,12 +36,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 
 export default function WorkOrderPageContent() {
   const [view, setView] = useState<'list' | 'new' | 'detail'>('list');
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const { toast } = useToast();
+  const [isBulkPending, startBulkTransition] = useTransition();
 
   useEffect(() => {
     const woUnsub = onSnapshot(query(collection(db, "workOrders"), orderBy("date", "desc")), (snapshot) => {
@@ -61,6 +66,33 @@ export default function WorkOrderPageContent() {
     setSelectedWO(null);
     setView('list');
   }
+  
+  const handleSelectRow = (id: string) => {
+    setSelectedRows(prev => 
+      prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]
+    );
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allDraftIds = workOrders.filter(wo => wo.status === 'Belum Diproses').map(wo => wo.id);
+      setSelectedRows(allDraftIds);
+    } else {
+      setSelectedRows([]);
+    }
+  }
+
+  const handleBulkStart = () => {
+    startBulkTransition(async () => {
+        const result = await updateMultipleWorkOrderStatus(selectedRows, 'Dalam Pengerjaan');
+        if (result.error) {
+            toast({ title: 'Gagal Memulai WO', description: result.error, variant: 'destructive'});
+        } else {
+            toast({ title: 'Berhasil', description: `${selectedRows.length} WO telah dimulai.`});
+            setSelectedRows([]);
+        }
+    });
+  }
 
   if (view === 'new') {
     return <NewWorkOrderForm onBack={handleBackToList} />;
@@ -69,6 +101,9 @@ export default function WorkOrderPageContent() {
   if (view === 'detail' && selectedWO) {
     return <WorkOrderDetail woId={selectedWO.id} onBack={handleBackToList} />
   }
+  
+  const selectableDraftsCount = workOrders.filter(wo => wo.status === 'Belum Diproses').length;
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,6 +116,32 @@ export default function WorkOrderPageContent() {
           <Plus className="mr-2 h-4 w-4" /> Buat Perintah Baru
         </Button>
       </div>
+       {selectedRows.length > 0 && (
+        <Card className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <p className="font-semibold text-sm">{selectedRows.length} perintah produksi dipilih.</p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button>
+                    <Play className="mr-2 h-4 w-4" /> Mulai Pengerjaan Terpilih
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Mulai {selectedRows.length} Perintah Produksi?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Status perintah produksi yang dipilih akan diubah menjadi "Dalam Pengerjaan". Lanjutkan?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleBulkStart} disabled={isBulkPending}>
+                         {isBulkPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : 'Ya, Mulai Sekarang'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </Card>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>Daftar Perintah Produksi</CardTitle>
@@ -89,6 +150,13 @@ export default function WorkOrderPageContent() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                   <Checkbox 
+                        checked={selectableDraftsCount > 0 && selectedRows.length === selectableDraftsCount}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Pilih semua yang bisa dipilih"
+                    />
+                </TableHead>
                 <TableHead>Tanggal</TableHead>
                 <TableHead>No. WO</TableHead>
                 <TableHead>Produk</TableHead>
@@ -99,12 +167,20 @@ export default function WorkOrderPageContent() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center h-24"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
               ) : workOrders.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Belum ada perintah produksi.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center h-24 text-muted-foreground">Belum ada perintah produksi.</TableCell></TableRow>
               ) : (
                 workOrders.map(wo => (
-                  <TableRow key={wo.id}>
+                  <TableRow key={wo.id} className={cn(selectedRows.includes(wo.id) && 'bg-muted/50')}>
+                    <TableCell>
+                        <Checkbox 
+                            checked={selectedRows.includes(wo.id)}
+                            onCheckedChange={() => handleSelectRow(wo.id)}
+                            disabled={wo.status !== 'Belum Diproses'}
+                            aria-label={`Pilih WO ${wo.id}`}
+                        />
+                    </TableCell>
                     <TableCell>{format(wo.date, "dd MMM yyyy", { locale: id })}</TableCell>
                     <TableCell className="font-mono text-xs">{wo.id}</TableCell>
                     <TableCell className="font-medium">{wo.finishedGoodName}</TableCell>

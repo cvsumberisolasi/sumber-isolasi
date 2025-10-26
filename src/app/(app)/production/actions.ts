@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from "next/cache";
-import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, Timestamp, runTransaction, getDoc, DocumentData, getDocs } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, setDoc, Timestamp, runTransaction, getDoc, DocumentData, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { NewBillOfMaterial, NewWorkOrder, WorkOrder, Product, BillOfMaterial, NewJournal, JournalEntry, ProductionCompletion, NewProductionCompletion, AdditionalCostItem } from "@/lib/types";
 import { generateDocumentId } from "@/lib/utils";
@@ -74,6 +74,24 @@ export async function updateWorkOrderStatus(id: string, status: WorkOrder['statu
     }
 }
 
+export async function updateMultipleWorkOrderStatus(ids: string[], status: WorkOrder['status']) {
+    try {
+        const batch = writeBatch(db);
+        ids.forEach(id => {
+            const woRef = doc(db, 'workOrders', id);
+            batch.update(woRef, { status });
+        });
+        await batch.commit();
+
+        revalidatePath('/(app)/production/work-order');
+        revalidatePath('/(app)/production/worksheet');
+        return createResponse();
+    } catch (e) {
+        return createResponse(e instanceof Error ? e.message : 'An unknown error occurred.');
+    }
+}
+
+
 // --- Production Completion Actions ---
 export async function completeProduction(completionData: NewProductionCompletion) {
     try {
@@ -114,7 +132,6 @@ export async function completeProduction(completionData: NewProductionCompletion
                 if (!productInfo) throw new Error(`Bahan baku ${item.productName} tidak ditemukan.`);
                 
                 const newStock = productInfo.data.stock - item.quantity;
-                // if (newStock < 0) throw new Error(`Stok ${item.productName} tidak mencukupi.`);
                 
                 const itemCost = (productInfo.data.cost || 0) * item.quantity;
                 totalRawMaterialCost += itemCost;
