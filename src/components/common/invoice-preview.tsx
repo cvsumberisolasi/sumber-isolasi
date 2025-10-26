@@ -6,6 +6,7 @@ import type { Customer, Transaction } from '@/lib/types';
 import Image from 'next/image';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '../ui/table';
 import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 interface InvoicePreviewProps {
   transaction: Transaction;
@@ -16,89 +17,115 @@ interface InvoicePreviewProps {
 export function InvoicePreview({ transaction, companySettings, customer }: InvoicePreviewProps) {
   if (!transaction) return null;
 
+  const terbilang = (angka: number) => {
+    // Logic to convert number to words - simple version
+    const bilangan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+    
+    if (angka < 12) {
+      return bilangan[angka];
+    } else if (angka < 20) {
+      return terbilang(angka - 10) + " Belas";
+    } else if (angka < 100) {
+      return terbilang(Math.floor(angka / 10)) + " Puluh " + terbilang(angka % 10);
+    } else if (angka < 200) {
+      return "Seratus " + terbilang(angka - 100);
+    } else if (angka < 1000) {
+      return terbilang(Math.floor(angka / 100)) + " Ratus " + terbilang(angka % 100);
+    } else if (angka < 2000) {
+      return "Seribu " + terbilang(angka - 1000);
+    } else if (angka < 1000000) {
+      return terbilang(Math.floor(angka / 1000)) + " Ribu " + terbilang(angka % 1000);
+    } else if (angka < 1000000000) {
+      return terbilang(Math.floor(angka / 1000000)) + " Juta " + terbilang(angka % 1000000);
+    }
+    return "";
+  };
+  
+  const totalAmount = transaction.netTotal ?? transaction.total;
+  const amountInWords = terbilang(totalAmount) + " Rupiah";
+
+
   return (
-    <div className="p-8 border rounded-lg bg-background">
-      <header className="flex justify-between items-start pb-6 border-b">
-        <div className="space-y-1">
-          {companySettings.logoDataUrl && (
-            <Image src={companySettings.logoDataUrl} alt="Company Logo" width={80} height={80} className="object-contain" />
-          )}
-          <h1 className="text-2xl font-bold font-headline">{companySettings.companyName}</h1>
-          <p className="text-sm text-muted-foreground">{companySettings.address}</p>
-          <p className="text-sm text-muted-foreground">{companySettings.phone} | {companySettings.email}</p>
-        </div>
-        <div className="text-right">
-          <h2 className="text-3xl font-bold font-headline text-primary">INVOICE</h2>
-          <p className="font-mono text-sm">#{transaction.id}</p>
-          <p className="text-sm">Tanggal: {format(transaction.date, 'dd MMMM yyyy')}</p>
-        </div>
-      </header>
+    <div className="p-4 bg-background font-sans text-xs">
+      {/* Each div here is roughly one third of an A4 page */}
+      <div className="h-[9.9cm] w-[21cm] p-2 flex flex-col">
+        <header className="flex justify-between items-start pb-2 border-b">
+          <div className="flex-1 space-y-px">
+            <h1 className="text-base font-bold">{companySettings.companyName}</h1>
+            <p className="text-xs">{companySettings.address}</p>
+            <p className="text-xs">{companySettings.phone} | {companySettings.email}</p>
+          </div>
+          <div className="text-right">
+            <h2 className="text-lg font-bold">INVOICE</h2>
+            <p className="font-mono text-xs">#{transaction.id}</p>
+          </div>
+        </header>
 
-      <section className="grid grid-cols-2 gap-8 my-6">
-        <div>
-          <h3 className="font-semibold mb-1">Ditagihkan Kepada:</h3>
-          <p className="font-bold">{customer?.name || transaction.customerName}</p>
-          <p className="text-sm text-muted-foreground">{customer?.address}</p>
-          <p className="text-sm text-muted-foreground">{customer?.phone}</p>
-        </div>
-      </section>
+        <section className="flex justify-between my-2">
+            <div className="w-1/2">
+                <p className="font-semibold">Kepada Yth:</p>
+                <p className="font-bold">{customer?.name || transaction.customerName}</p>
+                <p>{customer?.address}</p>
+            </div>
+             <div className="text-right">
+                <p>Tanggal: {format(transaction.date, 'dd MMMM yyyy', { locale: id })}</p>
+                <p>Jatuh Tempo: {format(new Date(new Date(transaction.date).setDate(transaction.date.getDate() + 14)), 'dd MMMM yyyy', { locale: id })}</p>
+            </div>
+        </section>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Deskripsi</TableHead>
-            <TableHead className="text-center">Jumlah</TableHead>
-            <TableHead className="text-right">Harga Satuan</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {transaction.items.map(item => (
-            <TableRow key={item.productId}>
-              <TableCell>{item.productName}</TableCell>
-              <TableCell className="text-center">{item.quantity} {item.unit}</TableCell>
-              <TableCell className="text-right font-mono">Rp {item.price.toLocaleString('id-ID')}</TableCell>
-              <TableCell className="text-right font-mono">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-        <TableFooter>
-            {transaction.discount || transaction.fee ? (
+        <div className="flex-grow">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="h-6 px-2 py-1">No.</TableHead>
+                <TableHead className="h-6 px-2 py-1">Deskripsi</TableHead>
+                <TableHead className="h-6 px-2 py-1 text-center">Qty</TableHead>
+                <TableHead className="h-6 px-2 py-1 text-right">Harga Satuan</TableHead>
+                <TableHead className="h-6 px-2 py-1 text-right">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {transaction.items.map((item, index) => (
+                <TableRow key={item.productId}>
+                  <TableCell className="px-2 py-1">{index + 1}</TableCell>
+                  <TableCell className="px-2 py-1">{item.productName}</TableCell>
+                  <TableCell className="px-2 py-1 text-center">{item.quantity} {item.unit}</TableCell>
+                  <TableCell className="px-2 py-1 text-right font-mono">{item.price.toLocaleString('id-ID')}</TableCell>
+                  <TableCell className="px-2 py-1 text-right font-mono">{(item.price * item.quantity).toLocaleString('id-ID')}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        <footer className="mt-2 pt-2 border-t flex justify-between items-end">
+          <div className="w-2/3">
+             <p className="font-semibold">Terbilang:</p>
+             <p className="italic bg-muted p-1 rounded-sm text-xs">{amountInWords}</p>
+             <p className="mt-4">Penerima,</p>
+             <div className="mt-12">(&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
+          </div>
+          <div className="w-1/3 text-right">
+             <Table>
+                {transaction.discount || transaction.fee ? (
                 <>
-                <TableRow>
-                    <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
-                    <TableCell className="text-right font-mono">Rp {transaction.total.toLocaleString('id-ID')}</TableCell>
-                </TableRow>
-                {transaction.discount > 0 && (
-                    <TableRow>
-                        <TableCell colSpan={3} className="text-right">Diskon</TableCell>
-                        <TableCell className="text-right font-mono text-destructive">- Rp {transaction.discount.toLocaleString('id-ID')}</TableCell>
-                    </TableRow>
-                )}
-                 {transaction.fee > 0 && (
-                    <TableRow>
-                        <TableCell colSpan={3} className="text-right">Biaya Marketplace</TableCell>
-                        <TableCell className="text-right font-mono text-destructive">- Rp {transaction.fee.toLocaleString('id-ID')}</TableCell>
-                    </TableRow>
-                )}
-                 <TableRow className="font-bold text-lg">
-                    <TableCell colSpan={3} className="text-right">GRAND TOTAL</TableCell>
-                    <TableCell className="text-right font-mono">Rp {(transaction.netTotal ?? transaction.total).toLocaleString('id-ID')}</TableCell>
-                </TableRow>
+                <TableRow className="border-none"><TableCell className="p-1 text-right">Subtotal</TableCell><TableCell className="p-1 text-right font-mono">{transaction.total.toLocaleString('id-ID')}</TableCell></TableRow>
+                {transaction.discount > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Diskon</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.discount.toLocaleString('id-ID')}</TableCell></TableRow>)}
+                {transaction.fee > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Biaya</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.fee.toLocaleString('id-ID')}</TableCell></TableRow>)}
+                <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {(transaction.netTotal ?? transaction.total).toLocaleString('id-ID')}</TableCell></TableRow>
                 </>
-            ) : (
-                 <TableRow className="font-bold text-lg">
-                    <TableCell colSpan={3} className="text-right">GRAND TOTAL</TableCell>
-                    <TableCell className="text-right font-mono">Rp {transaction.total.toLocaleString('id-ID')}</TableCell>
-                </TableRow>
-            )}
-           
-        </TableFooter>
-      </Table>
-
-      <footer className="mt-8 pt-4 border-t text-center text-xs text-muted-foreground">
-        <p>Terima kasih atas bisnis Anda!</p>
-      </footer>
+                ) : (
+                <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {transaction.total.toLocaleString('id-ID')}</TableCell></TableRow>
+                )}
+             </Table>
+              <div className="mt-4 text-center">
+                <p>Hormat Kami,</p>
+                <div className="mt-12">({companySettings.companyName})</div>
+              </div>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
+

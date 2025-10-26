@@ -394,13 +394,13 @@ function TransactionsPageContent() {
                 left: 0;
                 top: 0;
                 width: 100%;
-                height: 100%;
+                height: auto;
                 padding: 0;
                 margin: 0;
             }
             @page {
-                size: A4;
-                margin: 0.5cm;
+                size: A4 portrait;
+                margin: 0;
             }
         }
       `}</style>

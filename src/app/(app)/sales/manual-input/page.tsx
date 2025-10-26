@@ -242,9 +242,8 @@ export default function ManualSalesInputPage() {
 
       <style jsx global>{`
         @media print {
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
+            body * {
+                visibility: hidden;
             }
             .print-hidden, .print-hidden * {
                 visibility: hidden;
@@ -257,13 +256,13 @@ export default function ManualSalesInputPage() {
                 left: 0;
                 top: 0;
                 width: 100%;
-                height: 100%;
+                height: auto;
                 padding: 0;
                 margin: 0;
             }
             @page {
-                size: A4;
-                margin: 0.5cm;
+                size: A4 portrait;
+                margin: 0;
             }
         }
       `}</style>
