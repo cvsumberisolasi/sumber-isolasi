@@ -311,10 +311,3 @@ export default function GeneralLedgerPage() {
     </div>
   );
 }
-
-// Add this to date-range-picker component to accept onSelect props
-declare module '@/components/ui/date-range-picker' {
-    interface DateRangePickerProps {
-        onSelect?: (date?: DateRange) => void;
-    }
-}

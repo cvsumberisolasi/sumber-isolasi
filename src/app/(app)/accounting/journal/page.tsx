@@ -257,7 +257,6 @@ export default function GeneralJournalPage() {
   );
 }
 
-// Add this to date-picker component to accept date and setDate props
 declare module '@/components/ui/date-picker' {
     interface DatePickerProps {
         date?: Date;

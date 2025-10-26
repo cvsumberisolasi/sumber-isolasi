@@ -19,6 +19,7 @@ import autoTable from 'jspdf-autotable';
 import { getCompanySettings } from '@/app/(app)/settings/actions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 
 export default function SalesReportPage() {
@@ -397,10 +398,4 @@ function MetricCard({ title, value, format = 'number', icon: Icon }: MetricCardP
             </CardContent>
         </Card>
     );
-}
-
-declare module '@/components/ui/date-range-picker' {
-    interface DateRangePickerProps {
-        onSelect?: (date?: DateRange) => void;
-    }
 }

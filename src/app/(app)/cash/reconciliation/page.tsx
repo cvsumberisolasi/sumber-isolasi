@@ -169,7 +169,7 @@ export default function BankReconciliationPage() {
                     type="number" 
                     placeholder="Jumlah" 
                     value={item.amount || ''}
-                    onChange={e => handleAdjustmentChange(setter, item.id, 'amount', e.target.value)}
+                    onChange={e => handleAdjustmentChange(setter, item.id, 'amount', Number(e.target.value))}
                     onFocus={(e) => e.target.select()}
                     className="h-8 w-32 text-right"
                 />
@@ -347,23 +347,4 @@ function AdjustmentJournalDialog({ triggerButton, bankItem, reconciledAccountId,
             </DialogContent>
         </Dialog>
     )
-}
-
-declare module '@/components/ui/date-range-picker' {
-    interface DateRangePickerProps {
-        onSelect?: (date?: DateRange) => void;
-    }
-}
-
-declare module '@/components/ui/alert' {
-    interface AlertProps {
-        children?: React.ReactNode;
-    }
-}
-declare module 'react' {
-  interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
-    // extends React's HTMLAttributes
-    'data-value'?: string;
-    'data-state'?: 'checked' | 'unchecked' | 'indeterminate' | 'open' | 'closed';
-  }
 }
