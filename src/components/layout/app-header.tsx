@@ -15,11 +15,11 @@ function generateBreadcrumbs(pathname: string) {
         return { href, label, isLast };
     });
 
-    if (pathname === '/dashboard') {
-        return [{ href: '/dashboard', label: 'Dashboard', isLast: true }];
+    if (breadcrumbs.length > 0) {
+        return [{ href: '/dashboard', label: 'Dashboard', isLast: false }, ...breadcrumbs];
     }
     
-    return [{ href: '/dashboard', label: 'Dashboard', isLast: false }, ...breadcrumbs];
+    return [{ href: '/dashboard', label: 'Dashboard', isLast: true }];
 }
 
 export function AppHeader() {
@@ -29,10 +29,10 @@ export function AppHeader() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6'
+        'hidden sm:flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6'
       )}
     >
-        <Breadcrumb className="hidden md:flex">
+        <Breadcrumb>
             <BreadcrumbList>
                 {breadcrumbs.map((crumb, index) => (
                     <React.Fragment key={`${crumb.href}-${index}`}>
