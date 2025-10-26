@@ -206,38 +206,7 @@ function TransactionsPageContent() {
   return (
     <>
       <div className="flex flex-col gap-6 print:hidden">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h1 className="text-2xl md:text-3xl font-headline font-bold">Riwayat Transaksi</h1>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:flex-initial">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                      type="search"
-                      placeholder="Cari ID atau nama produk..."
-                      className="pl-8 sm:w-auto md:w-[250px]"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-              </div>
-              <Select value={sortOption} onValueChange={handleSortChange}>
-                  <SelectTrigger className="w-full sm:w-[180px]">
-                      <SelectValue placeholder="Urutkan berdasarkan..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="date_desc">Tanggal (Terbaru)</SelectItem>
-                      <SelectItem value="total_desc">Harga (Tertinggi)</SelectItem>
-                      <SelectItem value="total_asc">Harga (Terendah)</SelectItem>
-                  </SelectContent>
-              </Select>
-              <DateRangePicker 
-                  className="w-full sm:w-[300px]" 
-                  onSelect={(newDate) => {
-                      setDate(newDate);
-                      setCurrentPage(1); // Reset to first page on date change
-                  }}
-              />
-          </div>
-        </div>
+        <h1 className="text-2xl md:text-3xl font-headline font-bold">Riwayat Transaksi</h1>
 
         <Card>
           <CardHeader>
@@ -251,6 +220,35 @@ function TransactionsPageContent() {
                       <p className="text-xl sm:text-2xl font-bold">Rp {totalSales.toLocaleString('id-ID')}</p>
                   </div>
               </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full pt-4">
+                <div className="relative flex-1 sm:flex-initial">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Cari ID atau nama produk..."
+                        className="pl-8 sm:w-auto md:w-[250px]"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+                <Select value={sortOption} onValueChange={handleSortChange}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Urutkan berdasarkan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="date_desc">Tanggal (Terbaru)</SelectItem>
+                        <SelectItem value="total_desc">Harga (Tertinggi)</SelectItem>
+                        <SelectItem value="total_asc">Harga (Terendah)</SelectItem>
+                    </SelectContent>
+                </Select>
+                <DateRangePicker 
+                    className="w-full sm:w-[300px]" 
+                    onSelect={(newDate) => {
+                        setDate(newDate);
+                        setCurrentPage(1); // Reset to first page on date change
+                    }}
+                />
+            </div>
           </CardHeader>
           <CardContent>
             <Accordion type="single" collapsible className="w-full" defaultValue={initialSearchId || undefined}>
