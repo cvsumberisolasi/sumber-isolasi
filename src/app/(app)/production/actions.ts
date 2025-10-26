@@ -123,7 +123,7 @@ export async function completeProduction(completionData: NewProductionCompletion
                 updates.push({ ref: doc(db, 'products', item.productId), newStock });
             }
             
-            // Journal for consuming raw materials
+            // Journal for consuming raw materials (transferring value to WIP)
             if (totalRawMaterialCost > 0) {
                  journalEntries.push(
                     { accountId: wipAccountId, accountName: '', debit: totalRawMaterialCost, credit: 0 },
@@ -131,7 +131,7 @@ export async function completeProduction(completionData: NewProductionCompletion
                 );
             }
 
-            // Journal for consuming additional costs
+            // Journal for consuming additional costs (transferring value to WIP)
             let totalAdditionalCost = 0;
             for (const addCost of completionData.additionalCosts) {
                 if(addCost.amount > 0) {
@@ -143,12 +143,15 @@ export async function completeProduction(completionData: NewProductionCompletion
                 }
             }
 
-            // Journal for moving WIP to Finished Goods
             const totalProductionCost = totalRawMaterialCost + totalAdditionalCost;
-            journalEntries.push(
-                { accountId: inventoryAccountId, accountName: '', debit: totalProductionCost, credit: 0 },
-                { accountId: wipAccountId, accountName: '', debit: 0, credit: totalProductionCost }
-            );
+            
+            // Journal for moving total WIP value to Finished Goods
+            if (totalProductionCost > 0) {
+                journalEntries.push(
+                    { accountId: inventoryAccountId, accountName: '', debit: totalProductionCost, credit: 0 },
+                    { accountId: wipAccountId, accountName: '', debit: 0, credit: totalProductionCost }
+                );
+            }
 
 
             // Update finished good stock and cost
@@ -183,21 +186,23 @@ export async function completeProduction(completionData: NewProductionCompletion
             const dataWithTimestamp = {
                 ...completionData,
                 date: Timestamp.fromDate(completionData.date),
-                totalCost: totalProductionCost, // Use the recalculated total cost
+                totalCost: totalProductionCost,
             };
             transaction.set(newDocRef, dataWithTimestamp);
 
-            // Add journal entry
-            const newJournal: NewJournal = {
-                date: completionData.date,
-                description: `Penyelesaian Produksi WO #${completionData.workOrderId}`,
-                refNumber: newId,
-                entries: journalEntries,
-                total: totalProductionCost,
-            };
-
-            const journalRef = doc(collection(db, 'journals'));
-            transaction.set(journalRef, {...newJournal, date: Timestamp.fromDate(newJournal.date as Date)});
+            // Add journal entry if there are any entries to be made
+            if (journalEntries.length > 0) {
+                const newJournal: NewJournal = {
+                    date: completionData.date,
+                    description: `Penyelesaian Produksi WO #${completionData.workOrderId}`,
+                    refNumber: newId,
+                    entries: journalEntries,
+                    total: totalProductionCost,
+                };
+    
+                const journalRef = doc(collection(db, 'journals'));
+                transaction.set(journalRef, {...newJournal, date: Timestamp.fromDate(newJournal.date as Date)});
+            }
 
 
             return newDocRef;

@@ -50,7 +50,7 @@ export function BomFormDialog({ children, products, bom }: BomFormDialogProps) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   
   useEffect(() => {
-    const q = query(collection(db, 'coa'), where('type', 'in', ['Beban Operasional', 'Beban Lainnya']));
+    const q = query(collection(db, 'coa'), where('type', 'in', ['Beban Operasional', 'Beban Lainnya', 'Beban Pokok Penjualan']));
     const unsub = onSnapshot(q, (snapshot) => {
         setAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Account)));
     });
