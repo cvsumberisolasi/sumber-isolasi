@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
-import { collection, onSnapshot, query, where, orderBy, limit, startAfter, DocumentData, getDocs, endBefore, limitToLast } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, limit, startAfter, DocumentData, getDocs, Query, endBefore, limitToLast } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Transaction, Account } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -66,7 +66,8 @@ export default function AccountsReceivablePage() {
     setSelectedRows([]);
     const receivablesCol = collection(db, "transactions");
     
-    const baseQuery = query(receivablesCol, where('status', '==', 'Belum Lunas'), orderBy('date', 'desc'));
+    // Adjusted query to avoid composite index requirement
+    const baseQuery = query(receivablesCol, orderBy('date', 'desc'));
 
     let q;
     if (direction === 'next' && lastVisible) {
@@ -86,7 +87,7 @@ export default function AccountsReceivablePage() {
         ...data,
         date: data.date.toDate(),
       } as Transaction;
-    });
+    }).filter(tx => tx.status === 'Belum Lunas'); // Filter on the client-side
 
     setReceivables(transactionList);
     setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
