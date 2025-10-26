@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BomPageContent from "./bom/page-content";
 import WorkOrderPageContent from "./work-order/page-content";
 import WorksheetPageContent from "./worksheet/page-content";
+import ProductionHistoryPage from "./history/page";
 
 export default function ProductionPage() {
     return (
@@ -15,6 +16,7 @@ export default function ProductionPage() {
                     <TabsTrigger value="bom">Formula (BOM)</TabsTrigger>
                     <TabsTrigger value="work-order">Perintah Produksi (WO)</TabsTrigger>
                     <TabsTrigger value="worksheet">Lembar Kerja</TabsTrigger>
+                    <TabsTrigger value="history">Riwayat Produksi</TabsTrigger>
                 </TabsList>
                 <TabsContent value="bom" className="mt-6">
                     <BomPageContent />
@@ -24,6 +26,9 @@ export default function ProductionPage() {
                 </TabsContent>
                 <TabsContent value="worksheet" className="mt-6">
                     <WorksheetPageContent />
+                </TabsContent>
+                <TabsContent value="history" className="mt-6">
+                    <ProductionHistoryPage />
                 </TabsContent>
             </Tabs>
         </div>
