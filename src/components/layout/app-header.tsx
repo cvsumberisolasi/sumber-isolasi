@@ -14,6 +14,11 @@ function generateBreadcrumbs(pathname: string) {
         const isLast = index === pathSegments.length - 1;
         return { href, label, isLast };
     });
+
+    if (pathname === '/dashboard') {
+        return [{ href: '/dashboard', label: 'Dashboard', isLast: true }];
+    }
+    
     return [{ href: '/dashboard', label: 'Dashboard', isLast: false }, ...breadcrumbs];
 }
 
@@ -30,7 +35,7 @@ export function AppHeader() {
         <Breadcrumb className="hidden md:flex">
             <BreadcrumbList>
                 {breadcrumbs.map((crumb, index) => (
-                    <React.Fragment key={crumb.href}>
+                    <React.Fragment key={`${crumb.href}-${index}`}>
                         <BreadcrumbItem>
                             {crumb.isLast ? (
                                 <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
