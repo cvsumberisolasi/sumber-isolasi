@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
@@ -23,6 +24,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { CompanySettings, getCompanySettings } from '@/app/(app)/settings/actions';
 import Image from 'next/image';
 import { format } from 'date-fns';
+import { InvoicePreview } from '@/components/common/invoice-preview';
 
 export default function ManualSalesInputPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -228,61 +230,7 @@ export default function ManualSalesInputPage() {
                     <DialogDescription>Invoice berhasil dibuat. Anda dapat mencetaknya sekarang.</DialogDescription>
                 </DialogHeader>
                 <div id="printable-invoice" className="p-2 print:p-0">
-                    <div className="p-8 border rounded-lg bg-background">
-                         <header className="flex justify-between items-start pb-6 border-b">
-                            <div className="space-y-1">
-                                {companySettings.logoDataUrl && (
-                                    <Image src={companySettings.logoDataUrl} alt="Company Logo" width={80} height={80} className="object-contain" />
-                                )}
-                                <h1 className="text-2xl font-bold font-headline">{companySettings.companyName}</h1>
-                                <p className="text-sm text-muted-foreground">{companySettings.address}</p>
-                                <p className="text-sm text-muted-foreground">{companySettings.phone} | {companySettings.email}</p>
-                            </div>
-                            <div className="text-right">
-                                <h2 className="text-3xl font-bold font-headline text-primary">INVOICE</h2>
-                                <p className="font-mono text-sm">#{invoice.id}</p>
-                                <p className="text-sm">Tanggal: {format(invoice.date, 'dd MMMM yyyy')}</p>
-                            </div>
-                        </header>
-                         <section className="grid grid-cols-2 gap-8 my-6">
-                             <div>
-                                <h3 className="font-semibold mb-1">Ditagihkan Kepada:</h3>
-                                <p className="font-bold">{selectedCustomer.name}</p>
-                                <p className="text-sm text-muted-foreground">{selectedCustomer.address}</p>
-                                <p className="text-sm text-muted-foreground">{selectedCustomer.phone}</p>
-                             </div>
-                         </section>
-
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Deskripsi</TableHead>
-                                    <TableHead className="text-center">Jumlah</TableHead>
-                                    <TableHead className="text-right">Harga Satuan</TableHead>
-                                    <TableHead className="text-right">Total</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {invoice.items.map(item => (
-                                    <TableRow key={item.productId}>
-                                        <TableCell>{item.productName}</TableCell>
-                                        <TableCell className="text-center">{item.quantity} {item.unit}</TableCell>
-                                        <TableCell className="text-right font-mono">Rp {item.price.toLocaleString('id-ID')}</TableCell>
-                                        <TableCell className="text-right font-mono">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                            <TableFooter>
-                                <TableRow>
-                                    <TableCell colSpan={3} className="text-right font-bold text-lg">GRAND TOTAL</TableCell>
-                                    <TableCell className="text-right font-bold font-mono text-lg">Rp {invoice.total.toLocaleString('id-ID')}</TableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
-                         <footer className="mt-8 pt-4 border-t text-center text-xs text-muted-foreground">
-                            <p>Terima kasih atas bisnis Anda!</p>
-                        </footer>
-                    </div>
+                    <InvoicePreview transaction={invoice} companySettings={companySettings} customer={selectedCustomer} />
                 </div>
                 <DialogFooter className="print:hidden">
                     <Button variant="outline" onClick={handleDialogClose}>Tutup & Buat Baru</Button>

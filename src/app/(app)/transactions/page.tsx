@@ -4,13 +4,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Calendar as CalendarIcon, Wallet, User, CheckCircle2, ArrowLeft, ArrowRight, Search, ChevronsUpDown } from 'lucide-react';
+import { Wallet, User, CheckCircle2, ArrowLeft, ArrowRight, Search, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 
 import { cn } from '@/lib/utils';
-import type { Transaction } from '@/lib/types';
+import type { Transaction, Customer } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -38,11 +38,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { collection, onSnapshot, query, where, Timestamp, orderBy, limit, startAfter, DocumentData, getDocs, Query, endBefore, limitToLast } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, Timestamp, orderBy, limit, startAfter, DocumentData, getDocs, Query, endBefore, limitToLast, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CompanySettings, getCompanySettings } from '@/app/(app)/settings/actions';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { InvoicePreview } from '@/components/common/invoice-preview';
 
 const TRANSACTIONS_PER_PAGE = 300;
 type SortOption = "date_desc" | "total_desc" | "total_asc";
@@ -60,9 +63,13 @@ function TransactionsPageContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState(initialSearchId);
   const [sortOption, setSortOption] = useState<SortOption>('date_desc');
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [selectedTxForPrint, setSelectedTxForPrint] = useState<Transaction | null>(null);
+  const [selectedCustomerForPrint, setSelectedCustomerForPrint] = useState<Customer | null>(null);
 
 
   useEffect(() => {
+    getCompanySettings().then(setCompanySettings);
     fetchTransactions('initial');
   }, [date, sortOption]);
 
@@ -70,7 +77,6 @@ function TransactionsPageContent() {
     const transactionsCol = collection(db, "transactions");
     let baseQuery: Query<DocumentData> = query(transactionsCol);
 
-    // Apply date filter first if it exists
     if (date?.from) {
       const from = Timestamp.fromDate(date.from);
       let to;
@@ -86,7 +92,6 @@ function TransactionsPageContent() {
       baseQuery = query(baseQuery, where("date", ">=", from), where("date", "<=", to));
     }
     
-    // Apply sorting
     const [sortField, sortDirection] = sortOption.split('_');
     baseQuery = query(baseQuery, orderBy(sortField, sortDirection as "desc" | "asc"));
 
@@ -122,7 +127,6 @@ function TransactionsPageContent() {
     setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
     setFirstVisible(snapshot.docs[0]);
     
-    // Check for next page
     const nextQuery = query(baseQuery, startAfter(snapshot.docs[snapshot.docs.length - 1]), limit(1));
     const nextSnapshot = await getDocs(nextQuery);
     setHasNextPage(!nextSnapshot.empty);
@@ -183,153 +187,224 @@ function TransactionsPageContent() {
     setFirstVisible(null);
   }
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleOpenPrintDialog = async (tx: Transaction) => {
+      setSelectedTxForPrint(tx);
+      if (tx.customerId) {
+        const customerSnap = await getDoc(doc(db, 'customers', tx.customerId));
+        if (customerSnap.exists()) {
+            setSelectedCustomerForPrint(customerSnap.data() as Customer);
+        }
+      } else {
+        setSelectedCustomerForPrint(null);
+      }
+  };
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-headline font-bold">Riwayat Transaksi</h1>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <div className="relative flex-1 sm:flex-initial">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder="Cari ID atau nama produk..."
-                    className="pl-8 sm:w-auto md:w-[250px]"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
-            </div>
-             <Select value={sortOption} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                    <SelectValue placeholder="Urutkan berdasarkan..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="date_desc">Tanggal (Terbaru)</SelectItem>
-                    <SelectItem value="total_desc">Harga (Tertinggi)</SelectItem>
-                    <SelectItem value="total_asc">Harga (Terendah)</SelectItem>
-                </SelectContent>
-            </Select>
-            <DateRangePicker 
-                className="w-full sm:w-[300px]" 
-                onSelect={(newDate) => {
-                    setDate(newDate);
-                    setCurrentPage(1); // Reset to first page on date change
-                }}
-            />
+    <>
+      <div className="flex flex-col gap-6 print:hidden">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h1 className="text-2xl md:text-3xl font-headline font-bold">Riwayat Transaksi</h1>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                      type="search"
+                      placeholder="Cari ID atau nama produk..."
+                      className="pl-8 sm:w-auto md:w-[250px]"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+              </div>
+              <Select value={sortOption} onValueChange={handleSortChange}>
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                      <SelectValue placeholder="Urutkan berdasarkan..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="date_desc">Tanggal (Terbaru)</SelectItem>
+                      <SelectItem value="total_desc">Harga (Tertinggi)</SelectItem>
+                      <SelectItem value="total_asc">Harga (Terendah)</SelectItem>
+                  </SelectContent>
+              </Select>
+              <DateRangePicker 
+                  className="w-full sm:w-[300px]" 
+                  onSelect={(newDate) => {
+                      setDate(newDate);
+                      setCurrentPage(1); // Reset to first page on date change
+                  }}
+              />
+          </div>
         </div>
+
+        <Card>
+          <CardHeader>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div>
+                      <CardTitle className="font-headline">Semua Transaksi</CardTitle>
+                      <CardDescription>Total penjualan bersih untuk periode yang dipilih (pada halaman ini).</CardDescription>
+                  </div>
+                  <div className="text-left sm:text-right">
+                      <p className="text-sm text-muted-foreground">Total Penjualan Bersih</p>
+                      <p className="text-xl sm:text-2xl font-bold">Rp {totalSales.toLocaleString('id-ID')}</p>
+                  </div>
+              </div>
+          </CardHeader>
+          <CardContent>
+            <Accordion type="single" collapsible className="w-full" defaultValue={initialSearchId || undefined}>
+              {loading ? (
+                  <div className="text-center py-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin mr-2"/>Memuat data transaksi...</div>
+              ) : filteredTransactions.length === 0 ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                      {searchQuery ? `Tidak ada transaksi yang cocok dengan "${searchQuery}".` : "Tidak ada transaksi pada periode ini."}
+                  </div>
+              ) : (
+                  filteredTransactions.map((tx, index) => (
+                      <AccordionItem value={tx.id} key={tx.id}>
+                          <AccordionTrigger>
+                          <div className="flex flex-col sm:flex-row justify-between w-full sm:pr-4 text-left sm:items-center">
+                              <div className="flex items-center gap-4 mb-2 sm:mb-0">
+                                  <span className="font-mono text-xs text-muted-foreground hidden sm:inline">
+                                      { (currentPage - 1) * TRANSACTIONS_PER_PAGE + index + 1 }
+                                  </span>
+                                  <div>
+                                      <p className="font-semibold text-sm sm:text-base font-mono">
+                                      #{tx.id}
+                                      </p>
+                                      <p className="text-xs sm:text-sm text-muted-foreground">{format(tx.date, "eeee, dd MMM yyyy 'pukul' HH:mm", { locale: id })}</p>
+                                      {tx.customerName && (
+                                          <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1"><User size={12}/>{tx.customerName}</p>
+                                      )}
+                                  </div>
+                              </div>
+                              <div className="flex items-center gap-2 sm:gap-4 justify-between">
+                                  {getPaymentBadge(tx)}
+                                  <p className="font-bold text-md sm:text-lg text-primary">Rp {(tx.netTotal ?? tx.total).toLocaleString('id-ID')}</p>
+                              </div>
+                          </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                          <div className="overflow-x-auto">
+                              <Table>
+                                  <TableHeader>
+                                      <TableRow>
+                                      <TableHead>Produk</TableHead>
+                                      <TableHead>Jumlah</TableHead>
+                                      <TableHead>Harga</TableHead>
+                                      <TableHead className="text-right">Subtotal</TableHead>
+                                      </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                      {tx.items.map((item, index) => (
+                                      <TableRow key={`${item.productId}-${index}`}>
+                                          <TableCell>{item.productName || item.productId}</TableCell>
+                                          <TableCell>{item.quantity}</TableCell>
+                                          <TableCell>Rp {item.price.toLocaleString('id-ID')}</TableCell>
+                                          <TableCell className="text-right">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</TableCell>
+                                      </TableRow>
+                                      ))}
+                                  </TableBody>
+                                  {tx.discount || tx.fee ? (
+                                      <TableFooter>
+                                          <TableRow>
+                                              <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
+                                              <TableCell className="text-right font-medium">Rp {tx.total.toLocaleString('id-ID')}</TableCell>
+                                          </TableRow>
+                                          {tx.discount ? (
+                                          <TableRow>
+                                              <TableCell colSpan={3} className="text-right">Diskon</TableCell>
+                                              <TableCell className="text-right text-destructive">- Rp {tx.discount.toLocaleString('id-ID')}</TableCell>
+                                          </TableRow>
+                                          ) : null}
+                                          {tx.fee ? (
+                                              <TableRow>
+                                                  <TableCell colSpan={3} className="text-right">Biaya Marketplace</TableCell>
+                                                  <TableCell className="text-right text-destructive">- Rp {tx.fee.toLocaleString('id-ID')}</TableCell>
+                                              </TableRow>
+                                          ) : null}
+                                          <TableRow className="font-bold">
+                                              <TableCell colSpan={3} className="text-right">Total Bersih</TableCell>
+                                              <TableCell className="text-right">Rp {tx.netTotal?.toLocaleString('id-ID')}</TableCell>
+                                          </TableRow>
+                                      </TableFooter>
+                                  ) : null}
+                              </Table>
+                              <div className="flex justify-end mt-4">
+                                <Button variant="outline" onClick={() => handleOpenPrintDialog(tx)}>
+                                  <Printer className="mr-2 h-4 w-4" /> Cetak Invoice
+                                </Button>
+                              </div>
+                          </div>
+                          </AccordionContent>
+                      </AccordionItem>
+                  ))
+              )}
+            </Accordion>
+          </CardContent>
+          <CardFooter className="flex justify-between items-center">
+              <span className="text-sm text-muted-foreground">Halaman {currentPage}</span>
+              <div className="flex gap-2">
+                  <Button variant="outline" onClick={handlePrevPage} disabled={currentPage === 1 || loading}>
+                      <ArrowLeft className="mr-2 h-4 w-4"/> Sebelumnya
+                  </Button>
+                  <Button variant="outline" onClick={handleNextPage} disabled={!hasNextPage || loading}>
+                      Berikutnya <ArrowRight className="ml-2 h-4 w-4"/>
+                  </Button>
+              </div>
+          </CardFooter>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <div>
-                    <CardTitle className="font-headline">Semua Transaksi</CardTitle>
-                    <CardDescription>Total penjualan bersih untuk periode yang dipilih (pada halaman ini).</CardDescription>
-                </div>
-                <div className="text-left sm:text-right">
-                    <p className="text-sm text-muted-foreground">Total Penjualan Bersih</p>
-                    <p className="text-xl sm:text-2xl font-bold">Rp {totalSales.toLocaleString('id-ID')}</p>
-                </div>
-            </div>
-        </CardHeader>
-        <CardContent>
-          <Accordion type="single" collapsible className="w-full" defaultValue={initialSearchId || undefined}>
-            {loading ? (
-                <div className="text-center py-10 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin mr-2"/>Memuat data transaksi...</div>
-            ) : filteredTransactions.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground">
-                    {searchQuery ? `Tidak ada transaksi yang cocok dengan "${searchQuery}".` : "Tidak ada transaksi pada periode ini."}
-                </div>
-            ) : (
-                filteredTransactions.map((tx, index) => (
-                    <AccordionItem value={tx.id} key={tx.id}>
-                        <AccordionTrigger>
-                        <div className="flex flex-col sm:flex-row justify-between w-full sm:pr-4 text-left sm:items-center">
-                            <div className="flex items-center gap-4 mb-2 sm:mb-0">
-                                <span className="font-mono text-xs text-muted-foreground hidden sm:inline">
-                                    { (currentPage - 1) * TRANSACTIONS_PER_PAGE + index + 1 }
-                                </span>
-                                <div>
-                                    <p className="font-semibold text-sm sm:text-base font-mono">
-                                    #{tx.id}
-                                    </p>
-                                    <p className="text-xs sm:text-sm text-muted-foreground">{format(tx.date, "eeee, dd MMM yyyy 'pukul' HH:mm", { locale: id })}</p>
-                                    {tx.customerName && (
-                                        <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1"><User size={12}/>{tx.customerName}</p>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2 sm:gap-4 justify-between">
-                                {getPaymentBadge(tx)}
-                                <p className="font-bold text-md sm:text-lg text-primary">Rp {(tx.netTotal ?? tx.total).toLocaleString('id-ID')}</p>
-                            </div>
-                        </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                    <TableHead>Produk</TableHead>
-                                    <TableHead>Jumlah</TableHead>
-                                    <TableHead>Harga</TableHead>
-                                    <TableHead className="text-right">Subtotal</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {tx.items.map((item, index) => (
-                                    <TableRow key={`${item.productId}-${index}`}>
-                                        <TableCell>{item.productName || item.productId}</TableCell>
-                                        <TableCell>{item.quantity}</TableCell>
-                                        <TableCell>Rp {item.price.toLocaleString('id-ID')}</TableCell>
-                                        <TableCell className="text-right">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</TableCell>
-                                    </TableRow>
-                                    ))}
-                                </TableBody>
-                                {tx.discount || tx.fee ? (
-                                    <TableFooter>
-                                        <TableRow>
-                                            <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
-                                            <TableCell className="text-right font-medium">Rp {tx.total.toLocaleString('id-ID')}</TableCell>
-                                        </TableRow>
-                                        {tx.discount ? (
-                                        <TableRow>
-                                            <TableCell colSpan={3} className="text-right">Diskon</TableCell>
-                                            <TableCell className="text-right text-destructive">- Rp {tx.discount.toLocaleString('id-ID')}</TableCell>
-                                        </TableRow>
-                                        ) : null}
-                                        {tx.fee ? (
-                                            <TableRow>
-                                                <TableCell colSpan={3} className="text-right">Biaya Marketplace</TableCell>
-                                                <TableCell className="text-right text-destructive">- Rp {tx.fee.toLocaleString('id-ID')}</TableCell>
-                                            </TableRow>
-                                        ) : null}
-                                        <TableRow className="font-bold">
-                                            <TableCell colSpan={3} className="text-right">Total Bersih</TableCell>
-                                            <TableCell className="text-right">Rp {tx.netTotal?.toLocaleString('id-ID')}</TableCell>
-                                        </TableRow>
-                                    </TableFooter>
-                                ) : null}
-                            </Table>
-                        </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                ))
+      <Dialog open={!!selectedTxForPrint} onOpenChange={(open) => !open && setSelectedTxForPrint(null)}>
+        <DialogContent className="max-w-4xl print:max-w-none print:border-none print:shadow-none print:p-0">
+          <DialogHeader className="print:hidden">
+            <DialogTitle>Pratinjau Invoice #{selectedTxForPrint?.id}</DialogTitle>
+          </DialogHeader>
+          <div id="printable-invoice" className="p-2 print:p-0">
+            {selectedTxForPrint && companySettings && (
+              <InvoicePreview 
+                transaction={selectedTxForPrint} 
+                companySettings={companySettings} 
+                customer={selectedCustomerForPrint}
+              />
             )}
-          </Accordion>
-        </CardContent>
-        <CardFooter className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Halaman {currentPage}</span>
-            <div className="flex gap-2">
-                <Button variant="outline" onClick={handlePrevPage} disabled={currentPage === 1 || loading}>
-                    <ArrowLeft className="mr-2 h-4 w-4"/> Sebelumnya
-                </Button>
-                <Button variant="outline" onClick={handleNextPage} disabled={!hasNextPage || loading}>
-                    Berikutnya <ArrowRight className="ml-2 h-4 w-4"/>
-                </Button>
-            </div>
-        </CardFooter>
-      </Card>
-    </div>
+          </div>
+          <DialogFooter className="print:hidden">
+            <Button variant="outline" onClick={() => setSelectedTxForPrint(null)}>Tutup</Button>
+            <Button onClick={handlePrint}><Printer className="mr-2 h-4 w-4" /> Cetak</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+       <style jsx global>{`
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-hidden, .print-hidden * {
+                visibility: hidden;
+            }
+            #printable-invoice, #printable-invoice * {
+                visibility: visible;
+            }
+            #printable-invoice {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                padding: 0;
+                margin: 0;
+            }
+            @page {
+                size: A4;
+                margin: 0.5cm;
+            }
+        }
+      `}</style>
+    </>
   );
 }
 
@@ -341,7 +416,6 @@ export default function TransactionsPage() {
     )
 }
 
-// Ensure DateRangePicker component accepts onSelect prop
 declare module '@/components/ui/date-range-picker' {
     interface DateRangePickerProps {
         onSelect?: (date?: DateRange) => void;
