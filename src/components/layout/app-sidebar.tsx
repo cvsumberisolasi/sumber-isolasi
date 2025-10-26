@@ -154,7 +154,7 @@ function NavItem({ item, isActive }: { item: any, isActive: (href: string) => bo
         <Button asChild variant={isActive(item.href) ? 'secondary' : 'ghost'} className="justify-center sm:justify-start gap-2" aria-label={item.label}>
           <Link href={item.href}>
             <item.icon className="h-5 w-5" />
-            <span className="hidden sm:inline">{item.label}</span>
+            <span className="sm:inline">{item.label}</span>
           </Link>
         </Button>
       </TooltipTrigger>
