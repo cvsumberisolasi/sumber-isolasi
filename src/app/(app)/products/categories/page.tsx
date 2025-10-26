@@ -33,7 +33,9 @@ export default function ProductCategoriesPage() {
         <h2 className="text-xl md:text-2xl font-headline font-bold">
           Kategori Produk
         </h2>
-        <CategoryActions />
+        <div className="w-full sm:w-auto">
+         <CategoryActions />
+        </div>
       </div>
       <Card>
         <CardHeader>

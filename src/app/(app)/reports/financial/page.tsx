@@ -65,9 +65,16 @@ export default function FinancialReportsPage() {
     const journalsCol = collection(db, 'journals');
     
     const from = Timestamp.fromDate(dateRange.from);
-    const toDayEnd = new Date(dateRange.to || dateRange.from);
-    toDayEnd.setHours(23, 59, 59, 999);
-    const to = Timestamp.fromDate(toDayEnd);
+    let to;
+    if (dateRange.to) {
+        const toDayEnd = new Date(dateRange.to);
+        toDayEnd.setHours(23, 59, 59, 999);
+        to = Timestamp.fromDate(toDayEnd);
+    } else {
+        const fromDayEnd = new Date(dateRange.from);
+        fromDayEnd.setHours(23, 59, 59, 999);
+        to = Timestamp.fromDate(fromDayEnd);
+    }
     
     let q = query(journalsCol, where("date", ">=", from), where("date", "<=", to));
 
@@ -183,9 +190,9 @@ export default function FinancialReportsPage() {
     <div className="flex flex-col gap-6">
        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-xl md:text-2xl font-headline font-bold">Laporan Laba Rugi</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Select value={String(month)} onValueChange={(val) => setMonth(Number(val))}>
-                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
                 <SelectContent>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                         <SelectItem key={m} value={String(m)}>{getMonthName(m)}</SelectItem>
@@ -193,14 +200,14 @@ export default function FinancialReportsPage() {
                 </SelectContent>
             </Select>
             <Select value={String(year)} onValueChange={(val) => setYear(Number(val))}>
-                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
                 <SelectContent>
                     {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
                         <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>
-             <Button onClick={handleExportPDF} variant="outline" disabled={loading}>
+             <Button onClick={handleExportPDF} variant="outline" className="w-full sm:w-auto" disabled={loading}>
                 <Download className="mr-2 h-4 w-4"/>
                 Ekspor PDF
             </Button>
@@ -219,32 +226,34 @@ export default function FinancialReportsPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
              </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Deskripsi</TableHead>
-                  <TableHead className="text-right">Jumlah (Rp)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {renderSection("Pendapatan", reportData.revenues, reportData.totalRevenue)}
-                
-                {renderSection("Beban Pokok Penjualan", reportData.cogs, reportData.totalCogs)}
+            <div className="overflow-x-auto">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Deskripsi</TableHead>
+                    <TableHead className="text-right">Jumlah (Rp)</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {renderSection("Pendapatan", reportData.revenues, reportData.totalRevenue)}
+                    
+                    {renderSection("Beban Pokok Penjualan", reportData.cogs, reportData.totalCogs)}
 
-                <TableRow className="font-bold bg-muted/50">
-                    <TableCell>Laba Kotor</TableCell>
-                    <TableCell className="text-right font-mono">{reportData.grossProfit.toLocaleString('id-ID')}</TableCell>
-                </TableRow>
+                    <TableRow className="font-bold bg-muted/50">
+                        <TableCell>Laba Kotor</TableCell>
+                        <TableCell className="text-right font-mono">{reportData.grossProfit.toLocaleString('id-ID')}</TableCell>
+                    </TableRow>
 
-                {renderSection("Beban", reportData.expenses, reportData.totalExpense)}
-              </TableBody>
-              <TableFooter>
-                <TableRow className="text-lg font-bold bg-secondary/50 hover:bg-secondary">
-                  <TableCell>Laba Bersih</TableCell>
-                  <TableCell className={cn("text-right font-mono", reportData.netIncome < 0 && "text-destructive")}>{reportData.netIncome.toLocaleString('id-ID')}</TableCell>
-                </TableRow>
-              </TableFooter>
-            </Table>
+                    {renderSection("Beban", reportData.expenses, reportData.totalExpense)}
+                </TableBody>
+                <TableFooter>
+                    <TableRow className="text-lg font-bold bg-secondary/50 hover:bg-secondary">
+                    <TableCell>Laba Bersih</TableCell>
+                    <TableCell className={cn("text-right font-mono", reportData.netIncome < 0 && "text-destructive")}>{reportData.netIncome.toLocaleString('id-ID')}</TableCell>
+                    </TableRow>
+                </TableFooter>
+                </Table>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -150,7 +150,7 @@ export default function StockReportsPage() {
       <div className="flex flex-col gap-6">
          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h1 className="text-2xl md:text-3xl font-headline font-bold">Laporan Stok</h1>
-          <Button onClick={handleExportPDF} variant="outline" disabled={loading}>
+          <Button onClick={handleExportPDF} variant="outline" className="w-full sm:w-auto" disabled={loading}>
               <Download className="mr-2 h-4 w-4"/>
               Ekspor PDF
           </Button>
@@ -184,15 +184,15 @@ export default function StockReportsPage() {
               <CardHeader>
               <CardTitle>Rincian Nilai Persediaan</CardTitle>
               <CardDescription>Daftar semua produk beserta stok dan nilainya saat ini.</CardDescription>
-              <div className="flex items-center gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
                   <Input
                       placeholder="Cari nama produk..."
                       value={filter}
                       onChange={(e) => setFilter(e.target.value)}
-                      className="max-w-sm"
+                      className="w-full sm:max-w-sm"
                   />
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="w-[180px]">
+                      <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue placeholder="Filter kategori" />
                       </SelectTrigger>
                       <SelectContent>
@@ -206,38 +206,40 @@ export default function StockReportsPage() {
                   </div>
               </CardHeader>
               <CardContent>
-              <Table>
-                  <TableHeader>
-                  <TableRow>
-                      <TableHead>Produk</TableHead>
-                      <TableHead>Kategori</TableHead>
-                      <TableHead className="text-right">Stok</TableHead>
-                      <TableHead className="text-right">Harga Pokok</TableHead>
-                      <TableHead className="text-right">Total Nilai</TableHead>
-                  </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                  {filteredProducts.length === 0 ? (
-                      <TableRow><TableCell colSpan={5} className="text-center h-24">Tidak ada produk ditemukan.</TableCell></TableRow>
-                  ) : (
-                      filteredProducts.map(p => (
-                      <TableRow key={p.id}>
-                          <TableCell>
-                             <DialogTrigger asChild>
-                               <Button variant="link" className="p-0 h-auto font-medium" onClick={() => setSelectedProduct(p)}>
-                                 {p.name}
-                               </Button>
-                             </DialogTrigger>
-                          </TableCell>
-                          <TableCell><Badge variant="outline">{p.category}</Badge></TableCell>
-                          <TableCell className="text-right font-mono">{p.stock}</TableCell>
-                          <TableCell className="text-right font-mono">Rp {(p.cost || 0).toLocaleString('id-ID')}</TableCell>
-                          <TableCell className="text-right font-bold font-mono">Rp {((p.cost || 0) * p.stock).toLocaleString('id-ID')}</TableCell>
-                      </TableRow>
-                      ))
-                  )}
-                  </TableBody>
-              </Table>
+                <div className="overflow-x-auto">
+                    <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Produk</TableHead>
+                        <TableHead>Kategori</TableHead>
+                        <TableHead className="text-right">Stok</TableHead>
+                        <TableHead className="text-right">Harga Pokok</TableHead>
+                        <TableHead className="text-right">Total Nilai</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {filteredProducts.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center h-24">Tidak ada produk ditemukan.</TableCell></TableRow>
+                    ) : (
+                        filteredProducts.map(p => (
+                        <TableRow key={p.id}>
+                            <TableCell>
+                                <DialogTrigger asChild>
+                                <Button variant="link" className="p-0 h-auto font-medium" onClick={() => setSelectedProduct(p)}>
+                                    {p.name}
+                                </Button>
+                                </DialogTrigger>
+                            </TableCell>
+                            <TableCell><Badge variant="outline">{p.category}</Badge></TableCell>
+                            <TableCell className="text-right font-mono">{p.stock}</TableCell>
+                            <TableCell className="text-right font-mono">Rp {(p.cost || 0).toLocaleString('id-ID')}</TableCell>
+                            <TableCell className="text-right font-bold font-mono">Rp {((p.cost || 0) * p.stock).toLocaleString('id-ID')}</TableCell>
+                        </TableRow>
+                        ))
+                    )}
+                    </TableBody>
+                    </Table>
+                </div>
               </CardContent>
           </Card>
         </div>

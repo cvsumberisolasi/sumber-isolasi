@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -55,10 +54,16 @@ export default function SalesReportPage() {
 
     if (dateRange?.from) {
         const from = Timestamp.fromDate(dateRange.from);
-        let to = dateRange.to ? Timestamp.fromDate(dateRange.to) : from;
-        const toDayEnd = new Date(dateRange.to || dateRange.from);
-        toDayEnd.setHours(23, 59, 59, 999);
-        to = Timestamp.fromDate(toDayEnd);
+        let to;
+        if (dateRange.to) {
+          const toDayEnd = new Date(dateRange.to);
+          toDayEnd.setHours(23, 59, 59, 999);
+          to = Timestamp.fromDate(toDayEnd);
+        } else {
+          const fromDayEnd = new Date(dateRange.from);
+          fromDayEnd.setHours(23, 59, 59, 999);
+          to = Timestamp.fromDate(fromDayEnd);
+        }
         
         q = query(collection(db, 'transactions'), where("date", ">=", from), where("date", "<=", to), orderBy("date", "asc"));
     }
@@ -219,12 +224,10 @@ export default function SalesReportPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className='flex-1'>
-            <h2 className="text-xl md:text-2xl font-headline font-bold">Laporan Penjualan</h2>
-        </div>
-        <div className="flex gap-2">
+        <h2 className="text-xl md:text-2xl font-headline font-bold">Laporan Penjualan</h2>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Select value={String(month)} onValueChange={(val) => setMonth(Number(val))}>
-                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
                 <SelectContent>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                         <SelectItem key={m} value={String(m)}>{getMonthName(m)}</SelectItem>
@@ -232,14 +235,14 @@ export default function SalesReportPage() {
                 </SelectContent>
             </Select>
             <Select value={String(year)} onValueChange={(val) => setYear(Number(val))}>
-                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
                 <SelectContent>
                     {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
                         <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>
-            <Button onClick={handleExportPDF} variant="outline" disabled={loading}>
+            <Button onClick={handleExportPDF} variant="outline" className="w-full sm:w-auto" disabled={loading}>
                 <Download className="mr-2 h-4 w-4"/>
                 Ekspor PDF
             </Button>
@@ -300,32 +303,34 @@ export default function SalesReportPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Produk</TableHead>
-                      <TableHead className="text-right">Kuantitas Terjual</TableHead>
-                      <TableHead className="text-right">Pendapatan Kotor</TableHead>
-                      <TableHead className="text-right">Laba Kotor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {productSummary.map(p => (
-                      <TableRow key={p.productId}>
-                        <TableCell>
-                          <DialogTrigger asChild>
-                             <Button variant="link" className="p-0 h-auto font-medium" onClick={() => setSelectedProductSummary(p)}>
-                                {p.productName}
-                             </Button>
-                           </DialogTrigger>
-                        </TableCell>
-                        <TableCell className="text-right">{p.quantitySold}</TableCell>
-                        <TableCell className="text-right font-mono">Rp {p.grossRevenue.toLocaleString('id-ID')}</TableCell>
-                        <TableCell className="text-right font-mono">Rp {p.grossProfit.toLocaleString('id-ID')}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Produk</TableHead>
+                        <TableHead className="text-right">Kuantitas Terjual</TableHead>
+                        <TableHead className="text-right">Pendapatan Kotor</TableHead>
+                        <TableHead className="text-right">Laba Kotor</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {productSummary.map(p => (
+                        <TableRow key={p.productId}>
+                            <TableCell>
+                            <DialogTrigger asChild>
+                                <Button variant="link" className="p-0 h-auto font-medium" onClick={() => setSelectedProductSummary(p)}>
+                                    {p.productName}
+                                </Button>
+                                </DialogTrigger>
+                            </TableCell>
+                            <TableCell className="text-right">{p.quantitySold}</TableCell>
+                            <TableCell className="text-right font-mono">Rp {p.grossRevenue.toLocaleString('id-ID')}</TableCell>
+                            <TableCell className="text-right font-mono">Rp {p.grossProfit.toLocaleString('id-ID')}</TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                    </Table>
+                </div>
               </CardContent>
             </Card>
 

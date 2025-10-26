@@ -72,9 +72,14 @@ export default function BalanceSheetPage() {
     if (accounts.length === 0 || !reportDate) return;
 
     setLoading(true);
-    const endDate = new Date(reportDate);
-    endDate.setHours(23, 59, 59, 999);
-    const to = Timestamp.fromDate(endDate);
+    let to;
+    if(reportDate) {
+        const endDate = new Date(reportDate);
+        endDate.setHours(23, 59, 59, 999);
+        to = Timestamp.fromDate(endDate);
+    } else {
+        to = Timestamp.now();
+    }
     
     const journalsUptoEndDateQuery = query(collection(db, 'journals'), where("date", "<=", to), orderBy('date', 'asc'));
 
@@ -252,9 +257,9 @@ export default function BalanceSheetPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-xl md:text-2xl font-headline font-bold">Laporan Posisi Keuangan (Neraca)</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Select value={String(month)} onValueChange={(val) => setMonth(Number(val))}>
-                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
                 <SelectContent>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                         <SelectItem key={m} value={String(m)}>{getMonthName(m)}</SelectItem>
@@ -262,14 +267,14 @@ export default function BalanceSheetPage() {
                 </SelectContent>
             </Select>
             <Select value={String(year)} onValueChange={(val) => setYear(Number(val))}>
-                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
                 <SelectContent>
                     {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
                         <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>
-             <Button onClick={handleExportPDF} variant="outline" disabled={loading}>
+             <Button onClick={handleExportPDF} variant="outline" className="w-full sm:w-auto" disabled={loading}>
                 <Download className="mr-2 h-4 w-4"/>
                 Ekspor PDF
             </Button>
@@ -288,9 +293,9 @@ export default function BalanceSheetPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
              </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
                 {/* ASET */}
-                <div>
+                <div className="overflow-x-auto">
                     <Table>
                         <TableHeader><TableRow><TableHead className="text-lg">Aset</TableHead><TableHead></TableHead></TableRow></TableHeader>
                         <TableBody>
@@ -307,7 +312,7 @@ export default function BalanceSheetPage() {
                     </Table>
                 </div>
                 {/* KEWAJIBAN & EKUITAS */}
-                <div>
+                <div className="overflow-x-auto">
                      <Table>
                         <TableHeader><TableRow><TableHead className="text-lg">Kewajiban dan Ekuitas</TableHead><TableHead></TableHead></TableRow></TableHeader>
                         <TableBody>

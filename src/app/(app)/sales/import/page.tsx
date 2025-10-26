@@ -507,7 +507,7 @@ const SummaryItem = ({ icon: Icon, label, value, isNegative = false, isProfit = 
       <div className="space-y-1">
         <p className="text-muted-foreground">{label}</p>
         <p className={cn('text-xl font-bold font-mono', valueColor)}>
-          {isNegative ? '- ' : ''}Rp {Math.abs(value).toLocaleString('id-ID')}
+          {isNegative ? '- ' : ''}Rp {Math.round(Math.abs(value)).toLocaleString('id-ID')}
         </p>
       </div>
     </div>

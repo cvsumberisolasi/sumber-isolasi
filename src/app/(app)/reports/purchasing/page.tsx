@@ -55,9 +55,16 @@ export default function PurchasingReportPage() {
     setLoading(true);
     
     const from = Timestamp.fromDate(dateRange.from);
-    const toDayEnd = new Date(dateRange.to || dateRange.from);
-    toDayEnd.setHours(23, 59, 59, 999);
-    const to = Timestamp.fromDate(toDayEnd);
+    let to;
+    if (dateRange.to) {
+        const toDayEnd = new Date(dateRange.to);
+        toDayEnd.setHours(23, 59, 59, 999);
+        to = Timestamp.fromDate(toDayEnd);
+    } else {
+        const fromDayEnd = new Date(dateRange.from);
+        fromDayEnd.setHours(23, 59, 59, 999);
+        to = Timestamp.fromDate(fromDayEnd);
+    }
     
     let q = query(collection(db, 'purchaseOrders'), where("date", ">=", from), where("date", "<=", to), orderBy('date', 'desc'));
 
@@ -183,9 +190,9 @@ export default function PurchasingReportPage() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h1 className="text-2xl md:text-3xl font-headline font-bold">Laporan Pembelian</h1>
-           <div className="flex gap-2">
+           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Select value={String(month)} onValueChange={(val) => setMonth(Number(val))}>
-                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
                   <SelectContent>
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                           <SelectItem key={m} value={String(m)}>{getMonthName(m)}</SelectItem>
@@ -193,14 +200,14 @@ export default function PurchasingReportPage() {
                   </SelectContent>
               </Select>
               <Select value={String(year)} onValueChange={(val) => setYear(Number(val))}>
-                  <SelectTrigger className="w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
                   <SelectContent>
                       {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
                           <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                       ))}
                   </SelectContent>
               </Select>
-              <Button onClick={handleExportPDF} variant="outline" disabled={loading}>
+              <Button onClick={handleExportPDF} variant="outline" className="w-full sm:w-auto" disabled={loading}>
                   <Download className="mr-2 h-4 w-4"/>
                   Ekspor PDF
               </Button>
@@ -241,38 +248,40 @@ export default function PurchasingReportPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tanggal</TableHead>
-                      <TableHead>No. PO</TableHead>
-                      <TableHead>Pemasok</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {purchaseOrders.length === 0 ? (
-                      <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Tidak ada pesanan pembelian.</TableCell></TableRow>
-                    ) : (
-                      purchaseOrders.map(po => (
-                        <TableRow key={po.id}>
-                            <TableCell>{format(po.date, "dd MMM yyyy", { locale: id })}</TableCell>
-                            <TableCell>
-                              <DialogTrigger asChild>
-                                <Button variant="link" className="p-0 h-auto font-mono text-xs" onClick={() => setSelectedPO(po)}>
-                                  {po.id}
-                                </Button>
-                              </DialogTrigger>
-                            </TableCell>
-                            <TableCell>{po.supplierName}</TableCell>
-                            <TableCell><Badge variant={po.status === 'Completed' ? 'secondary' : (po.status === 'Draft' ? 'outline' : 'default')}>{po.status}</Badge></TableCell>
-                            <TableCell className="text-right font-mono">Rp {po.total.toLocaleString('id-ID')}</TableCell>
+                <div className="overflow-x-auto">
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead>No. PO</TableHead>
+                        <TableHead>Pemasok</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {purchaseOrders.length === 0 ? (
+                        <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Tidak ada pesanan pembelian.</TableCell></TableRow>
+                        ) : (
+                        purchaseOrders.map(po => (
+                            <TableRow key={po.id}>
+                                <TableCell>{format(po.date, "dd MMM yyyy", { locale: id })}</TableCell>
+                                <TableCell>
+                                <DialogTrigger asChild>
+                                    <Button variant="link" className="p-0 h-auto font-mono text-xs" onClick={() => setSelectedPO(po)}>
+                                    {po.id}
+                                    </Button>
+                                </DialogTrigger>
+                                </TableCell>
+                                <TableCell>{po.supplierName}</TableCell>
+                                <TableCell><Badge variant={po.status === 'Completed' ? 'secondary' : (po.status === 'Draft' ? 'outline' : 'default')}>{po.status}</Badge></TableCell>
+                                <TableCell className="text-right font-mono">Rp {po.total.toLocaleString('id-ID')}</TableCell>
+                            </TableRow>
+                        ))
+                        )}
+                    </TableBody>
+                    </Table>
+                </div>
               </CardContent>
             </Card>
           </div>

@@ -36,7 +36,9 @@ export default function WarehousesPage() {
         <h2 className="text-xl md:text-2xl font-headline font-bold">
           Manajemen Gudang
         </h2>
-        <WarehouseActions />
+        <div className="w-full sm:w-auto">
+          <WarehouseActions />
+        </div>
       </div>
       <Card>
         <CardHeader>

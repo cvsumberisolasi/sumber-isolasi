@@ -123,13 +123,9 @@ function TransactionsPageContent() {
     setFirstVisible(snapshot.docs[0]);
     
     // Check for next page
-    if (snapshot.docs.length < TRANSACTIONS_PER_PAGE && direction !== 'prev') {
-        setHasNextPage(false);
-    } else {
-        const nextQuery = query(baseQuery, startAfter(snapshot.docs[snapshot.docs.length - 1]), limit(1));
-        const nextSnapshot = await getDocs(nextQuery);
-        setHasNextPage(!nextSnapshot.empty);
-    }
+    const nextQuery = query(baseQuery, startAfter(snapshot.docs[snapshot.docs.length - 1]), limit(1));
+    const nextSnapshot = await getDocs(nextQuery);
+    setHasNextPage(!nextSnapshot.empty);
     
     setLoading(false);
   };
@@ -191,13 +187,13 @@ function TransactionsPageContent() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl md:text-3xl font-headline font-bold">Riwayat Transaksi</h1>
-        <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                     type="search"
                     placeholder="Cari ID atau nama produk..."
-                    className="pl-8 sm:w-[200px] md:w-[250px]"
+                    className="pl-8 sm:w-auto md:w-[250px]"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -249,7 +245,7 @@ function TransactionsPageContent() {
                         <AccordionTrigger>
                         <div className="flex flex-col sm:flex-row justify-between w-full sm:pr-4 text-left sm:items-center">
                             <div className="flex items-center gap-4 mb-2 sm:mb-0">
-                                <span className="font-mono text-xs text-muted-foreground">
+                                <span className="font-mono text-xs text-muted-foreground hidden sm:inline">
                                     { (currentPage - 1) * TRANSACTIONS_PER_PAGE + index + 1 }
                                 </span>
                                 <div>

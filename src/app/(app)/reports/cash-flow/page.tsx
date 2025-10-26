@@ -89,10 +89,14 @@ export default function CashFlowPage() {
 
     setLoading(true);
     const from = Timestamp.fromDate(dateRange.from);
-    let to = dateRange.to ? Timestamp.fromDate(dateRange.to) : from;
-    const toDayEnd = new Date(dateRange.to || dateRange.from);
-    toDayEnd.setHours(23, 59, 59, 999);
-    to = Timestamp.fromDate(toDayEnd);
+    let to;
+    if(dateRange.to) {
+        const toDayEnd = new Date(dateRange.to);
+        toDayEnd.setHours(23, 59, 59, 999);
+        to = Timestamp.fromDate(toDayEnd);
+    } else {
+        to = from;
+    }
     
     const q = query(collection(db, 'journals'), where("date", ">=", from), where("date", "<=", to), orderBy('date', 'asc'));
     
@@ -122,9 +126,14 @@ export default function CashFlowPage() {
 
     if (!dateRange?.from || allTimeJournals.length === 0 || accounts.length === 0) return report;
     
-    const toDate = dateRange.to || dateRange.from;
-    const endOfDayToDate = new Date(toDate);
-    endOfDayToDate.setHours(23, 59, 59, 999);
+    let toDate: Date;
+    if(dateRange.to) {
+        const toDayEnd = new Date(dateRange.to);
+        toDayEnd.setHours(23, 59, 59, 999);
+        toDate = toDayEnd;
+    } else {
+        toDate = dateRange.from;
+    }
     
     const calculateBalances = (journalList: Journal[]) => {
         const balances: { [key: string]: number } = {};
@@ -152,7 +161,7 @@ export default function CashFlowPage() {
     const beginningBalances = calculateBalances(beginningJournals);
     report.beginningCash = cashAccountIds.reduce((sum, id) => sum + (beginningBalances[id] || 0), 0);
 
-    const endingJournals = allTimeJournals.filter(j => j.date <= endOfDayToDate);
+    const endingJournals = allTimeJournals.filter(j => j.date <= toDate);
     const endingBalances = calculateBalances(endingJournals);
     report.endingCash = cashAccountIds.reduce((sum, id) => sum + (endingBalances[id] || 0), 0);
     
@@ -244,9 +253,9 @@ export default function CashFlowPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-xl md:text-2xl font-headline font-bold">Laporan Arus Kas</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Select value={String(month)} onValueChange={(val) => setMonth(Number(val))}>
-                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
                 <SelectContent>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                         <SelectItem key={m} value={String(m)}>{getMonthName(m)}</SelectItem>
@@ -254,14 +263,14 @@ export default function CashFlowPage() {
                 </SelectContent>
             </Select>
             <Select value={String(year)} onValueChange={(val) => setYear(Number(val))}>
-                <SelectTrigger className="w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[120px]"><SelectValue placeholder="Pilih tahun" /></SelectTrigger>
                 <SelectContent>
                     {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
                         <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>
-            <Button onClick={handleExportPDF} variant="outline" disabled={loading}>
+            <Button onClick={handleExportPDF} variant="outline" className="w-full sm:w-auto" disabled={loading}>
                 <Download className="mr-2 h-4 w-4"/>
                 Ekspor PDF
             </Button>
@@ -278,26 +287,28 @@ export default function CashFlowPage() {
           {loading ? (
             <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
           ) : (
-            <Table>
-                <TableHeader><TableRow><TableHead>Deskripsi</TableHead><TableHead className="text-right">Jumlah (Rp)</TableHead></TableRow></TableHeader>
-                <TableBody>
-                    <TableRow className="font-bold bg-muted/30"><TableCell colSpan={2}>Arus Kas dari Aktivitas Operasi</TableCell></TableRow>
-                    <ReportRowComponent row={reportData.netIncome} isSubRow={true}/>
-                    <TableRow><TableCell className="pl-8 font-semibold text-muted-foreground">Penyesuaian untuk rekonsiliasi:</TableCell><TableCell></TableCell></TableRow>
-                    {reportData.adjustments.map((row, i) => (
-                        <ReportRowComponent key={`adj-${i}`} row={row} isSubRow={true} isSubSubRow={true} />
-                    ))}
-                    <TableRow className="font-semibold border-t"><TableCell>Arus Kas Bersih dari Aktivitas Operasi</TableCell><TableCell className="text-right font-mono">{reportData.netCashFromOperating.toLocaleString('id-ID')}</TableCell></TableRow>
+            <div className="overflow-x-auto">
+                <Table>
+                    <TableHeader><TableRow><TableHead>Deskripsi</TableHead><TableHead className="text-right">Jumlah (Rp)</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                        <TableRow className="font-bold bg-muted/30"><TableCell colSpan={2}>Arus Kas dari Aktivitas Operasi</TableCell></TableRow>
+                        <ReportRowComponent row={reportData.netIncome} isSubRow={true}/>
+                        <TableRow><TableCell className="pl-8 font-semibold text-muted-foreground">Penyesuaian untuk rekonsiliasi:</TableCell><TableCell></TableCell></TableRow>
+                        {reportData.adjustments.map((row, i) => (
+                            <ReportRowComponent key={`adj-${i}`} row={row} isSubRow={true} isSubSubRow={true} />
+                        ))}
+                        <TableRow className="font-semibold border-t"><TableCell>Arus Kas Bersih dari Aktivitas Operasi</TableCell><TableCell className="text-right font-mono">{reportData.netCashFromOperating.toLocaleString('id-ID')}</TableCell></TableRow>
 
-                    {renderSection("Arus Kas dari Aktivitas Investasi", reportData.investingActivities, reportData.netCashFromInvesting)}
-                    {renderSection("Arus Kas dari Aktivitas Pendanaan", reportData.financingActivities, reportData.netCashFromFinancing)}
-                </TableBody>
-                <TableFooter>
-                    <TableRow className="font-bold text-base"><TableCell>Kenaikan (Penurunan) Bersih Kas</TableCell><TableCell className="text-right font-mono">{reportData.netCashChange.toLocaleString('id-ID')}</TableCell></TableRow>
-                    <TableRow><TableCell>Saldo Kas dan Setara Kas, Awal Periode</TableCell><TableCell className="text-right font-mono">{reportData.beginningCash.toLocaleString('id-ID')}</TableCell></TableRow>
-                    <TableRow className="font-bold text-lg bg-secondary/50 hover:bg-secondary"><TableCell>Saldo Kas dan Setara Kas, Akhir Periode</TableCell><TableCell className="text-right font-mono">{reportData.endingCash.toLocaleString('id-ID')}</TableCell></TableRow>
-                </TableFooter>
-            </Table>
+                        {renderSection("Arus Kas dari Aktivitas Investasi", reportData.investingActivities, reportData.netCashFromInvesting)}
+                        {renderSection("Arus Kas dari Aktivitas Pendanaan", reportData.financingActivities, reportData.netCashFromFinancing)}
+                    </TableBody>
+                    <TableFooter>
+                        <TableRow className="font-bold text-base"><TableCell>Kenaikan (Penurunan) Bersih Kas</TableCell><TableCell className="text-right font-mono">{reportData.netCashChange.toLocaleString('id-ID')}</TableCell></TableRow>
+                        <TableRow><TableCell>Saldo Kas dan Setara Kas, Awal Periode</TableCell><TableCell className="text-right font-mono">{reportData.beginningCash.toLocaleString('id-ID')}</TableCell></TableRow>
+                        <TableRow className="font-bold text-lg bg-secondary/50 hover:bg-secondary"><TableCell>Saldo Kas dan Setara Kas, Akhir Periode</TableCell><TableCell className="text-right font-mono">{reportData.endingCash.toLocaleString('id-ID')}</TableCell></TableRow>
+                    </TableFooter>
+                </Table>
+            </div>
           )}
         </CardContent>
       </Card>
