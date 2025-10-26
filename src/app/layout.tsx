@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Playfair_Display, Lato, Cormorant_Garamond, Nunito_Sans, Abril_Fatface, Source_Sans_3, Pacifico, Quicksand, Cinzel, Raleway } from "next/font/google";
+import { getCompanySettings } from "./(app)/settings/actions";
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
@@ -59,11 +60,14 @@ const raleway = Raleway({
   variable: '--font-raleway',
 });
 
-export const metadata: Metadata = {
-  title: "Toko Kilat",
-  description: "Aplikasi kasir penjualan dan akuntansi.",
-  manifest: "/manifest.json",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const companySettings = await getCompanySettings();
+  return {
+    title: companySettings.companyName || "Toko Kilat",
+    description: "Aplikasi kasir penjualan dan akuntansi.",
+    manifest: "/manifest.json",
+  };
+}
 
 export default function RootLayout({
   children,
