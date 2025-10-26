@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CoaActions } from '@/components/accounting/coa-actions';
 import { CoaTable } from '@/components/accounting/coa-table';
 
-export default function ChartOfAccountsPage({ accounts }: { accounts: Account[] }) {
+type AccountWithBalance = Account & { balance: number };
+
+export default function ChartOfAccountsPage({ accounts }: { accounts: AccountWithBalance[] }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

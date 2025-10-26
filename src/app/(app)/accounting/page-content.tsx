@@ -9,7 +9,9 @@ import PeriodClosingPage from "./closing/page";
 import PostClosingTrialBalancePage from "./post-closing-trial-balance/page";
 import type { Account } from "@/lib/types";
 
-export default function AccountingPageContent({ accounts }: { accounts: Account[] }) {
+type AccountWithBalance = Account & { balance: number };
+
+export default function AccountingPageContent({ accounts }: { accounts: AccountWithBalance[] }) {
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl md:text-3xl font-headline font-bold">Akuntansi</h1>
