@@ -12,15 +12,32 @@ import { Loader2, ArrowLeft, Save, Workflow, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { completeProduction } from '../actions';
+import { completeProduction, completeMultipleProductions } from '../actions';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 export default function WorksheetPageContent() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWO, setSelectedWO] = useState<WorkOrder | null>(null);
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const [isBulkPending, startBulkTransition] = useTransition();
+  const { toast } = useToast();
+
 
   useEffect(() => {
     const q = query(collection(db, "workOrders"), where("status", "==", "Dalam Pengerjaan"), orderBy("date", "desc"));
@@ -42,6 +59,33 @@ export default function WorksheetPageContent() {
   const handleProcess = (wo: WorkOrder) => {
     setSelectedWO(wo);
   }
+  
+  const handleSelectRow = (id: string) => {
+    setSelectedRows(prev => 
+      prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]
+    );
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedRows(workOrders.map(wo => wo.id));
+    } else {
+      setSelectedRows([]);
+    }
+  }
+  
+  const handleBulkComplete = () => {
+    startBulkTransition(async () => {
+      const result = await completeMultipleProductions(selectedRows);
+      if (result.error) {
+        toast({ title: "Gagal Menyelesaikan WO", description: result.error, variant: 'destructive'});
+      } else {
+        toast({ title: "Berhasil", description: `${selectedRows.length} WO telah diselesaikan.`});
+        setSelectedRows([]);
+      }
+    });
+  }
+
 
   if (selectedWO) {
     return <ProductionExecutionForm wo={selectedWO} onBack={() => setSelectedWO(null)} />;
@@ -53,6 +97,32 @@ export default function WorksheetPageContent() {
         <h2 className="text-xl md:text-2xl font-headline font-bold">Lembar Kerja Produksi</h2>
         <p className="text-muted-foreground text-sm">Pilih WO untuk mencatat penyelesaian produksi dan konsumsi bahan.</p>
       </div>
+      {selectedRows.length > 0 && (
+        <Card className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <p className="font-semibold text-sm">{selectedRows.length} perintah produksi dipilih.</p>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button>
+                    <Check className="mr-2 h-4 w-4" /> Selesaikan Produksi Terpilih
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Selesaikan {selectedRows.length} Produksi?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Tindakan ini akan menyelesaikan semua WO yang dipilih, dengan asumsi bahan baku yang digunakan sesuai dengan resep (BOM). Stok akan diperbarui secara otomatis. Lanjutkan?
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleBulkComplete} disabled={isBulkPending}>
+                         {isBulkPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : 'Ya, Selesaikan'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </Card>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>Daftar Perintah Produksi Aktif</CardTitle>
@@ -61,6 +131,13 @@ export default function WorksheetPageContent() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                    <Checkbox 
+                        checked={workOrders.length > 0 && selectedRows.length === workOrders.length}
+                        onCheckedChange={handleSelectAll}
+                        aria-label="Pilih semua"
+                    />
+                </TableHead>
                 <TableHead>Tanggal WO</TableHead>
                 <TableHead>No. WO</TableHead>
                 <TableHead>Produk</TableHead>
@@ -71,12 +148,19 @@ export default function WorksheetPageContent() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center h-24"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
               ) : workOrders.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Tidak ada perintah produksi yang sedang dikerjakan.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center h-24 text-muted-foreground">Tidak ada perintah produksi yang sedang dikerjakan.</TableCell></TableRow>
               ) : (
                 workOrders.map(wo => (
-                  <TableRow key={wo.id}>
+                  <TableRow key={wo.id} className={cn(selectedRows.includes(wo.id) && 'bg-muted/50')}>
+                    <TableCell>
+                      <Checkbox 
+                        checked={selectedRows.includes(wo.id)}
+                        onCheckedChange={() => handleSelectRow(wo.id)}
+                        aria-label={`Pilih WO ${wo.id}`}
+                      />
+                    </TableCell>
                     <TableCell>{format(wo.date, "dd MMM yyyy", { locale: id })}</TableCell>
                     <TableCell className="font-mono text-xs">{wo.id}</TableCell>
                     <TableCell className="font-medium">{wo.finishedGoodName}</TableCell>
