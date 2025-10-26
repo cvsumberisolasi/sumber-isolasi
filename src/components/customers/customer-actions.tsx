@@ -163,7 +163,7 @@ export function CustomerRowActions({ customer }: { customer: Customer }) {
   );
 }
 
-function CustomerFormDialog({ children, customer }: { children: React.ReactNode, customer?: Customer }) {
+export function CustomerFormDialog({ children, customer }: { children: React.ReactNode, customer?: Customer }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();

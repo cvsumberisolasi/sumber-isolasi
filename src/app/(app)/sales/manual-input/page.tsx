@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
-import { PlusCircle, MinusCircle, X, Save, Loader2 } from 'lucide-react';
+import { PlusCircle, MinusCircle, X, Save, Loader2, UserPlus } from 'lucide-react';
 import type { Product, CartItem, NewTransaction, Customer, ProductUnit } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,7 @@ import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
+import { CustomerFormDialog } from '@/components/customers/customer-actions';
 
 export default function ManualSalesInputPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -35,7 +36,7 @@ export default function ManualSalesInputPage() {
     const productsUnsub = onSnapshot(collection(db, "products"), (snapshot) => {
       setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
     });
-    const customersUnsub = onSnapshot(collection(db, "customers"), (snapshot) => {
+    const customersUnsub = onSnapshot(query(collection(db, 'customers'), ), (snapshot) => {
       setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer)));
     });
     return () => {
@@ -128,7 +129,14 @@ export default function ManualSalesInputPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Pelanggan</Label>
-              <CustomerPicker customers={customers} selected={selectedCustomer} onSelect={setSelectedCustomer} />
+              <div className="flex gap-2">
+                <CustomerPicker customers={customers} selected={selectedCustomer} onSelect={setSelectedCustomer} />
+                <CustomerFormDialog>
+                    <Button variant="outline" size="icon" aria-label="Tambah pelanggan baru">
+                        <UserPlus className="h-4 w-4" />
+                    </Button>
+                </CustomerFormDialog>
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Tanggal Invoice</Label>
