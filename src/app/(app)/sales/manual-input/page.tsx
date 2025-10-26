@@ -7,7 +7,7 @@ import type { Product, CartItem, NewTransaction, Customer, ProductUnit, Transact
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { createTransaction } from '@/app/(app)/pos/actions';
 import { collection, onSnapshot, query } from 'firebase/firestore';
@@ -272,10 +272,12 @@ export default function ManualSalesInputPage() {
                                     </TableRow>
                                 ))}
                             </TableBody>
-                            <TableRow>
-                                <TableCell colSpan={3} className="text-right font-bold text-lg">GRAND TOTAL</TableCell>
-                                <TableCell className="text-right font-bold font-mono text-lg">Rp {invoice.total.toLocaleString('id-ID')}</TableCell>
-                            </TableRow>
+                            <TableFooter>
+                                <TableRow>
+                                    <TableCell colSpan={3} className="text-right font-bold text-lg">GRAND TOTAL</TableCell>
+                                    <TableCell className="text-right font-bold font-mono text-lg">Rp {invoice.total.toLocaleString('id-ID')}</TableCell>
+                                </TableRow>
+                            </TableFooter>
                         </Table>
                          <footer className="mt-8 pt-4 border-t text-center text-xs text-muted-foreground">
                             <p>Terima kasih atas bisnis Anda!</p>
