@@ -190,49 +190,55 @@ const navItems = [
 ];
 
 function NavItem({ item, isActive, isSubActive }: { item: any, isActive: (href: string) => boolean, isSubActive: (items: any[]) => boolean }) {
-    const pathname = usePathname();
+  const pathname = usePathname();
 
-    if (item.subItems) {
-        return (
-             <Collapsible defaultOpen={isSubActive(item.subItems)}>
-                <CollapsibleTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-start gap-2">
-                        <item.icon className="h-5 w-5"/>
-                        {item.label}
-                        <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                    </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-4">
-                    <div className="flex flex-col gap-1 py-1 pl-4 border-l">
-                    {item.subItems.map((sub: any) => (
-                         <Button asChild key={sub.href} variant={isActive(sub.href) ? 'secondary' : 'ghost'} className="justify-start gap-2">
-                            <Link href={sub.href}>
-                                {sub.icon && <sub.icon className="h-4 w-4"/>}
-                                {sub.label}
-                            </Link>
-                        </Button>
-                    ))}
-                    </div>
-                </CollapsibleContent>
-            </Collapsible>
-        )
-    }
-
+  if (item.subItems) {
     return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button asChild variant={isActive(item.href) ? 'secondary' : 'ghost'} className="justify-center sm:justify-start gap-2" aria-label={item.label}>
-                    <Link href={item.href}>
-                        <item.icon className="h-5 w-5"/>
-                        <span className="hidden sm:inline">{item.label}</span>
-                    </Link>
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="sm:hidden">
-                {item.label}
-            </TooltipContent>
-        </Tooltip>
+      <Collapsible defaultOpen={isSubActive(item.subItems)}>
+        <div className="flex items-center justify-between">
+          <Link href={item.subItems[0].href} className="w-full">
+            <Button variant="ghost" className="w-full justify-start gap-2">
+              <item.icon className="h-5 w-5" />
+              {item.label}
+            </Button>
+          </Link>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+              <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent className="pl-4">
+          <div className="flex flex-col gap-1 py-1 pl-4 border-l">
+            {item.subItems.map((sub: any) => (
+              <Button asChild key={sub.href} variant={isActive(sub.href) ? 'secondary' : 'ghost'} className="justify-start gap-2">
+                <Link href={sub.href}>
+                  {sub.icon && <sub.icon className="h-4 w-4" />}
+                  {sub.label}
+                </Link>
+              </Button>
+            ))}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     )
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button asChild variant={isActive(item.href) ? 'secondary' : 'ghost'} className="justify-center sm:justify-start gap-2" aria-label={item.label}>
+          <Link href={item.href}>
+            <item.icon className="h-5 w-5" />
+            <span className="hidden sm:inline">{item.label}</span>
+          </Link>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="sm:hidden">
+        {item.label}
+      </TooltipContent>
+    </Tooltip>
+  )
 }
 
 export function AppSidebar({ companySettings }: { companySettings: CompanySettings }) {
@@ -275,7 +281,7 @@ export function AppSidebar({ companySettings }: { companySettings: CompanySettin
                     <span className="sr-only">Toggle Menu</span>
                 </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-xs overflow-y-auto">
+            <SheetContent side="left" className="sm:max-w-xs overflow-y-auto p-0">
                 <Link href="/dashboard" className="group flex h-16 shrink-0 items-center gap-2 border-b px-4">
                     {companySettings.logoDataUrl ? (
                         <Image src={companySettings.logoDataUrl} alt="Logo" width={32} height={32} />
