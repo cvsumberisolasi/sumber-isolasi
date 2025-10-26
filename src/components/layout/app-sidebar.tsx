@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from "next/link";
@@ -74,6 +75,7 @@ import { Button } from "../ui/button";
 import {
     Sheet,
     SheetContent,
+    SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "../ui/tooltip";
@@ -128,14 +130,14 @@ const navItems = [
     icon: BarChart2,
   },
   {
-    label: "Master Data",
-    icon: Archive,
-    subItems: [
-      { href: "/customers", label: "Pelanggan", icon: Users },
-      { href: "/suppliers", label: "Pemasok", icon: Factory },
-      { href: "/taxes", label: "Pajak", icon: Percent },
-      { href: "/currencies", label: "Mata Uang", icon: Coins },
-    ],
+    href: "/customers",
+    label: "Pelanggan",
+    icon: Users,
+  },
+  {
+    href: "/suppliers",
+    label: "Pemasok",
+    icon: Factory,
   },
   {
     href: "/settings",
@@ -146,29 +148,6 @@ const navItems = [
 
 function NavItem({ item, isActive }: { item: any, isActive: (href: string) => boolean }) {
   
-  if (item.subItems) {
-    return (
-      <>
-        {item.subItems.map((sub: any) => (
-          <Tooltip key={sub.href}>
-            <TooltipTrigger asChild>
-              <Button asChild variant={isActive(sub.href) ? 'secondary' : 'ghost'} className="justify-center sm:justify-start gap-2" aria-label={sub.label}>
-                <Link href={sub.href}>
-                  <sub.icon className="h-5 w-5" />
-                  <span className="hidden sm:inline">{sub.label}</span>
-                </Link>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="sm:hidden">
-              {sub.label}
-            </TooltipContent>
-          </Tooltip>
-        ))}
-      </>
-    );
-  }
-
-
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -221,6 +200,7 @@ export function AppSidebar({ companySettings }: { companySettings: CompanySettin
                 </Button>
             </SheetTrigger>
             <SheetContent side="left" className="sm:max-w-xs overflow-y-auto p-0">
+                <SheetTitle className="sr-only">Menu Navigasi</SheetTitle>
                 <Link href="/dashboard" className="group flex h-16 shrink-0 items-center gap-2 border-b px-4">
                     {companySettings.logoDataUrl ? (
                         <Image src={companySettings.logoDataUrl} alt="Logo" width={32} height={32} />
@@ -248,7 +228,7 @@ export function AppSidebar({ companySettings }: { companySettings: CompanySettin
                      {navItems.map((item, index) => (
                         <Tooltip key={index}>
                             <TooltipTrigger asChild>
-                                <Link href={item.href || item.subItems?.[0]?.href || '#'} className={cn("flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8", isActive(item.href || '') && "bg-accent text-accent-foreground")}>
+                                <Link href={item.href || '#'} className={cn("flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8", isActive(item.href || '') && "bg-accent text-accent-foreground")}>
                                     <item.icon className="h-5 w-5" />
                                     <span className="sr-only">{item.label}</span>
                                 </Link>
