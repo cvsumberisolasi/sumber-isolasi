@@ -262,14 +262,6 @@ export async function processSalesReturn(returnData: NewSalesReturn) {
         { accountId: paymentAccountId!, accountName: '', debit: 0, credit: total }
     );
     
-    // Reverse COGS
-    if (totalCost > 0) {
-        journalEntries.push(
-            { accountId: settings.inventoryAccountId!, accountName: '', debit: totalCost, credit: 0 },
-            { accountId: settings.cogsAccountId!, accountName: '', debit: 0, credit: totalCost }
-        );
-    }
-    
     const newJournal: NewJournal = {
       date: new Date(),
       description,
@@ -277,9 +269,23 @@ export async function processSalesReturn(returnData: NewSalesReturn) {
       entries: journalEntries,
       total: total,
     };
-
     await addJournalEntry(newJournal);
 
+    // Reverse COGS
+    if (totalCost > 0) {
+       const cogsReversalJournal: NewJournal = {
+         date: new Date(),
+         description: `Pembalikan HPP untuk Retur #${returnRef.ref.id}`,
+         refNumber: returnRef.ref.id,
+         entries: [
+            { accountId: settings.inventoryAccountId!, accountName: '', debit: totalCost, credit: 0 },
+            { accountId: settings.cogsAccountId!, accountName: '', debit: 0, credit: totalCost }
+         ],
+         total: totalCost,
+       };
+       await addJournalEntry(cogsReversalJournal);
+    }
+    
     revalidatePath('/(app)/pos/returns');
     revalidatePath('/(app)/sales/returns');
     revalidatePath('/(app)/dashboard');

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -109,6 +110,10 @@ export default function FinancialReportsPage() {
       journal.entries.forEach(entry => {
         const account = accounts.find(a => a.id === entry.accountId);
         if (account && accountBalances[entry.accountId] !== undefined) {
+           // Skip accounts that are part of COGS calculation but might be selected as additional costs
+           if (journal.description.startsWith('Penyelesaian Produksi') && expenseAccountTypes.includes(account.type)) {
+               return;
+           }
            const balanceEffect = (revenueAccountTypes.includes(account.type)) 
                 ? entry.credit - entry.debit
                 : entry.debit - entry.credit;
@@ -260,3 +265,4 @@ export default function FinancialReportsPage() {
     </div>
   );
 }
+
