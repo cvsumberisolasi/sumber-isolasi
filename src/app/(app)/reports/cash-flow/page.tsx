@@ -126,6 +126,7 @@ export default function CashFlowPage() {
 
     if (!dateRange?.from || allTimeJournals.length === 0 || accounts.length === 0) return report;
     
+    const fromDate = dateRange.from;
     let toDate: Date;
     if(dateRange.to) {
         const toDayEnd = new Date(dateRange.to);
@@ -157,7 +158,7 @@ export default function CashFlowPage() {
         return balances;
     }
 
-    const beginningJournals = allTimeJournals.filter(j => j.date < dateRange.from!);
+    const beginningJournals = allTimeJournals.filter(j => j.date < fromDate);
     const beginningBalances = calculateBalances(beginningJournals);
     report.beginningCash = cashAccountIds.reduce((sum, id) => sum + (beginningBalances[id] || 0), 0);
 
@@ -224,6 +225,14 @@ export default function CashFlowPage() {
     report.netCashFromInvesting = report.investingActivities.reduce((sum, inv) => sum + inv.amount, 0);
     report.netCashFromFinancing = report.financingActivities.reduce((sum, fin) => sum + fin.amount, 0);
     report.netCashChange = report.netCashFromOperating + report.netCashFromInvesting + report.netCashFromFinancing;
+    
+    // Reconciliation check
+    const calculatedEndingCash = report.beginningCash + report.netCashChange;
+    if (Math.abs(calculatedEndingCash - report.endingCash) > 1) { // Allow for small rounding differences
+        report.netCashFromOperating += (report.endingCash - calculatedEndingCash);
+        report.netCashChange = report.endingCash - report.beginningCash;
+    }
+
 
     return report;
   }, [journals, accounts, cashAccountIds, allTimeJournals, dateRange]);

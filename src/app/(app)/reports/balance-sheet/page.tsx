@@ -37,7 +37,6 @@ type BalanceSheetReport = {
   totalAssets: number;
   totalLiabilities: number;
   totalEquity: number;
-  retainedEarnings: number;
 };
 
 const isAsset = (type: string) => type.startsWith('Aset') || type.startsWith('Kas') || type.startsWith('Akumulasi');
@@ -101,49 +100,59 @@ export default function BalanceSheetPage() {
         currentAssets: [], fixedAssets: [], otherAssets: [],
         shortTermLiabilities: [], longTermLiabilities: [],
         equity: [],
-        totalAssets: 0, totalLiabilities: 0, totalEquity: 0,
-        retainedEarnings: 0
+        totalAssets: 0, totalLiabilities: 0, totalEquity: 0
     };
 
     if (!reportDate || accounts.length === 0) return report;
     
-    // --- 1. Calculate ending balances for all accounts up to the report date ---
-    const endingBalances: { [key: string]: number } = {};
-    accounts.forEach(acc => { endingBalances[acc.id] = 0; });
+    const balances: { [key: string]: number } = {};
+    accounts.forEach(acc => { balances[acc.id] = 0; });
     
     journals.forEach(journal => {
         journal.entries.forEach(entry => {
             const account = accounts.find(a => a.id === entry.accountId);
-            if (account && endingBalances[entry.accountId] !== undefined) {
+            if (account && balances[entry.accountId] !== undefined) {
                const isDebitNormalAcc = isAsset(account.type) || isExpense(account.type);
                let balanceEffect = isDebitNormalAcc ? entry.debit - entry.credit : entry.credit - entry.debit;
                if(isContraAsset(account.type)) {
-                   balanceEffect = -balanceEffect; // Contra asset increases with credit but is shown as negative asset
+                   balanceEffect = -balanceEffect; 
                }
-               endingBalances[entry.accountId] += balanceEffect;
+               balances[entry.accountId] += balanceEffect;
             }
         });
     });
     
-    // --- 2. Separate accounts and calculate totals ---
+    let totalRevenue = 0;
+    let totalExpense = 0;
+
     accounts.forEach(account => {
-        const balance = endingBalances[account.id] || 0;
-        if (balance === 0) return;
+        const balance = balances[account.id] || 0;
         
         const row = { accountId: account.id, accountName: account.name, amount: balance };
 
         if (isAsset(account.type)) {
+            if (balance === 0) return;
             if (account.type === 'Aset Lancar' || account.type === 'Kas & Bank') report.currentAssets.push(row);
             else if (account.type === 'Aset Tetap') report.fixedAssets.push(row);
-            else if (isContraAsset(account.type)) report.fixedAssets.push({ ...row, amount: -balance }); // Show as negative
+            else if (isContraAsset(account.type)) report.fixedAssets.push({ ...row, amount: -balance });
             else report.otherAssets.push(row);
         } else if (isLiability(account.type)) {
+            if (balance === 0) return;
             if (account.type === 'Kewajiban Jangka Pendek') report.shortTermLiabilities.push(row);
             else report.longTermLiabilities.push(row);
         } else if (isEquity(account.type)) {
-             report.equity.push(row);
+            if (balance !== 0) report.equity.push(row);
+        } else if (isRevenue(account.type)) {
+            totalRevenue += balance;
+        } else if (isExpense(account.type)) {
+            totalExpense += balance;
         }
     });
+
+    const netIncome = totalRevenue - totalExpense;
+    if (netIncome !== 0) {
+        report.equity.push({ accountId: 'retained-earnings-current', accountName: 'Laba/Rugi Tahun Berjalan', amount: netIncome });
+    }
     
     const totalCurrentAssets = report.currentAssets.reduce((sum, r) => sum + r.amount, 0);
     const totalFixedAssets = report.fixedAssets.reduce((sum, r) => sum + r.amount, 0);
@@ -222,6 +231,20 @@ export default function BalanceSheetPage() {
     const from = reportDate ? format(new Date(reportDate.getFullYear(), 0, 1), 'yyyy-MM-dd') : '';
     const to = reportDate ? format(reportDate, 'yyyy-MM-dd') : from;
     const link = `/accounting/ledger?accountId=${row.accountId}&from=${from}&to=${to}`;
+    
+    if (row.accountId === 'retained-earnings-current') {
+        return (
+             <TableRow>
+                <TableCell className="pl-8">
+                    <Link href="/reports/financial" className="flex items-center hover:underline">
+                        {row.accountName}
+                        <ExternalLink className="inline-block ml-2 h-3 w-3 text-muted-foreground"/>
+                    </Link>
+                </TableCell>
+                <TableCell className="text-right font-mono">{row.amount.toLocaleString('id-ID')}</TableCell>
+            </TableRow>
+        )
+    }
 
     return (
         <TableRow>
