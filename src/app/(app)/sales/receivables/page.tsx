@@ -304,4 +304,3 @@ function MultiSettleDialog({ transactionIds, onSettled }: { transactionIds: stri
         </Dialog>
     );
 }
-
