@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SalesReportPage from "./sales/page";
 import PurchasingReportPage from "./purchasing/page";
 import StockReportsPage from "./stock/page";
-import ExpensesReportPage from "./expenses/page";
 import FinancialReportsPage from "./financial/page";
 import BalanceSheetPage from "./balance-sheet/page";
 import CashFlowPage from "./cash-flow/page";
@@ -21,7 +20,6 @@ export default function ReportsPage() {
                     <TabsTrigger value="purchasing">Pembelian</TabsTrigger>
                     <TabsTrigger value="stock">Stok</TabsTrigger>
                     <TabsTrigger value="production">Produksi</TabsTrigger>
-                    <TabsTrigger value="expenses">Beban</TabsTrigger>
                     <TabsTrigger value="profit-loss">Laba Rugi</TabsTrigger>
                     <TabsTrigger value="balance-sheet">Neraca</TabsTrigger>
                     <TabsTrigger value="cash-flow">Arus Kas</TabsTrigger>
@@ -37,9 +35,6 @@ export default function ReportsPage() {
                 </TabsContent>
                 <TabsContent value="production" className="mt-6">
                     <ProductionReportPage />
-                </TabsContent>
-                <TabsContent value="expenses" className="mt-6">
-                    <ExpensesReportPage />
                 </TabsContent>
                 <TabsContent value="profit-loss" className="mt-6">
                     <FinancialReportsPage />

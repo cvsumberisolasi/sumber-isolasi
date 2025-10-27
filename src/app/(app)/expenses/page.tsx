@@ -24,7 +24,7 @@ type ExpenseRow = {
   amount: number;
 };
 
-export default function ExpensesReportPage() {
+export default function ExpensesPage() {
   const [journals, setJournals] = useState<Journal[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +97,7 @@ export default function ExpensesReportPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h2 className="text-xl md:text-2xl font-headline font-bold">Laporan Pengeluaran</h2>
+        <h1 className="text-2xl md:text-3xl font-headline font-bold">Laporan Pengeluaran</h1>
         <div className="flex gap-2">
             <Select value={String(month)} onValueChange={(val) => setMonth(Number(val))}>
                 <SelectTrigger className="w-[180px]"><SelectValue placeholder="Pilih bulan" /></SelectTrigger>
