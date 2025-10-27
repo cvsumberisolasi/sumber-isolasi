@@ -9,6 +9,7 @@ import FinancialReportsPage from "./financial/page";
 import BalanceSheetPage from "./balance-sheet/page";
 import CashFlowPage from "./cash-flow/page";
 import ProductionReportPage from "./production/page";
+import ExpensesPage from "./expenses/page";
 
 export default function ReportsPage() {
     return (
@@ -20,6 +21,7 @@ export default function ReportsPage() {
                     <TabsTrigger value="purchasing">Pembelian</TabsTrigger>
                     <TabsTrigger value="stock">Stok</TabsTrigger>
                     <TabsTrigger value="production">Produksi</TabsTrigger>
+                    <TabsTrigger value="expenses">Beban</TabsTrigger>
                     <TabsTrigger value="profit-loss">Laba Rugi</TabsTrigger>
                     <TabsTrigger value="balance-sheet">Neraca</TabsTrigger>
                     <TabsTrigger value="cash-flow">Arus Kas</TabsTrigger>
@@ -35,6 +37,9 @@ export default function ReportsPage() {
                 </TabsContent>
                 <TabsContent value="production" className="mt-6">
                     <ProductionReportPage />
+                </TabsContent>
+                 <TabsContent value="expenses" className="mt-6">
+                    <ExpensesPage />
                 </TabsContent>
                 <TabsContent value="profit-loss" className="mt-6">
                     <FinancialReportsPage />

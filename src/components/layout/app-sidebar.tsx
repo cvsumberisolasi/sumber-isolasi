@@ -68,7 +68,6 @@ import {
   FileCog,
   Workflow,
   PanelLeft,
-  TrendingDown,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -131,11 +130,6 @@ const navItems = [
     icon: BarChart2,
   },
   {
-    href: "/expenses",
-    label: "Pengeluaran",
-    icon: TrendingDown,
-  },
-  {
     href: "/customers",
     label: "Pelanggan",
     icon: Users,
@@ -183,7 +177,6 @@ export function AppSidebar({ companySettings }: { companySettings: CompanySettin
     if (href === '/accounting') return pathname.startsWith('/accounting');
     if (href === '/cash') return pathname.startsWith('/cash');
     if (href === '/pos') return pathname.startsWith('/pos');
-    if (href === '/expenses') return pathname.startsWith('/expenses');
     
     return pathname === href;
   };
