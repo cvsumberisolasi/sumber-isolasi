@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useTransition } from 'react';
@@ -127,50 +128,41 @@ export function CoaRowActions({ account }: { account: Account }) {
   }
 
   return (
-     <>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Buka menu</span>
-              <MoreHorizontal className="h-4 w-4" />
+     <div className="flex gap-2 justify-end">
+        <AccountFormDialog account={account}>
+            <Button variant="outline" size="icon" className="h-8 w-8">
+                <Edit className="h-4 w-4" />
+                <span className="sr-only">Edit</span>
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <AccountFormDialog account={account}>
-                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <Edit className="mr-2 h-4 w-4" /> Edit
-                </DropdownMenuItem>
-            </AccountFormDialog>
-            <DropdownMenuItem
-              className="text-destructive"
-              onSelect={() => setIsDeleteDialogOpen(true)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Hapus
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Anda yakin?</DialogTitle>
-            <DialogDescription>
-              Tindakan ini tidak dapat diurungkan. Ini akan menghapus akun 
-              bernama <span className="font-semibold">{account.name}</span> secara permanen.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsDeleteDialogOpen(false)} disabled={isPending}>
-              Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Hapus
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        </AccountFormDialog>
+        
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon" className="h-8 w-8">
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Hapus</span>
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <DialogTitle>Anda yakin?</DialogTitle>
+                    <DialogDescription>
+                    Tindakan ini tidak dapat diurungkan. Ini akan menghapus akun 
+                    bernama <span className="font-semibold">{account.name}</span> secara permanen.
+                    </DialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <Button variant="ghost" onClick={() => setIsDeleteDialogOpen(false)} disabled={isPending}>
+                    Batal
+                    </Button>
+                    <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Hapus
+                    </Button>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </div>
   );
 }
 
@@ -185,8 +177,6 @@ function AccountFormDialog({ children, account }: { children: React.ReactNode, a
   const [type, setType] = useState(account?.type || '');
   
   const isEditing = !!account;
-  const isDropdownItem = React.isValidElement(children) && (children.type as any).displayName === 'DropdownMenuItem';
-
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -233,7 +223,7 @@ function AccountFormDialog({ children, account }: { children: React.ReactNode, a
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        { isDropdownItem ? <div className="relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"><Edit className="mr-2 h-4 w-4" /> Edit</div> : children }
+        {children}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
