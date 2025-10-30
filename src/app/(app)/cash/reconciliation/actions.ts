@@ -1,7 +1,9 @@
+
 'use server';
 
 import { addJournalEntry } from '@/app/(app)/accounting/journal/actions';
 import type { Account, NewJournal, JournalEntry } from '@/lib/types';
+import { revalidatePath } from 'next/cache';
 
 const createResponse = (error: string | null = null) => ({ error });
 
@@ -54,6 +56,7 @@ export async function createAdjustmentJournal(
         throw new Error(result.error);
     }
     
+    revalidatePath('/(app)/cash/reconciliation');
     return createResponse();
   } catch (e) {
     console.error('Error creating adjustment journal:', e);

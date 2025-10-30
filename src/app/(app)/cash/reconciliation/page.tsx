@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Loader2, Upload, AlertCircle, Plus, FilePlus, Minus, Banknote, CheckCircle } from 'lucide-react';
+import { Loader2, Upload, AlertCircle, Plus, FilePlus, Minus, Banknote, CheckCircle, CirclePlus } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { collection, onSnapshot, query, orderBy, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -51,11 +51,13 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
-type AdjustmentItem = {
-    id: number;
+type BankStatementItem = {
+    id: string;
+    date: Date;
     description: string;
     amount: number;
-}
+    isMatched: boolean;
+};
 
 export default function BankReconciliationPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -65,16 +67,11 @@ export default function BankReconciliationPage() {
   const [loading, setLoading] = useState(false);
   
   const { toast } = useToast();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const [bankStatementItems, setBankStatementItems] = useState<BankStatementItem[]>([]);
+  
   const [bookBalance, setBookBalance] = useState(0);
-  const [bankBalance, setBankBalance] = useState(0);
-  
-  const [additionsToBank, setAdditionsToBank] = useState<AdjustmentItem[]>([]);
-  const [deductionsFromBank, setDeductionsFromBank] = useState<AdjustmentItem[]>([]);
-  const [additionsToBook, setAdditionsToBook] = useState<AdjustmentItem[]>([]);
-  const [deductionsFromBook, setDeductionsFromBook] = useState<AdjustmentItem[]>([]);
-  
-  const [nextId, setNextId] = useState(1);
 
   useEffect(() => {
     const q = query(collection(db, 'coa'), orderBy('name'));
@@ -86,10 +83,10 @@ export default function BankReconciliationPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedAccountId || !dateRange?.from) return;
+    if (!selectedAccountId || !dateRange?.to) return;
 
     setLoading(true);
-    const toDayEnd = new Date(dateRange.to || dateRange.from);
+    const toDayEnd = new Date(dateRange.to);
     toDayEnd.setHours(23, 59, 59, 999);
     const to = Timestamp.fromDate(toDayEnd);
 
@@ -120,167 +117,183 @@ export default function BankReconciliationPage() {
     return () => unsubJournals();
   }, [selectedAccountId, dateRange]);
 
-  const handleAdjustmentChange = (
-    setter: React.Dispatch<React.SetStateAction<AdjustmentItem[]>>, 
-    id: number, 
-    field: 'description' | 'amount', 
-    value: string | number
-  ) => {
-    setter(prev => prev.map(item => item.id === id ? {...item, [field]: value} : item));
-  }
 
-  const addAdjustment = (setter: React.Dispatch<React.SetStateAction<AdjustmentItem[]>>) => {
-    setter(prev => [...prev, {id: nextId, description: '', amount: 0}]);
-    setNextId(prev => prev + 1);
-  }
-  
-  const removeAdjustment = (setter: React.Dispatch<React.SetStateAction<AdjustmentItem[]>>, id: number) => {
-    setter(prev => prev.filter(item => item.id !== id));
-  }
+  useEffect(() => {
+    if (bankStatementItems.length === 0 || journals.length === 0) return;
 
-  const bankTotalAdditions = useMemo(() => additionsToBank.reduce((sum, item) => sum + Number(item.amount), 0), [additionsToBank]);
-  const bankTotalDeductions = useMemo(() => deductionsFromBank.reduce((sum, item) => sum + Number(item.amount), 0), [deductionsFromBank]);
-  const bookTotalAdditions = useMemo(() => additionsToBook.reduce((sum, item) => sum + Number(item.amount), 0), [additionsToBook]);
-  const bookTotalDeductions = useMemo(() => deductionsFromBook.reduce((sum, item) => sum + Number(item.amount), 0), [deductionsFromBook]);
-  
-  const adjustedBankBalance = bankBalance + bankTotalAdditions - bankTotalDeductions;
-  const adjustedBookBalance = bookBalance + bookTotalAdditions - bookTotalDeductions;
-  
-  const difference = adjustedBookBalance - adjustedBankBalance;
-  
+    setBankStatementItems(prevItems => prevItems.map(item => {
+        const isMatched = journals.some(j => 
+            Math.abs(j.total - Math.abs(item.amount)) < 0.01 && // Check if amount is very close
+            j.entries.some(e => e.accountId === selectedAccountId)
+        );
+        return { ...item, isMatched };
+    }));
+  }, [bankStatementItems.length, journals, selectedAccountId]);
+
+
   const bankAccounts = accounts.filter(a => a.type === 'Kas & Bank');
 
-  const renderAdjustmentSection = (
-    title: string,
-    items: AdjustmentItem[],
-    setter: React.Dispatch<React.SetStateAction<AdjustmentItem[]>>
-  ) => (
-    <div className="space-y-2">
-        <h4 className="font-semibold text-muted-foreground">{title}</h4>
-        {items.map(item => (
-            <div key={item.id} className="flex items-center gap-2">
-                <Input 
-                    placeholder="Deskripsi..." 
-                    value={item.description} 
-                    onChange={e => handleAdjustmentChange(setter, item.id, 'description', e.target.value)}
-                    className="h-8"
-                />
-                <Input 
-                    type="number" 
-                    placeholder="Jumlah" 
-                    value={item.amount || ''}
-                    onChange={e => handleAdjustmentChange(setter, item.id, 'amount', Number(e.target.value))}
-                    onFocus={(e) => e.target.select()}
-                    className="h-8 w-32 text-right"
-                />
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeAdjustment(setter, item.id)}>
-                    <Minus className="h-4 w-4"/>
-                </Button>
-            </div>
-        ))}
-         <Button variant="outline" size="sm" className="w-full" onClick={() => addAdjustment(setter)}>
-            <Plus className="mr-2 h-4 w-4"/> Tambah Item
-        </Button>
-    </div>
-  );
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const json: any[] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          if (json.length < 2) throw new Error("File tidak memiliki data yang cukup.");
+
+          // Find header row dynamically
+          let headerRowIndex = -1;
+          for (let i = 0; i < json.length; i++) {
+              const row = json[i].map((h:any) => String(h || '').toLowerCase().trim());
+              if (row.includes('tanggal') && (row.includes('debet') || row.includes('kredit'))) {
+                  headerRowIndex = i;
+                  break;
+              }
+          }
+          if (headerRowIndex === -1) throw new Error("Header kolom 'Tanggal', 'Debet', atau 'Kredit' tidak ditemukan.");
+
+          const header = json[headerRowIndex].map((h:any) => String(h).toLowerCase().trim());
+          const dateIndex = header.indexOf('tanggal');
+          const descriptionIndex = header.indexOf('keterangan');
+          const debitIndex = header.indexOf('debet');
+          const creditIndex = header.indexOf('kredit');
+
+          const statementItems: BankStatementItem[] = json.slice(headerRowIndex + 1).map((row, i) => {
+            const amount = (row[debitIndex] || 0) - (row[creditIndex] || 0);
+            return {
+              id: `stmt-${i}`,
+              date: row[dateIndex] instanceof Date ? row[dateIndex] : new Date(),
+              description: row[descriptionIndex] || 'N/A',
+              amount: -amount, // Invert so debits are negative, credits are positive from bank's perspective
+              isMatched: false,
+            };
+          }).filter(item => item.amount !== 0);
+
+          setBankStatementItems(statementItems);
+          toast({ title: 'File Berhasil Dibaca', description: `${statementItems.length} transaksi ditemukan di laporan koran.`});
+        } catch (err: any) {
+          toast({ title: 'Gagal Membaca File', description: err.message, variant: 'destructive'});
+        }
+      };
+      reader.readAsBinaryString(file);
+    }
+  };
+
 
   return (
     <div className="flex flex-col gap-6">
-       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h1 className="text-2xl md:text-3xl font-headline font-bold">
-          Rekonsiliasi Bank
-        </h1>
-         <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h1 className="text-2xl md:text-3xl font-headline font-bold">Rekonsiliasi Bank</h1>
+        <div className="flex items-center gap-2">
             <DateRangePicker onSelect={setDateRange} />
         </div>
       </div>
-       <Card>
+      <Card>
         <CardHeader>
           <CardTitle className="font-headline">Proses Rekonsiliasi</CardTitle>
-          <CardDescription>
-            Sesuaikan saldo buku dan bank hingga keduanya seimbang.
-          </CardDescription>
-          <div className="pt-4 max-w-sm">
-             <Select onValueChange={setSelectedAccountId} disabled={loading}>
-              <SelectTrigger id="account">
-                <SelectValue placeholder="Pilih Akun Bank..." />
-              </SelectTrigger>
-              <SelectContent>
-                {bankAccounts.map(acc => (
-                  <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CardDescription>Unggah laporan koran Anda, lalu cocokkan transaksi dan buat jurnal penyesuaian jika perlu.</CardDescription>
         </CardHeader>
-        <CardContent>
-           <div className="grid md:grid-cols-2 gap-8">
-                {/* Kolom Bank */}
-                <div className="space-y-4 p-4 border rounded-lg">
-                    <h3 className="font-headline text-lg">Saldo Menurut Bank</h3>
-                     <div className="space-y-2">
-                        <Label>Saldo Akhir Laporan Koran</Label>
-                        <Input type="number" placeholder="Masukkan saldo dari laporan koran" value={bankBalance || ''} onChange={e => setBankBalance(Number(e.target.value))} onFocus={(e) => e.target.select()} />
-                    </div>
-                    {renderAdjustmentSection("Ditambah: Setoran dalam Perjalanan", additionsToBank, setAdditionsToBank)}
-                    {renderAdjustmentSection("Dikurangi: Cek Beredar", deductionsFromBank, setDeductionsFromBank)}
-                    <div className="flex justify-between items-center font-bold text-lg pt-4 border-t">
-                        <span>Saldo Bank Disesuaikan</span>
-                        <span>Rp {adjustedBankBalance.toLocaleString('id-ID')}</span>
+        <CardContent className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>Akun Bank untuk Rekonsiliasi</Label>
+                    <Select onValueChange={setSelectedAccountId} disabled={loading}>
+                        <SelectTrigger><SelectValue placeholder="Pilih Akun Bank..." /></SelectTrigger>
+                        <SelectContent>
+                            {bankAccounts.map(acc => (
+                            <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label>Unggah Laporan Koran (.xlsx, .csv)</Label>
+                    <div className="flex gap-2">
+                      <Input type="file" ref={fileInputRef} accept=".xlsx, .xls, .csv" onChange={handleFileChange} className="hidden" />
+                      <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full justify-start">
+                          <Upload className="mr-2 h-4 w-4"/> Pilih File...
+                      </Button>
                     </div>
                 </div>
-                 {/* Kolom Buku */}
-                <div className="space-y-4 p-4 border rounded-lg">
-                    <h3 className="font-headline text-lg">Saldo Menurut Pembukuan</h3>
-                     <div className="space-y-2">
-                        <Label>Saldo Akhir Buku Besar</Label>
-                        <Input type="number" value={bookBalance} disabled className="font-semibold"/>
-                    </div>
-                    {renderAdjustmentSection("Ditambah: Pendapatan (misal: bunga)", additionsToBook, setAdditionsToBook)}
-                    {renderAdjustmentSection("Dikurangi: Beban (misal: admin bank)", deductionsFromBook, setDeductionsFromBook)}
-                     <div className="flex justify-between items-center font-bold text-lg pt-4 border-t">
-                        <span>Saldo Buku Disesuaikan</span>
-                        <span>Rp {adjustedBookBalance.toLocaleString('id-ID')}</span>
-                    </div>
-                </div>
-           </div>
+            </div>
+            
+            <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Perhatian</AlertTitle>
+                <AlertDescription>
+                   Sistem akan mencoba mencocokkan transaksi berdasarkan jumlah. Transaksi yang belum tercatat (misal: biaya admin, bunga) dapat dibuatkan jurnal penyesuaiannya.
+                </AlertDescription>
+            </Alert>
+            
+            <div className="border rounded-md">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Tanggal</TableHead>
+                            <TableHead>Deskripsi (dari Bank)</TableHead>
+                            <TableHead className="text-right">Jumlah</TableHead>
+                            <TableHead className="text-center">Status</TableHead>
+                            <TableHead className="text-right">Aksi</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {bankStatementItems.length === 0 ? (
+                            <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Silakan unggah laporan koran Anda.</TableCell></TableRow>
+                        ) : (
+                            bankStatementItems.map(item => (
+                                <TableRow key={item.id}>
+                                    <TableCell>{format(item.date, 'dd/MM/yyyy')}</TableCell>
+                                    <TableCell>{item.description}</TableCell>
+                                    <TableCell className={cn("text-right font-mono", item.amount > 0 ? 'text-green-600' : 'text-destructive')}>
+                                        {item.amount.toLocaleString('id-ID')}
+                                    </TableCell>
+                                    <TableCell className="text-center">
+                                        {item.isMatched ? (
+                                            <Badge variant="secondary"><CheckCircle className="mr-1 h-3 w-3"/> Cocok</Badge>
+                                        ) : (
+                                            <Badge variant="outline">Belum Tercatat</Badge>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        {!item.isMatched && selectedAccountId && (
+                                            <AdjustmentJournalDialog
+                                              bankItem={item}
+                                              reconciledAccountId={selectedAccountId}
+                                              allAccounts={accounts}
+                                              onJournalCreated={() => {
+                                                  // A simple way to refresh is to re-trigger the effect
+                                                  setSelectedAccountId(prev => prev ? `${prev} ` : ' ').trim();
+                                              }}
+                                            />
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
         </CardContent>
-        <CardFooter className="flex-col items-start gap-4">
-            <h3 className="font-semibold">Ringkasan Rekonsiliasi</h3>
-            {difference !== 0 ? (
-                 <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Belum Seimbang</AlertTitle>
-                    <AlertDescription>
-                        Masih ada selisih sebesar Rp {difference.toLocaleString('id-ID')}. Periksa kembali item penyesuaian Anda.
-                    </AlertDescription>
-                </Alert>
-            ) : (
-                <Alert variant="default" className="border-green-500 text-green-700 [&>svg]:text-green-700">
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Seimbang!</AlertTitle>
-                    <AlertDescription>
-                        Saldo bank dan buku sudah cocok. Anda bisa menyelesaikan rekonsiliasi.
-                    </AlertDescription>
-                </Alert>
-            )}
-            <Button disabled={difference !== 0 || loading}>Selesaikan Rekonsiliasi</Button>
-        </CardFooter>
-       </Card>
+      </Card>
     </div>
   );
 }
 
 
 interface AdjustmentJournalDialogProps {
-  triggerButton: React.ReactNode;
   bankItem: { description: string, date: Date, amount: number };
   reconciledAccountId: string | null;
   allAccounts: Account[];
   onJournalCreated: () => void;
 }
 
-function AdjustmentJournalDialog({ triggerButton, bankItem, reconciledAccountId, allAccounts, onJournalCreated }: AdjustmentJournalDialogProps) {
+function AdjustmentJournalDialog({ bankItem, reconciledAccountId, allAccounts, onJournalCreated }: AdjustmentJournalDialogProps) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
@@ -313,7 +326,11 @@ function AdjustmentJournalDialog({ triggerButton, bankItem, reconciledAccountId,
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>{triggerButton}</DialogTrigger>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline">
+                <CirclePlus className="mr-2 h-4 w-4"/> Buat Jurnal
+              </Button>
+            </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Buat Jurnal Penyesuaian</DialogTitle>
