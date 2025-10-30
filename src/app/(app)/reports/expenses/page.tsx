@@ -1,21 +1,37 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useTransition } from 'react';
 import { collection, onSnapshot, query, where, Timestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Account, Journal } from '@/lib/types';
+import type { Account, Journal, NewJournal, JournalEntry } from '@/lib/types';
 import { DateRange } from 'react-day-picker';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Download, PieChart } from 'lucide-react';
+import { Loader2, Download, PieChart, PlusCircle } from 'lucide-react';
 import { Pie, ResponsiveContainer, Tooltip, Legend, Cell } from 'recharts';
 import { ChartTooltipContent, ChartContainer } from "@/components/ui/chart";
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { COLORS, ExpenseCategory, groupExpenses } from '@/lib/expense-helper';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
+import { useToast } from '@/hooks/use-toast';
+import { addExpenseJournal } from './actions';
+import { Textarea } from '@/components/ui/textarea';
+
 
 type ExpenseRow = {
   accountId: string;
@@ -115,10 +131,11 @@ export default function ExpensesPage() {
                     ))}
                 </SelectContent>
             </Select>
-            <Button variant="outline" disabled>
-                <Download className="mr-2 h-4 w-4"/>
-                Ekspor PDF
-            </Button>
+            <ExpenseJournalDialog accounts={accounts}>
+                <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" /> Buat Jurnal Beban
+                </Button>
+            </ExpenseJournalDialog>
         </div>
       </div>
 
@@ -193,4 +210,110 @@ export default function ExpensesPage() {
       )}
     </div>
   );
+}
+
+function ExpenseJournalDialog({ children, accounts }: { children: React.ReactNode, accounts: Account[] }) {
+    const [open, setOpen] = useState(false);
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+
+    const [date, setDate] = useState<Date | undefined>(new Date());
+    const [amount, setAmount] = useState(0);
+    const [description, setDescription] = useState('');
+    const [debitAccountId, setDebitAccountId] = useState('');
+    const [creditAccountId, setCreditAccountId] = useState('');
+    
+    const expenseAccounts = useMemo(() => accounts.filter(a => a.type.includes('Beban')), [accounts]);
+    const cashBankAccounts = useMemo(() => accounts.filter(a => a.type === 'Kas & Bank'), [accounts]);
+
+    const handleSave = () => {
+        if (!date || !debitAccountId || !creditAccountId || amount <= 0 || !description) {
+            toast({ title: "Data tidak lengkap", description: "Mohon isi semua field.", variant: "destructive" });
+            return;
+        }
+
+        const debitAccount = accounts.find(a => a.id === debitAccountId);
+        const creditAccount = accounts.find(a => a.id === creditAccountId);
+        if (!debitAccount || !creditAccount) return;
+
+        startTransition(async () => {
+            const result = await addExpenseJournal({
+                date,
+                description: `Beban: ${description}`,
+                amount,
+                debitAccountId,
+                debitAccountName: debitAccount.name,
+                creditAccountId,
+                creditAccountName: creditAccount.name,
+            });
+            if (result.error) {
+                toast({ title: 'Gagal Membuat Jurnal', description: result.error, variant: 'destructive'});
+            } else {
+                toast({ title: 'Jurnal Beban Dibuat', description: `Jurnal untuk ${description} berhasil dibuat.`});
+                setOpen(false);
+                resetForm();
+            }
+        });
+    }
+    
+    const resetForm = () => {
+        setDate(new Date());
+        setAmount(0);
+        setDescription('');
+        setDebitAccountId('');
+        setCreditAccountId('');
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={(o) => {setOpen(o); if(!o) resetForm();}}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Buat Jurnal Penyesuaian Beban</DialogTitle>
+                    <DialogDescription>Catat pengeluaran atau beban yang belum tercatat.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>Akun Beban (Debit)</Label>
+                        <Select value={debitAccountId} onValueChange={setDebitAccountId}>
+                            <SelectTrigger><SelectValue placeholder="Pilih akun beban..."/></SelectTrigger>
+                            <SelectContent>
+                                {expenseAccounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Sumber Pembayaran (Kredit)</Label>
+                        <Select value={creditAccountId} onValueChange={setCreditAccountId}>
+                            <SelectTrigger><SelectValue placeholder="Pilih akun kas/bank..."/></SelectTrigger>
+                            <SelectContent>
+                                {cashBankAccounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label>Jumlah</Label>
+                            <Input type="number" value={amount || ''} onChange={(e) => setAmount(Number(e.target.value))} onFocus={(e) => e.target.select()} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Tanggal</Label>
+                            <DatePicker date={date} setDate={setDate} />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Deskripsi</Label>
+                        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Contoh: Pembelian ATK untuk kantor"/>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>Batal</Button>
+                    <Button onClick={handleSave} disabled={isPending}>
+                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Simpan Jurnal
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
 }
