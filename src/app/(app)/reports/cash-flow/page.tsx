@@ -252,7 +252,7 @@ export default function CashFlowPage() {
       ))}
       <TableRow className="font-semibold border-t">
         <TableCell>Arus Kas Bersih dari {title.replace('Arus Kas dari ', '')}</TableCell>
-        <TableCell className={cn("text-right font-mono", total < 0 && "text-destructive")}>{total.toLocaleString('id-ID')}</TableCell>
+        <TableCell className={cn("text-right font-mono", total < 0 && "text-destructive")}>{total.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell>
       </TableRow>
     </>
   );
@@ -307,15 +307,15 @@ export default function CashFlowPage() {
                         {reportData.adjustments.map((row, i) => (
                             <ReportRowComponent key={`adj-${i}`} row={row} isSubRow={true} isSubSubRow={true} />
                         ))}
-                        <TableRow className="font-semibold border-t"><TableCell>Arus Kas Bersih dari Aktivitas Operasi</TableCell><TableCell className={cn("text-right font-mono", reportData.netCashFromOperating < 0 && "text-destructive")}>{reportData.netCashFromOperating.toLocaleString('id-ID')}</TableCell></TableRow>
+                        <TableRow className="font-semibold border-t"><TableCell>Arus Kas Bersih dari Aktivitas Operasi</TableCell><TableCell className={cn("text-right font-mono", reportData.netCashFromOperating < 0 && "text-destructive")}>{reportData.netCashFromOperating.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell></TableRow>
 
                         {renderSection("Arus Kas dari Aktivitas Investasi", reportData.investingActivities, reportData.netCashFromInvesting)}
                         {renderSection("Arus Kas dari Aktivitas Pendanaan", reportData.financingActivities, reportData.netCashFromFinancing)}
                     </TableBody>
                     <TableFooter>
-                        <TableRow className="font-bold text-base"><TableCell>Kenaikan (Penurunan) Bersih Kas</TableCell><TableCell className={cn("text-right font-mono", reportData.netCashChange < 0 && "text-destructive")}>{reportData.netCashChange.toLocaleString('id-ID')}</TableCell></TableRow>
-                        <TableRow><TableCell>Saldo Kas dan Setara Kas, Awal Periode</TableCell><TableCell className="text-right font-mono">{reportData.beginningCash.toLocaleString('id-ID')}</TableCell></TableRow>
-                        <TableRow className="font-bold text-lg bg-secondary/50 hover:bg-secondary"><TableCell>Saldo Kas dan Setara Kas, Akhir Periode</TableCell><TableCell className={cn("text-right font-mono", reportData.endingCash < 0 && "text-destructive")}>{reportData.endingCash.toLocaleString('id-ID')}</TableCell></TableRow>
+                        <TableRow className="font-bold text-base"><TableCell>Kenaikan (Penurunan) Bersih Kas</TableCell><TableCell className={cn("text-right font-mono", reportData.netCashChange < 0 && "text-destructive")}>{reportData.netCashChange.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell></TableRow>
+                        <TableRow><TableCell>Saldo Kas dan Setara Kas, Awal Periode</TableCell><TableCell className="text-right font-mono">{reportData.beginningCash.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell></TableRow>
+                        <TableRow className="font-bold text-lg bg-secondary/50 hover:bg-secondary"><TableCell>Saldo Kas dan Setara Kas, Akhir Periode</TableCell><TableCell className={cn("text-right font-mono", reportData.endingCash < 0 && "text-destructive")}>{reportData.endingCash.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell></TableRow>
                     </TableFooter>
                 </Table>
             </div>
@@ -391,7 +391,7 @@ function ReportRowComponent({ row, isSubRow = false, isSubSubRow = false }: { ro
         <TableCell className={cn(isSubSubRow ? "pl-12" : isSubRow ? "pl-8" : "")}>
           {renderDescription()}
         </TableCell>
-        <TableCell className={cn("text-right font-mono", row.amount < 0 && "text-destructive")}>{row.amount.toLocaleString('id-ID')}</TableCell>
+        <TableCell className={cn("text-right font-mono", row.amount < 0 && "text-destructive")}>{row.amount.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell>
       </TableRow>
 
       <JournalDetailDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} journal={journal} />
@@ -422,8 +422,8 @@ function JournalDetailDialog({ open, onOpenChange, journal }: { open: boolean, o
                             {journal.entries.map((entry, index) => (
                                 <TableRow key={index}>
                                     <TableCell>{entry.accountName}</TableCell>
-                                    <TableCell className="text-right">{entry.debit > 0 ? entry.debit.toLocaleString('id-ID') : '-'}</TableCell>
-                                    <TableCell className="text-right">{entry.credit > 0 ? entry.credit.toLocaleString('id-ID') : '-'}</TableCell>
+                                    <TableCell className="text-right">{entry.debit > 0 ? entry.debit.toLocaleString('id-ID', {maximumFractionDigits: 0}) : '-'}</TableCell>
+                                    <TableCell className="text-right">{entry.credit > 0 ? entry.credit.toLocaleString('id-ID', {maximumFractionDigits: 0}) : '-'}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -433,4 +433,5 @@ function JournalDetailDialog({ open, onOpenChange, journal }: { open: boolean, o
         </Dialog>
     );
 }
+
 
