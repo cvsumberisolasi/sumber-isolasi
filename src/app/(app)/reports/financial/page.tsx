@@ -113,7 +113,7 @@ export default function FinancialReportsPage() {
            const isRevenue = revenueAccountTypes.includes(account.type);
            const balanceEffect = isRevenue 
                 ? entry.credit - entry.debit
-                : entry.debit - entry.credit;
+                : entry.debit - entry.credit; // Expenses are debit normal
             accountBalances[entry.accountId] += balanceEffect;
         }
       });
@@ -262,7 +262,3 @@ export default function FinancialReportsPage() {
     </div>
   );
 }
-
-
-
-
