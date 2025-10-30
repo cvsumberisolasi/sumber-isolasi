@@ -4,13 +4,13 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Wallet, User, CheckCircle2, ArrowLeft, ArrowRight, Search, Printer } from 'lucide-react';
+import { Wallet, User, CheckCircle2, ArrowLeft, ArrowRight, Search, Printer, HandCoins } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { DateRange } from 'react-day-picker';
 
 import { cn } from '@/lib/utils';
-import type { Transaction, Customer } from '@/lib/types';
+import type { Transaction, Customer, Account } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -44,8 +44,11 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CompanySettings, getCompanySettings } from '@/app/(app)/settings/actions';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { InvoicePreview } from '@/components/common/invoice-preview';
+import { useToast } from '@/hooks/use-toast';
+import { settleReceivable } from '@/app/(app)/pos/actions';
+import { Label } from '@/components/ui/label';
 
 const TRANSACTIONS_PER_PAGE = 300;
 type SortOption = "date_desc" | "total_desc" | "total_asc";
@@ -329,7 +332,8 @@ function TransactionsPageContent() {
                                       </TableFooter>
                                   ) : null}
                               </Table>
-                              <div className="flex justify-end mt-4">
+                              <div className="flex justify-end gap-2 mt-4">
+                                {tx.status === 'Belum Lunas' && <SettleReceivableDialog transaction={tx} onSettled={() => fetchTransactions('initial')} />}
                                 <Button variant="outline" onClick={() => handleOpenPrintDialog(tx)}>
                                   <Printer className="mr-2 h-4 w-4" /> Cetak Invoice
                                 </Button>
@@ -404,6 +408,78 @@ function TransactionsPageContent() {
       `}</style>
     </>
   );
+}
+
+function SettleReceivableDialog({ transaction, onSettled }: { transaction: Transaction, onSettled: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+    const [paymentAccountId, setPaymentAccountId] = useState('');
+    const [cashBankAccounts, setCashBankAccounts] = useState<Account[]>([]);
+
+    useEffect(() => {
+        if (!open) return;
+        const q = query(collection(db, 'coa'), where('type', '==', 'Kas & Bank'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setCashBankAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Account)));
+        });
+        return () => unsubscribe();
+    }, [open]);
+
+    const handleSettle = () => {
+        if (!paymentAccountId) {
+            toast({ title: 'Akun pembayaran harus dipilih', variant: 'destructive' });
+            return;
+        }
+        startTransition(async () => {
+            try {
+                await settleReceivable(transaction.id, paymentAccountId);
+                toast({ title: 'Piutang berhasil dilunasi!', description: `Transaksi #${transaction.id} telah diperbarui.` });
+                onSettled();
+                setOpen(false);
+            } catch (error) {
+                const e = error as Error;
+                toast({ title: 'Gagal melunasi piutang', description: e.message, variant: 'destructive' });
+            }
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm" variant="secondary">
+                    <HandCoins className="mr-2 h-4 w-4" /> Tandai Lunas
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Pelunasan Piutang</DialogTitle>
+                    <DialogDescription>
+                        Anda akan melunasi transaksi #{transaction.id} sebesar Rp {(transaction.grandTotal || transaction.total).toLocaleString('id-ID')}. Pilih akun bank/kas tujuan penerimaan dana.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 py-4">
+                    <Label htmlFor="payment-account">Akun Penerimaan Pembayaran</Label>
+                    <Select value={paymentAccountId} onValueChange={setPaymentAccountId}>
+                        <SelectTrigger id="payment-account">
+                            <SelectValue placeholder="Pilih akun kas/bank..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {cashBankAccounts.map(acc => (
+                                <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>Batal</Button>
+                    <Button onClick={handleSettle} disabled={isPending || !paymentAccountId}>
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Konfirmasi Lunas'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 export default function TransactionsPage() {
