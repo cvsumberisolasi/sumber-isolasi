@@ -22,6 +22,9 @@ export const groupExpenses = (journals: Journal[], accounts: Account[]) => {
   journals.forEach(journal => {
     journal.entries.forEach(entry => {
       if (balances[entry.accountId] !== undefined) {
+        // Corrected logic: Expenses increase with debits, so their value is negative from a balance perspective.
+        // However, for display as a cost, we want a positive number. But user wants negative.
+        // Let's keep it consistent: debit is positive for expense accounts.
         balances[entry.accountId] += entry.debit - entry.credit;
       }
     });
@@ -33,15 +36,17 @@ export const groupExpenses = (journals: Journal[], accounts: Account[]) => {
       accountId: account.id,
       accountName: account.name,
       category: category as ExpenseCategory,
-      amount: balances[account.id] || 0,
+      // Make the amount negative for display consistency
+      amount: -(balances[account.id] || 0),
     };
-  }).filter(e => e.amount > 0);
+  }).filter(e => e.amount !== 0); // Show both positive (credit adjustments) and negative values
 
   const expensesByCategory = Object.values(expensesByAccount.reduce((acc, current) => {
     if (!acc[current.category]) {
       acc[current.category] = { category: current.category, amount: 0 };
     }
-    acc[current.category].amount += current.amount;
+    // Use Math.abs because for the chart we need positive values
+    acc[current.category].amount += Math.abs(current.amount);
     return acc;
   }, {} as { [key: string]: { category: ExpenseCategory, amount: number } }));
   

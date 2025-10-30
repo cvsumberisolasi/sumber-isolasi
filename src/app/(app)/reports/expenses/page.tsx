@@ -31,6 +31,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { useToast } from '@/hooks/use-toast';
 import { addExpenseJournal } from './actions';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 
 type ExpenseRow = {
@@ -198,7 +199,9 @@ export default function ExpensesPage() {
                         <TableRow key={expense.accountId}>
                           <TableCell className="font-medium">{expense.accountName}</TableCell>
                           <TableCell>{expense.category}</TableCell>
-                          <TableCell className="text-right font-mono">Rp {expense.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                          <TableCell className={cn("text-right font-mono", expense.amount < 0 && 'text-destructive')}>
+                              Rp {expense.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
+                          </TableCell>
                           <TableCell className="text-right">
                             <ExpenseJournalDialog 
                                 accounts={accounts} 
@@ -238,7 +241,8 @@ function ExpenseJournalDialog({ children, accounts, expenseAccount, period }: { 
 
     useEffect(() => {
         if(open) {
-            setAmount(expenseAccount.amount);
+            // Set amount to the absolute value since we are creating a new expense entry
+            setAmount(Math.abs(expenseAccount.amount));
             setDescription(`Penyesuaian untuk ${expenseAccount.accountName} periode ${period}`);
         }
     }, [open, expenseAccount, period])
