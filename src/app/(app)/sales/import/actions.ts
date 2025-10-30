@@ -69,8 +69,6 @@ export async function importMarketplaceTransactions(
   const settings = await getAccountingSettings();
   const {
     salesRevenueAccountId,
-    salesDiscountAccountId,
-    marketplaceFeeAccountId,
     cogsAccountId,
     inventoryAccountId,
     accountsReceivableAccountId,
@@ -78,8 +76,6 @@ export async function importMarketplaceTransactions(
 
   const requiredAccountIds = [
     salesRevenueAccountId,
-    salesDiscountAccountId,
-    marketplaceFeeAccountId,
     cogsAccountId,
     inventoryAccountId,
     accountsReceivableAccountId,
@@ -227,13 +223,12 @@ export async function importMarketplaceTransactions(
         transaction.set(newTxRef, newTransaction);
         
         const journalDescription = `Penjualan Marketplace #${orderId}`;
-        const journalEntries: JournalEntry[] = [];
         
-        if (order.netTotal > 0) journalEntries.push({ accountId: accountsReceivableAccountId!, accountName: '', debit: order.netTotal, credit: 0 });
-        if (order.fee > 0) journalEntries.push({ accountId: marketplaceFeeAccountId!, accountName: '', debit: order.fee, credit: 0 });
-        if (order.discount > 0) journalEntries.push({ accountId: salesDiscountAccountId!, accountName: '', debit: order.discount, credit: 0 });
-        
-        journalEntries.push({ accountId: salesRevenueAccountId!, accountName: '', debit: 0, credit: order.total });
+        // REVISED JOURNAL LOGIC
+        const journalEntries: JournalEntry[] = [
+          { accountId: accountsReceivableAccountId!, accountName: '', debit: order.total, credit: 0 },
+          { accountId: salesRevenueAccountId!, accountName: '', debit: 0, credit: order.total }
+        ];
 
         const newJournal: NewJournal = {
           date: order.date,
