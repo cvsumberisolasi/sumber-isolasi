@@ -172,10 +172,10 @@ export default function SalesReportPage() {
     autoTable(doc, {
         startY: y,
         body: [
-            ['Penjualan Kotor', `Rp ${metrics.grossSales.toLocaleString('id-ID')}`],
-            ['Total Transaksi', `${metrics.totalTransactions.toLocaleString('id-ID')}`],
-            ['Rata-rata Transaksi', `Rp ${metrics.avgTransactionValue.toLocaleString('id-ID')}`],
-            ['Produk Terjual', `${metrics.productsSold.toLocaleString('id-ID')}`],
+            ['Penjualan Kotor', `Rp ${metrics.grossSales.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`],
+            ['Total Transaksi', `${metrics.totalTransactions.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`],
+            ['Rata-rata Transaksi', `Rp ${metrics.avgTransactionValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`],
+            ['Produk Terjual', `${metrics.productsSold.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`],
         ],
         theme: 'grid',
     });
@@ -189,9 +189,9 @@ export default function SalesReportPage() {
 
     const tableData = productSummary.map(p => [
       p.productName,
-      p.quantitySold.toLocaleString('id-ID'),
-      `Rp ${p.grossRevenue.toLocaleString('id-ID')}`,
-      `Rp ${p.grossProfit.toLocaleString('id-ID')}`,
+      p.quantitySold.toLocaleString('id-ID', { maximumFractionDigits: 0 }),
+      `Rp ${p.grossRevenue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`,
+      `Rp ${p.grossProfit.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`,
     ]);
 
     autoTable(doc, {
@@ -325,8 +325,8 @@ export default function SalesReportPage() {
                                 </DialogTrigger>
                             </TableCell>
                             <TableCell className="text-right">{p.quantitySold}</TableCell>
-                            <TableCell className="text-right font-mono">Rp {p.grossRevenue.toLocaleString('id-ID')}</TableCell>
-                            <TableCell className="text-right font-mono">Rp {p.grossProfit.toLocaleString('id-ID')}</TableCell>
+                            <TableCell className="text-right font-mono">Rp {p.grossRevenue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                            <TableCell className="text-right font-mono">Rp {p.grossProfit.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                         </TableRow>
                         ))}
                     </TableBody>
@@ -360,7 +360,7 @@ export default function SalesReportPage() {
                                 <TableCell>{format(tx.date, 'dd MMM yyyy, HH:mm')}</TableCell>
                                 <TableCell className="font-mono">{tx.id}</TableCell>
                                 <TableCell className="text-right">{relevantItem.quantity}</TableCell>
-                                <TableCell className="text-right font-mono">Rp {(relevantItem.price * relevantItem.quantity).toLocaleString('id-ID')}</TableCell>
+                                <TableCell className="text-right font-mono">Rp {(relevantItem.price * relevantItem.quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                             </TableRow>
                         )
                     })}
@@ -384,8 +384,8 @@ interface MetricCardProps {
 
 function MetricCard({ title, value, format = 'number', icon: Icon }: MetricCardProps) {
     const formattedValue = format === 'currency' 
-        ? `Rp ${value.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
-        : value.toLocaleString('id-ID');
+        ? `Rp ${value.toLocaleString('id-ID', { maximumFractionDigits: 0 })}` 
+        : value.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
     return (
         <Card>

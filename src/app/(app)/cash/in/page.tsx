@@ -245,8 +245,8 @@ export default function CashInPage() {
                     {selectedJournal.entries.map((entry, idx) => (
                     <TableRow key={idx}>
                         <TableCell>{entry.accountName}</TableCell>
-                        <TableCell className="text-right font-mono">{entry.debit > 0 ? entry.debit.toLocaleString('id-ID') : '-'}</TableCell>
-                        <TableCell className="text-right font-mono">{entry.credit > 0 ? entry.credit.toLocaleString('id-ID') : '-'}</TableCell>
+                        <TableCell className="text-right font-mono">{entry.debit > 0 ? entry.debit.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-'}</TableCell>
+                        <TableCell className="text-right font-mono">{entry.credit > 0 ? entry.credit.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-'}</TableCell>
                     </TableRow>
                     ))}
                 </TableBody>
@@ -288,7 +288,7 @@ function HistoryRow({ item, onSelectJournal }: { item: Journal, onSelectJournal:
             </TableCell>
             <TableCell>{item.description.replace('Kas Masuk: ', '')}</TableCell>
             <TableCell>{creditEntry?.accountName}</TableCell>
-            <TableCell className="text-right font-mono">Rp {item.total.toLocaleString('id-ID')}</TableCell>
+            <TableCell className="text-right font-mono">Rp {item.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
             <TableCell className="text-right">
                 <AlertDialog>
                     <AlertDialogTrigger asChild>

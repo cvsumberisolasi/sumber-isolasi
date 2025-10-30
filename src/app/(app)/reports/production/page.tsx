@@ -174,9 +174,9 @@ export default function ProductionReportPage() {
                                                 <TableCell>{format(pc.date, "dd MMM yyyy", { locale: id })}</TableCell>
                                                 <TableCell className="font-medium">{pc.finishedGoodName}</TableCell>
                                                 <TableCell className="font-mono text-xs">{pc.workOrderId}</TableCell>
-                                                <TableCell className="text-right">{pc.quantityProduced.toLocaleString('id-ID')}</TableCell>
-                                                <TableCell className="text-right font-mono">Rp {pc.totalCost.toLocaleString('id-ID')}</TableCell>
-                                                <TableCell className="text-right font-mono">Rp {(pc.totalCost / pc.quantityProduced).toLocaleString('id-ID', { minimumFractionDigits: 2 })}</TableCell>
+                                                <TableCell className="text-right">{pc.quantityProduced.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                                <TableCell className="text-right font-mono">Rp {pc.totalCost.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                                <TableCell className="text-right font-mono">Rp {(pc.totalCost / pc.quantityProduced).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                             </TableRow>
                                         ))
                                     )}
@@ -199,8 +199,8 @@ interface MetricCardProps {
 
 function MetricCard({ title, value, format = 'number', icon: Icon }: MetricCardProps) {
     const formattedValue = format === 'currency'
-        ? `Rp ${value.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
-        : value.toLocaleString('id-ID');
+        ? `Rp ${value.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`
+        : value.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
     return (
         <Card>

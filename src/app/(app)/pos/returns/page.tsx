@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useMemo, useEffect } from 'react';
@@ -146,7 +147,7 @@ export default function POSReturnsPage() {
                   <SelectContent>
                       {allTransactions.map(tx => (
                           <SelectItem key={tx.id} value={tx.id}>
-                              {tx.id} - {format(tx.date, "dd MMM yyyy, HH:mm", {locale: id})} - Rp {tx.total.toLocaleString('id-ID')}
+                              {tx.id} - {format(tx.date, "dd MMM yyyy, HH:mm", {locale: id})} - Rp {tx.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                           </SelectItem>
                       ))}
                   </SelectContent>
@@ -183,7 +184,7 @@ export default function POSReturnsPage() {
                   <TableRow key={item.productId}>
                     <TableCell>
                       <p className="font-medium">{item.productName}</p>
-                      <p className="text-sm text-muted-foreground">Rp {item.price.toLocaleString('id-ID')}</p>
+                      <p className="text-sm text-muted-foreground">Rp {item.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                     </TableCell>
                     <TableCell className="text-center">{item.quantity}</TableCell>
                     <TableCell>
@@ -204,7 +205,7 @@ export default function POSReturnsPage() {
           </CardContent>
           <CardFooter className="flex flex-col items-end gap-4">
             <div className="text-lg font-bold">
-              Total Retur: Rp {totalReturnAmount.toLocaleString('id-ID')}
+              Total Retur: Rp {totalReturnAmount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
             </div>
             <div className="flex gap-2">
                  <Button variant="outline" onClick={() => { setOriginalTx(null); setReturnItems([]); }}>Batal</Button>

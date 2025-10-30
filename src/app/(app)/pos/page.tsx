@@ -218,7 +218,7 @@ export default function POSPage() {
         };
         setReceipt(generatedReceipt);
         setCart([]);
-        toast({ title: 'Transaksi Berhasil', description: `Total: Rp ${cartTotal.toLocaleString('id-ID')}` });
+        toast({ title: 'Transaksi Berhasil', description: `Total: Rp ${cartTotal.toLocaleString('id-ID', { maximumFractionDigits: 0 })}` });
       }
     });
   };
@@ -258,7 +258,7 @@ export default function POSPage() {
                     <Card key={product.id} className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => addToCart(product)}>
                       <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center text-center">
                         <p className="font-semibold text-xs sm:text-sm">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">Rp {baseUnit?.price.toLocaleString('id-ID')}</p>
+                        <p className="text-xs text-muted-foreground">Rp {baseUnit?.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                         <Badge className="mt-2" variant={product.stock > 0 ? 'secondary' : 'destructive'}>
                           Stok: {product.stock}
                         </Badge>
@@ -286,7 +286,7 @@ export default function POSPage() {
                       <TableRow key={`${item.product.id}-${item.unit.name}`}>
                         <TableCell className="px-2 sm:px-4">
                           <p className="font-medium text-sm sm:text-base">{item.product.name} ({item.unit.name})</p>
-                          <p className="text-xs sm:text-sm text-muted-foreground">Rp {item.unit.price.toLocaleString('id-ID')}</p>
+                          <p className="text-xs sm:text-sm text-muted-foreground">Rp {item.unit.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                         </TableCell>
                         <TableCell className="px-1 sm:px-4">
                           <div className="flex items-center gap-1 sm:gap-2">
@@ -300,7 +300,7 @@ export default function POSPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right font-medium px-2 sm:px-4 text-sm sm:text-base">
-                          Rp {(item.unit.price * item.quantity).toLocaleString('id-ID')}
+                          Rp {(item.unit.price * item.quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                         </TableCell>
                         <TableCell className="px-1 sm:px-4">
                           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, item.unit.name, 0)}>
@@ -318,7 +318,7 @@ export default function POSPage() {
           <CardFooter className="flex flex-col gap-4 p-4">
             <div className="flex justify-between w-full text-md sm:text-lg font-bold">
               <span>Total</span>
-              <span>Rp {cartTotal.toLocaleString('id-ID')}</span>
+              <span>Rp {cartTotal.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
             </div>
              <Button variant="outline" className="w-full" onClick={handleParkTransaction} disabled={cart.length === 0 || isPending}>
                 <ParkingSquare className="mr-2 h-4 w-4"/> Parkir Transaksi
@@ -348,7 +348,7 @@ export default function POSPage() {
                         <p className="text-sm text-muted-foreground">{new Date(tx.date).toLocaleTimeString('id-ID')}</p>
                       </TableCell>
                       <TableCell className="text-right">
-                        <p className="font-medium">Rp {tx.total.toLocaleString('id-ID')}</p>
+                        <p className="font-medium">Rp {tx.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                         <Badge variant="outline">{tx.paymentMethod}</Badge>
                       </TableCell>
                     </TableRow>
@@ -402,8 +402,8 @@ export default function POSPage() {
                   <div key={item.productId}>
                     <p>{item.productName}</p>
                     <div className="flex justify-between">
-                      <span>{item.quantity} x {item.price.toLocaleString('id-ID')}</span>
-                      <span>{(item.quantity * item.price).toLocaleString('id-ID')}</span>
+                      <span>{item.quantity} x {item.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
+                      <span>{(item.quantity * item.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
                     </div>
                   </div>
                 ))}
@@ -414,7 +414,7 @@ export default function POSPage() {
               <div className="space-y-1">
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>Rp {receipt.total.toLocaleString('id-ID')}</span>
+                  <span>Rp {receipt.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Pembayaran</span>
@@ -491,6 +491,7 @@ function ProductPicker({ products, onSelect }: { products: Product[], onSelect: 
 
     
     
+
 
 
 

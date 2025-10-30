@@ -106,7 +106,7 @@ export default function PrintReceiptPage() {
                     <SelectContent>
                         {allTransactions.map(tx => (
                             <SelectItem key={tx.id} value={tx.id}>
-                                {tx.id} - {format(tx.date, "dd MMM, HH:mm")} - Rp {tx.total.toLocaleString('id-ID')}
+                                {tx.id} - {format(tx.date, "dd MMM, HH:mm")} - Rp {tx.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -142,8 +142,8 @@ export default function PrintReceiptPage() {
                   <div key={item.productId}>
                     <p>{item.productName}</p>
                     <div className="flex justify-between">
-                      <span>{item.quantity} x {item.price.toLocaleString('id-ID')}</span>
-                      <span>{(item.quantity * item.price).toLocaleString('id-ID')}</span>
+                      <span>{item.quantity} x {item.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
+                      <span>{(item.quantity * item.price).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
                     </div>
                   </div>
                 ))}
@@ -154,7 +154,7 @@ export default function PrintReceiptPage() {
               <div className="space-y-1">
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>Rp {receipt.total.toLocaleString('id-ID')}</span>
+                  <span>Rp {receipt.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Pembayaran</span>

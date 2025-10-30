@@ -163,7 +163,7 @@ export default function SalesReturnsPage() {
                     <SelectContent>
                         {creditTransactions.map(tx => (
                             <SelectItem key={tx.id} value={tx.id}>
-                                {tx.id} - {tx.customerName} - Rp {tx.total.toLocaleString('id-ID')}
+                                {tx.id} - {tx.customerName} - Rp {tx.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                             </SelectItem>
                         ))}
                     </SelectContent>
@@ -205,7 +205,7 @@ export default function SalesReturnsPage() {
                   <TableRow key={item.productId}>
                     <TableCell>
                       <p className="font-medium">{item.productName}</p>
-                      <p className="text-sm text-muted-foreground">Rp {item.price.toLocaleString('id-ID')}</p>
+                      <p className="text-sm text-muted-foreground">Rp {item.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                     </TableCell>
                     <TableCell className="text-center">{item.quantity}</TableCell>
                     <TableCell>
@@ -226,7 +226,7 @@ export default function SalesReturnsPage() {
           </CardContent>
           <CardFooter className="flex flex-col items-end gap-4">
             <div className="text-lg font-bold">
-              Total Nilai Retur: Rp {totalReturnAmount.toLocaleString('id-ID')}
+              Total Nilai Retur: Rp {totalReturnAmount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
             </div>
              <p className="text-sm text-muted-foreground -mt-2">
                 Total piutang akan dikurangi sejumlah nilai retur.

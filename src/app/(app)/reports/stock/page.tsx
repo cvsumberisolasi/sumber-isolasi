@@ -100,8 +100,8 @@ export default function StockReportsPage() {
     autoTable(doc, {
         startY: y,
         body: [
-            ['Total Nilai Persediaan', `Rp ${totalInventoryValue.toLocaleString('id-ID')}`],
-            ['Total Unit Persediaan', `${totalStockCount.toLocaleString('id-ID')}`],
+            ['Total Nilai Persediaan', `Rp ${totalInventoryValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`],
+            ['Total Unit Persediaan', `${totalStockCount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`],
         ],
         theme: 'grid',
     });
@@ -116,9 +116,9 @@ export default function StockReportsPage() {
     const tableData = filteredProducts.map(p => [
       p.name,
       p.category,
-      p.stock.toLocaleString('id-ID'),
-      `Rp ${(p.cost || 0).toLocaleString('id-ID')}`,
-      `Rp ${((p.cost || 0) * p.stock).toLocaleString('id-ID')}`,
+      p.stock.toLocaleString('id-ID', { maximumFractionDigits: 0 }),
+      `Rp ${(p.cost || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`,
+      `Rp ${((p.cost || 0) * p.stock).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`,
     ]);
 
     autoTable(doc, {
@@ -164,7 +164,7 @@ export default function StockReportsPage() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">Rp {totalInventoryValue.toLocaleString('id-ID')}</div>
+                  <div className="text-2xl font-bold">Rp {totalInventoryValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</div>
                   <p className="text-xs text-muted-foreground">Berdasarkan harga pokok produk</p>
               </CardContent>
               </Card>
@@ -174,7 +174,7 @@ export default function StockReportsPage() {
                   <Archive className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">{totalStockCount.toLocaleString('id-ID')}</div>
+                  <div className="text-2xl font-bold">{totalStockCount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</div>
                   <p className="text-xs text-muted-foreground">Jumlah semua item di gudang</p>
               </CardContent>
               </Card>
@@ -232,8 +232,8 @@ export default function StockReportsPage() {
                             </TableCell>
                             <TableCell><Badge variant="outline">{p.category}</Badge></TableCell>
                             <TableCell className="text-right font-mono">{p.stock}</TableCell>
-                            <TableCell className="text-right font-mono">Rp {(p.cost || 0).toLocaleString('id-ID')}</TableCell>
-                            <TableCell className="text-right font-bold font-mono">Rp {((p.cost || 0) * p.stock).toLocaleString('id-ID')}</TableCell>
+                            <TableCell className="text-right font-mono">Rp {(p.cost || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                            <TableCell className="text-right font-bold font-mono">Rp {((p.cost || 0) * p.stock).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                         </TableRow>
                         ))
                     )}
@@ -252,11 +252,11 @@ export default function StockReportsPage() {
             </DialogHeader>
             <div className="text-sm">
                 <p><strong>Stok Saat Ini:</strong> {selectedProduct.stock} {selectedProduct.baseUnit}</p>
-                <p><strong>Harga Pokok:</strong> Rp {(selectedProduct.cost || 0).toLocaleString('id-ID')}</p>
+                <p><strong>Harga Pokok:</strong> Rp {(selectedProduct.cost || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                 <p className="font-semibold mt-4">Satuan Jual:</p>
                 <ul>
                     {selectedProduct.units.map(u => (
-                        <li key={u.name}>- {u.name} (1 = {u.conversionRate} {selectedProduct.baseUnit}): Rp {u.price.toLocaleString('id-ID')}</li>
+                        <li key={u.name}>- {u.name} (1 = {u.conversionRate} {selectedProduct.baseUnit}): Rp {u.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</li>
                     ))}
                 </ul>
                 <p className="mt-4 text-center text-muted-foreground">Riwayat pergerakan stok belum tersedia.</p>

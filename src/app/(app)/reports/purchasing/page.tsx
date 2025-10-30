@@ -143,9 +143,9 @@ export default function PurchasingReportPage() {
     autoTable(doc, {
         startY: y,
         body: [
-            ['Total Nilai Pembelian', `Rp ${metrics.totalValue.toLocaleString('id-ID')}`],
-            ['Total Pesanan (PO)', `${metrics.totalOrders.toLocaleString('id-ID')}`],
-            ['Jumlah Pemasok', `${metrics.supplierCount.toLocaleString('id-ID')}`],
+            ['Total Nilai Pembelian', `Rp ${metrics.totalValue.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`],
+            ['Total Pesanan (PO)', `${metrics.totalOrders.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`],
+            ['Jumlah Pemasok', `${metrics.supplierCount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`],
         ],
         theme: 'grid',
     });
@@ -162,7 +162,7 @@ export default function PurchasingReportPage() {
       po.id,
       po.supplierName,
       po.status,
-      `Rp ${po.total.toLocaleString('id-ID')}`,
+      `Rp ${po.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`,
     ]);
 
     autoTable(doc, {
@@ -275,7 +275,7 @@ export default function PurchasingReportPage() {
                                 </TableCell>
                                 <TableCell>{po.supplierName}</TableCell>
                                 <TableCell><Badge variant={po.status === 'Completed' ? 'secondary' : (po.status === 'Draft' ? 'outline' : 'default')}>{po.status}</Badge></TableCell>
-                                <TableCell className="text-right font-mono">Rp {po.total.toLocaleString('id-ID')}</TableCell>
+                                <TableCell className="text-right font-mono">Rp {po.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                             </TableRow>
                         ))
                         )}
@@ -311,8 +311,8 @@ export default function PurchasingReportPage() {
                   <TableRow key={item.productId}>
                     <TableCell>{item.productName}</TableCell>
                     <TableCell className="text-center">{item.quantity}</TableCell>
-                    <TableCell className="text-right font-mono">Rp {item.cost.toLocaleString('id-ID')}</TableCell>
-                    <TableCell className="text-right font-mono">Rp {(item.cost * item.quantity).toLocaleString('id-ID')}</TableCell>
+                    <TableCell className="text-right font-mono">Rp {item.cost.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                    <TableCell className="text-right font-mono">Rp {(item.cost * item.quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -333,8 +333,8 @@ interface MetricCardProps {
 
 function MetricCard({ title, value, format = 'number', icon: Icon }: MetricCardProps) {
     const formattedValue = format === 'currency' 
-        ? `Rp ${value.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
-        : value.toLocaleString('id-ID');
+        ? `Rp ${value.toLocaleString('id-ID', { maximumFractionDigits: 0 })}` 
+        : value.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
     return (
         <Card>

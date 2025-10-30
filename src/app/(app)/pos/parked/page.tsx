@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
@@ -93,7 +94,7 @@ export default function ParkedTransactionsPage() {
                       {tx.cart.map(item => (
                         <li key={item.product.id} className="flex justify-between text-sm">
                           <span>{item.product.name} x {item.quantity}</span>
-                          <span>Rp {(item.product.price * item.quantity).toLocaleString('id-ID')}</span>
+                          <span>Rp {(item.product.price * item.quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
                         </li>
                       ))}
                     </ul>

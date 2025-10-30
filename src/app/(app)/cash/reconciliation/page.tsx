@@ -251,7 +251,7 @@ export default function BankReconciliationPage() {
                                     <TableCell>{format(item.date, 'dd/MM/yyyy')}</TableCell>
                                     <TableCell>{item.description}</TableCell>
                                     <TableCell className={cn("text-right font-mono", item.amount > 0 ? 'text-green-600' : 'text-destructive')}>
-                                        {item.amount.toLocaleString('id-ID')}
+                                        {item.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                                     </TableCell>
                                     <TableCell className="text-center">
                                         {item.isMatched ? (
@@ -339,7 +339,7 @@ function AdjustmentJournalDialog({ bankItem, reconciledAccountId, allAccounts, o
                 <div className="py-4 space-y-4">
                     <div className="flex justify-between items-center bg-muted p-2 rounded-md">
                         <span className="text-sm">{bankItem.description}</span>
-                        <span className="text-sm font-mono font-bold">Rp {bankItem.amount.toLocaleString('id-ID')}</span>
+                        <span className="text-sm font-mono font-bold">Rp {bankItem.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
                     </div>
                      <div className="space-y-2">
                         <Label>Akun Lawan (Kontra)</Label>

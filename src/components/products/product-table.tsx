@@ -1,3 +1,4 @@
+
 import type { Product } from '@/lib/types';
 import {
   Table,
@@ -45,10 +46,10 @@ export function ProductTable({ data }: ProductTableProps) {
                   <Badge variant="outline">{product.category}</Badge>
                 </TableCell>
                  <TableCell>
-                  {`Rp ${(product.cost || 0).toLocaleString('id-ID')}`}
+                  {`Rp ${(product.cost || 0).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`}
                 </TableCell>
                 <TableCell>
-                  {baseUnit ? `Rp ${baseUnit.price.toLocaleString('id-ID')}` : '-'}
+                  {baseUnit ? `Rp ${baseUnit.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}` : '-'}
                 </TableCell>
                 <TableCell className="text-center">
                   <Badge variant={product.stock < (product.minStockThreshold || 10) ? 'destructive' : 'secondary'}>

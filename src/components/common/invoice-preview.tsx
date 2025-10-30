@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import type { CompanySettings } from '@/app/(app)/settings/actions';
@@ -91,8 +90,8 @@ export function InvoicePreview({ transaction, companySettings, customer }: Invoi
                   <TableCell className="px-2 py-1">{index + 1}</TableCell>
                   <TableCell className="px-2 py-1">{item.productName}</TableCell>
                   <TableCell className="px-2 py-1 text-center">{item.quantity} {item.unit}</TableCell>
-                  <TableCell className="px-2 py-1 text-right font-mono">{item.price.toLocaleString('id-ID')}</TableCell>
-                  <TableCell className="px-2 py-1 text-right font-mono">{(item.price * item.quantity).toLocaleString('id-ID')}</TableCell>
+                  <TableCell className="px-2 py-1 text-right font-mono">{item.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                  <TableCell className="px-2 py-1 text-right font-mono">{(item.price * item.quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -111,13 +110,13 @@ export function InvoicePreview({ transaction, companySettings, customer }: Invoi
                 <TableBody>
                   {transaction.discount || transaction.fee ? (
                   <>
-                  <TableRow className="border-none"><TableCell className="p-1 text-right">Subtotal</TableCell><TableCell className="p-1 text-right font-mono">{transaction.total.toLocaleString('id-ID')}</TableCell></TableRow>
-                  {transaction.discount > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Diskon</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.discount.toLocaleString('id-ID')}</TableCell></TableRow>)}
-                  {transaction.fee > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Biaya</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.fee.toLocaleString('id-ID')}</TableCell></TableRow>)}
-                  <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {(transaction.netTotal ?? transaction.total).toLocaleString('id-ID')}</TableCell></TableRow>
+                  <TableRow className="border-none"><TableCell className="p-1 text-right">Subtotal</TableCell><TableCell className="p-1 text-right font-mono">{transaction.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell></TableRow>
+                  {transaction.discount > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Diskon</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.discount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell></TableRow>)}
+                  {transaction.fee > 0 && (<TableRow className="border-none"><TableCell className="p-1 text-right">Biaya</TableCell><TableCell className="p-1 text-right font-mono text-destructive">- {transaction.fee.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell></TableRow>)}
+                  <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {(transaction.netTotal ?? transaction.total).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell></TableRow>
                   </>
                   ) : (
-                  <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {transaction.total.toLocaleString('id-ID')}</TableCell></TableRow>
+                  <TableRow className="border-t font-bold"><TableCell className="p-1 text-right">GRAND TOTAL</TableCell><TableCell className="p-1 text-right font-mono">Rp {transaction.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell></TableRow>
                   )}
                 </TableBody>
              </Table>

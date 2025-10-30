@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
@@ -10,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { Loader2, ReceiptText, CheckCircle2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Loader2, ReceiptText, CheckCircle2, ArrowLeft, ArrowRight, HandCoins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,6 +29,149 @@ import { cn } from '@/lib/utils';
 
 
 const TRANSACTIONS_PER_PAGE = 500;
+
+function SettleReceivableDialog({ transaction, onSettled }: { transaction: Transaction, onSettled: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+    const [paymentAccountId, setPaymentAccountId] = useState('');
+    const [cashBankAccounts, setCashBankAccounts] = useState<Account[]>([]);
+
+    useEffect(() => {
+        if (!open) return;
+        const q = query(collection(db, 'coa'), where('type', '==', 'Kas & Bank'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setCashBankAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Account)));
+        });
+        return () => unsubscribe();
+    }, [open]);
+
+    const handleSettle = () => {
+        if (!paymentAccountId) {
+            toast({ title: 'Akun pembayaran harus dipilih', variant: 'destructive' });
+            return;
+        }
+        startTransition(async () => {
+            try {
+                await settleReceivable(transaction.id, paymentAccountId);
+                toast({ title: 'Piutang berhasil dilunasi!', description: `Transaksi #${transaction.id} telah diperbarui.` });
+                onSettled();
+                setOpen(false);
+            } catch (error) {
+                const e = error as Error;
+                toast({ title: 'Gagal melunasi piutang', description: e.message, variant: 'destructive' });
+            }
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm" variant="secondary">
+                    <HandCoins className="mr-2 h-4 w-4" /> Tandai Lunas
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Pelunasan Piutang</DialogTitle>
+                    <DialogDescription>
+                        Anda akan melunasi transaksi #{transaction.id} sebesar Rp {(transaction.grandTotal || transaction.total).toLocaleString('id-ID', { maximumFractionDigits: 0 })}. Pilih akun bank/kas tujuan penerimaan dana.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 py-4">
+                    <Label htmlFor="payment-account">Akun Penerimaan Pembayaran</Label>
+                    <Select value={paymentAccountId} onValueChange={setPaymentAccountId}>
+                        <SelectTrigger id="payment-account">
+                            <SelectValue placeholder="Pilih akun kas/bank..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {cashBankAccounts.map(acc => (
+                                <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>Batal</Button>
+                    <Button onClick={handleSettle} disabled={isPending || !paymentAccountId}>
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Konfirmasi Lunas'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function MultiSettleDialog({ transactionIds, onSettled }: { transactionIds: string[], onSettled: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [isPending, startTransition] = useTransition();
+    const { toast } = useToast();
+    const [paymentAccountId, setPaymentAccountId] = useState('');
+    const [cashBankAccounts, setCashBankAccounts] = useState<Account[]>([]);
+
+    useEffect(() => {
+        if (!open) return;
+        const q = query(collection(db, 'coa'), where('type', '==', 'Kas & Bank'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setCashBankAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Account)));
+        });
+        return () => unsubscribe();
+    }, [open]);
+
+    const handleSettle = () => {
+        if (!paymentAccountId) {
+            toast({ title: 'Akun pembayaran harus dipilih', variant: 'destructive' });
+            return;
+        }
+        startTransition(async () => {
+            const result = await settleMultipleReceivables(transactionIds, paymentAccountId);
+            if (result.error) {
+                toast({ title: 'Gagal melunasi piutang', description: result.error, variant: 'destructive' });
+            } else {
+                toast({ title: 'Piutang berhasil dilunasi!', description: `${transactionIds.length} transaksi telah diperbarui.` });
+                onSettled();
+                setOpen(false);
+            }
+        });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                 <Button>
+                    <CheckCircle2 className="mr-2 h-4 w-4" /> Lakukan Pelunasan
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Pelunasan Piutang Massal</DialogTitle>
+                    <DialogDescription>
+                        Anda akan melunasi {transactionIds.length} transaksi terpilih. Pilih akun bank/kas tujuan penerimaan dana.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 py-4">
+                    <Label htmlFor="payment-account">Akun Penerimaan Pembayaran</Label>
+                    <Select value={paymentAccountId} onValueChange={setPaymentAccountId}>
+                        <SelectTrigger id="payment-account">
+                            <SelectValue placeholder="Pilih akun kas/bank..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {cashBankAccounts.map(acc => (
+                                <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>Batal</Button>
+                    <Button onClick={handleSettle} disabled={isPending || !paymentAccountId}>
+                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Konfirmasi Lunas'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export default function AccountsReceivablePage() {
   const [receivables, setReceivables] = useState<Transaction[]>([]);
@@ -150,7 +292,7 @@ export default function AccountsReceivablePage() {
                   </div>
                   <div className="text-left sm:text-right">
                       <p className="text-sm text-muted-foreground">Total Piutang</p>
-                      <p className="text-xl sm:text-2xl font-bold text-destructive">Rp {totalReceivables.toLocaleString('id-ID')}</p>
+                      <p className="text-xl sm:text-2xl font-bold text-destructive">Rp {totalReceivables.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                   </div>
               </div>
           </CardHeader>
@@ -159,7 +301,7 @@ export default function AccountsReceivablePage() {
                 <div className="mb-4 p-3 bg-muted rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <p className="font-semibold">{selectedRows.length} transaksi terpilih</p>
-                        <p className="text-sm text-muted-foreground">Total: Rp {totalSelectedAmount.toLocaleString('id-ID')}</p>
+                        <p className="text-sm text-muted-foreground">Total: Rp {totalSelectedAmount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                     </div>
                     <MultiSettleDialog 
                         transactionIds={selectedRows} 
@@ -210,7 +352,7 @@ export default function AccountsReceivablePage() {
                                 <TableCell>
                                     <Badge variant="destructive">{tx.status}</Badge>
                                 </TableCell>
-                                <TableCell className="text-right font-medium">Rp {(tx.grandTotal || tx.total).toLocaleString('id-ID')}</TableCell>
+                                <TableCell className="text-right font-medium">Rp {(tx.grandTotal || tx.total).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                             </TableRow>
                         ))
                     )}
@@ -231,76 +373,4 @@ export default function AccountsReceivablePage() {
       </Card>
     </div>
   );
-}
-
-
-function MultiSettleDialog({ transactionIds, onSettled }: { transactionIds: string[], onSettled: () => void }) {
-    const [open, setOpen] = useState(false);
-    const [isPending, startTransition] = useTransition();
-    const { toast } = useToast();
-    const [paymentAccountId, setPaymentAccountId] = useState('');
-    const [cashBankAccounts, setCashBankAccounts] = useState<Account[]>([]);
-
-    useEffect(() => {
-        if (!open) return;
-        const q = query(collection(db, 'coa'), where('type', '==', 'Kas & Bank'));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            setCashBankAccounts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Account)));
-        });
-        return () => unsubscribe();
-    }, [open]);
-
-    const handleSettle = () => {
-        if (!paymentAccountId) {
-            toast({ title: 'Akun pembayaran harus dipilih', variant: 'destructive' });
-            return;
-        }
-        startTransition(async () => {
-            const result = await settleMultipleReceivables(transactionIds, paymentAccountId);
-            if (result.error) {
-                toast({ title: 'Gagal melunasi piutang', description: result.error, variant: 'destructive' });
-            } else {
-                toast({ title: 'Piutang berhasil dilunasi!', description: `${transactionIds.length} transaksi telah diperbarui.` });
-                onSettled();
-                setOpen(false);
-            }
-        });
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                 <Button>
-                    <CheckCircle2 className="mr-2 h-4 w-4" /> Lakukan Pelunasan
-                </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Pelunasan Piutang Massal</DialogTitle>
-                    <DialogDescription>
-                        Anda akan melunasi {transactionIds.length} transaksi terpilih. Pilih akun bank/kas tujuan penerimaan dana.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-2 py-4">
-                    <Label htmlFor="payment-account">Akun Penerimaan Pembayaran</Label>
-                    <Select value={paymentAccountId} onValueChange={setPaymentAccountId}>
-                        <SelectTrigger id="payment-account">
-                            <SelectValue placeholder="Pilih akun kas/bank..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {cashBankAccounts.map(acc => (
-                                <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>Batal</Button>
-                    <Button onClick={handleSettle} disabled={isPending || !paymentAccountId}>
-                        {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Konfirmasi Lunas'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
 }

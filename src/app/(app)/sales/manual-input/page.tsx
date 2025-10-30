@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
@@ -195,7 +194,7 @@ export default function ManualSalesInputPage() {
                                       </Button>
                                   </div>
                                   </TableCell>
-                                  <TableCell className="text-right">Rp {(item.unit.price * item.quantity).toLocaleString('id-ID')}</TableCell>
+                                  <TableCell className="text-right">Rp {(item.unit.price * item.quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                   <TableCell>
                                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.product.id, 0)}>
                                       <X className="h-4 w-4 text-destructive" />
@@ -212,7 +211,7 @@ export default function ManualSalesInputPage() {
           </CardContent>
           <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-muted/50 p-6">
               <div className="text-lg font-bold">
-                  Total Invoice: Rp {cartTotal.toLocaleString('id-ID')}
+                  Total Invoice: Rp {cartTotal.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
               </div>
             <Button onClick={handleSaveInvoice} disabled={isPending || !selectedCustomer || cart.length === 0} className="w-full sm:w-auto">
               {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

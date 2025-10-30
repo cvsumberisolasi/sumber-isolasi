@@ -104,7 +104,7 @@ export function CoaTable({ data }: CoaTableProps) {
                     <Badge variant="secondary">{account.type}</Badge>
                 </TableCell>
                 <TableCell className="text-right font-mono">
-                    Rp {account.balance.toLocaleString('id-ID')}
+                    Rp {account.balance.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                 </TableCell>
                 <TableCell className="text-right">
                     <CoaRowActions account={account} />
@@ -119,7 +119,7 @@ export function CoaTable({ data }: CoaTableProps) {
             <DialogHeader>
                 <DialogTitle>Riwayat Transaksi: {selectedAccount?.name}</DialogTitle>
                 <DialogDescription>
-                    Menampilkan semua jurnal yang memengaruhi akun ini. Saldo saat ini: Rp {selectedAccount?.balance.toLocaleString('id-ID')}
+                    Menampilkan semua jurnal yang memengaruhi akun ini. Saldo saat ini: Rp {selectedAccount?.balance.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                 </DialogDescription>
             </DialogHeader>
             <div className="max-h-[60vh] overflow-y-auto">
@@ -146,8 +146,8 @@ export function CoaTable({ data }: CoaTableProps) {
                                     <TableRow key={tx.id}>
                                         <TableCell>{format(tx.date, 'dd MMM yyyy')}</TableCell>
                                         <TableCell>{tx.description}</TableCell>
-                                        <TableCell className="text-right font-mono">{entry?.debit ? entry.debit.toLocaleString('id-ID') : '-'}</TableCell>
-                                        <TableCell className="text-right font-mono">{entry?.credit ? entry.credit.toLocaleString('id-ID') : '-'}</TableCell>
+                                        <TableCell className="text-right font-mono">{entry?.debit ? entry.debit.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-'}</TableCell>
+                                        <TableCell className="text-right font-mono">{entry?.credit ? entry.credit.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-'}</TableCell>
                                     </TableRow>
                                 )
                             })}

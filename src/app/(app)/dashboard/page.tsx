@@ -140,7 +140,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                Rp {dailySales.toLocaleString("id-ID")}
+                Rp {dailySales.toLocaleString("id-ID", { maximumFractionDigits: 0 })}
               </div>
               <p className="text-xs text-muted-foreground">
                 Total pendapatan hari ini
@@ -156,7 +156,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-destructive">
-                Rp {totalReceivables.toLocaleString("id-ID")}
+                Rp {totalReceivables.toLocaleString("id-ID", { maximumFractionDigits: 0 })}
               </div>
               <p className="text-xs text-muted-foreground">
                 Total tagihan belum lunas dari pelanggan
@@ -172,7 +172,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-destructive">
-                Rp {totalPayables.toLocaleString("id-ID")}
+                Rp {totalPayables.toLocaleString("id-ID", { maximumFractionDigits: 0 })}
               </div>
               <p className="text-xs text-muted-foreground">
                 Total tagihan belum dibayar ke pemasok

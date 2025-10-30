@@ -151,7 +151,7 @@ export default function ExpensesPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-4xl font-bold text-destructive">Rp {totalExpenses.toLocaleString('id-ID')}</p>
+                    <p className="text-4xl font-bold text-destructive">Rp {totalExpenses.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                 </CardContent>
             </Card>
 
@@ -197,7 +197,7 @@ export default function ExpensesPage() {
                         <TableRow key={expense.accountId}>
                           <TableCell className="font-medium">{expense.accountName}</TableCell>
                           <TableCell>{expense.category}</TableCell>
-                          <TableCell className="text-right font-mono">Rp {expense.amount.toLocaleString('id-ID')}</TableCell>
+                          <TableCell className="text-right font-mono">Rp {expense.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                         </TableRow>
                       ))
                     )}
