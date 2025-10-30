@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
@@ -151,7 +152,7 @@ export default function ExpensesPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-4xl font-bold text-destructive">Rp {totalExpenses.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
+                    <p className="text-4xl font-bold">Rp {totalExpenses.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                 </CardContent>
             </Card>
 
@@ -199,7 +200,7 @@ export default function ExpensesPage() {
                         <TableRow key={expense.accountId}>
                           <TableCell className="font-medium">{expense.accountName}</TableCell>
                           <TableCell>{expense.category}</TableCell>
-                          <TableCell className={cn("text-right font-mono", expense.amount < 0 && 'text-destructive')}>
+                          <TableCell className="text-right font-mono">
                               Rp {expense.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                           </TableCell>
                           <TableCell className="text-right">
@@ -241,8 +242,7 @@ function ExpenseJournalDialog({ children, accounts, expenseAccount, period }: { 
 
     useEffect(() => {
         if(open) {
-            // Set amount to the absolute value since we are creating a new expense entry
-            setAmount(Math.abs(expenseAccount.amount));
+            setAmount(0); // Reset amount for new entry
             setDescription(`Penyesuaian untuk ${expenseAccount.accountName} periode ${period}`);
         }
     }, [open, expenseAccount, period])

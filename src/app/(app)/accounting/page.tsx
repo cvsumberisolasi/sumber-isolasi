@@ -6,9 +6,11 @@ import AccountingPageContent from './page-content';
 
 type AccountWithBalance = Account & { balance: number };
 
-const isAsset = (type: string) => type.startsWith('Aset') || type.startsWith('Kas');
-const isExpense = (type: string) => type.startsWith('Beban');
+const isDebitNormal = (type: string) => 
+    type.startsWith('Aset') || type.startsWith('Beban') || type === 'Kas & Bank';
+
 const isContraAsset = (type: string) => type.startsWith('Akumulasi');
+
 
 async function getAccounts(): Promise<AccountWithBalance[]> {
   const accountsCol = collection(db, 'coa');
@@ -40,19 +42,19 @@ async function getAccounts(): Promise<AccountWithBalance[]> {
             const account = accountList.find(a => a.id === entry.accountId);
             if (!account) return;
 
-            const isDebitNormal = isAsset(account.type) || isExpense(account.type);
-            
             let balanceEffect = 0;
-            if (isDebitNormal) {
+            if (isDebitNormal(account.type)) {
                 balanceEffect = entry.debit - entry.credit;
             } else {
                 balanceEffect = entry.credit - entry.debit;
             }
 
-            // A contra asset is an asset, but it has a normal credit balance.
-            // Our "isDebitNormal" logic is simple, so we need to negate the effect for contra assets.
             if (isContraAsset(account.type)) {
-                balanceEffect = -balanceEffect;
+                // Contra asset has a normal credit balance, but it's linked to assets.
+                // Our simple isDebitNormal considers it debit. So we reverse it here.
+                // The balance should be negative to reduce total assets.
+                // `credit - debit` for contra-assets.
+                balanceEffect = entry.credit - entry.debit;
             }
             
             balances[entry.accountId] += balanceEffect;

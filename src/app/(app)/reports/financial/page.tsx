@@ -112,8 +112,8 @@ export default function FinancialReportsPage() {
         if (account && accountBalances[entry.accountId] !== undefined) {
            const isRevenue = revenueAccountTypes.includes(account.type);
            const balanceEffect = isRevenue 
-                ? entry.credit - entry.debit
-                : entry.debit - entry.credit;
+                ? entry.credit - entry.debit // Normal Credit
+                : entry.debit - entry.credit; // Normal Debit
             accountBalances[entry.accountId] += balanceEffect;
         }
       });
@@ -127,9 +127,7 @@ export default function FinancialReportsPage() {
     Object.entries(accountBalances).forEach(([accountId, balance]) => {
       const account = accounts.find(a => a.id === accountId);
       if (account && balance !== 0) {
-        // Show expenses as negative values
-        const amount = revenueAccountTypes.includes(account.type) ? balance : -balance;
-        const row = { accountId: account.id, accountName: account.name, amount: amount };
+        const row = { accountId: account.id, accountName: account.name, amount: balance };
         
         if (revenueAccountTypes.includes(account.type)) {
           report.revenues.push(row);
@@ -144,8 +142,8 @@ export default function FinancialReportsPage() {
     report.totalRevenue = report.revenues.reduce((sum, r) => sum + r.amount, 0);
     report.totalCogs = report.cogs.reduce((sum, c) => sum + c.amount, 0);
     report.totalExpense = report.expenses.reduce((sum, e) => sum + e.amount, 0);
-    report.grossProfit = report.totalRevenue + report.totalCogs; // HPP is now negative
-    report.netIncome = report.grossProfit + report.totalExpense; // Beban is now negative
+    report.grossProfit = report.totalRevenue - report.totalCogs;
+    report.netIncome = report.grossProfit - report.totalExpense;
 
     return report;
   }, [journals, accounts]);
@@ -167,7 +165,7 @@ export default function FinancialReportsPage() {
                     <ExternalLink className="inline-block ml-2 h-3 w-3 text-muted-foreground"/>
                 </Link>
             </TableCell>
-            <TableCell className={cn("text-right font-mono", row.amount < 0 && "text-destructive")}>{row.amount.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell>
+            <TableCell className="text-right font-mono">{row.amount.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell>
         </TableRow>
     );
   };
@@ -183,7 +181,7 @@ export default function FinancialReportsPage() {
       {isTotal && rows.length > 0 && (
         <TableRow className={cn("font-bold", className)}>
             <TableCell className="pl-8">Total {title}</TableCell>
-            <TableCell className={cn("text-right font-mono", total < 0 && "text-destructive")}>{total.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell>
+            <TableCell className="text-right font-mono">{total.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell>
         </TableRow>
       )}
     </>
@@ -249,7 +247,7 @@ export default function FinancialReportsPage() {
                         <TableCell className={cn("text-right font-mono", reportData.grossProfit < 0 && "text-destructive")}>{reportData.grossProfit.toLocaleString('id-ID', {maximumFractionDigits: 0})}</TableCell>
                     </TableRow>
 
-                    {renderSection("Beban", reportData.expenses, reportData.totalExpense)}
+                    {renderSection("Beban Operasional", reportData.expenses, reportData.totalExpense)}
                 </TableBody>
                 <TableFooter>
                     <TableRow className="text-lg font-bold bg-secondary/50 hover:bg-secondary">

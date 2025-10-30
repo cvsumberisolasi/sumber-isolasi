@@ -21,7 +21,7 @@ type ReportRow = {
 };
 
 const isPermanentAccount = (type: string) => !['Pendapatan', 'Pendapatan Lainnya', 'Beban Pokok Penjualan', 'Beban Operasional', 'Beban Lainnya'].includes(type);
-const isAsset = (type: string) => type.startsWith('Aset') || type.startsWith('Kas');
+const isDebitNormal = (type: string) => type.startsWith('Aset') || type.startsWith('Kas');
 const isContraAsset = (type: string) => type.startsWith('Akumulasi');
 
 
@@ -71,10 +71,15 @@ export default function PostClosingTrialBalancePage() {
           const account = permanentAccounts.find(a => a.id === entry.accountId);
           if (!account) return;
 
-          const isDebitNormal = isAsset(account.type);
-          let balanceEffect = isDebitNormal ? entry.debit - entry.credit : entry.credit - entry.debit;
+          let balanceEffect = 0;
+          if (isDebitNormal(account.type)) {
+              balanceEffect = entry.debit - entry.credit;
+          } else {
+              balanceEffect = entry.credit - entry.debit;
+          }
+
           if (isContraAsset(account.type)) {
-              balanceEffect = -balanceEffect;
+              balanceEffect = entry.credit - entry.debit;
           }
           
           balances[entry.accountId] += balanceEffect;
@@ -84,20 +89,24 @@ export default function PostClosingTrialBalancePage() {
 
     return permanentAccounts.map(account => {
       const balance = balances[account.id] || 0;
-      const isDebitNormal = isAsset(account.type);
       
       let debit = 0;
       let credit = 0;
 
-      if (isContraAsset(account.type)) {
-          credit = balance;
-      } else if (isDebitNormal) {
-        debit = balance > 0 ? balance : 0;
-        credit = balance < 0 ? -balance : 0;
-      } else { // Credit normal
-        credit = balance > 0 ? balance : 0;
-        debit = balance < 0 ? -balance : 0;
+      if (balance > 0) {
+        if(isDebitNormal(account.type) && !isContraAsset(account.type)) {
+            debit = balance;
+        } else {
+            credit = balance;
+        }
+      } else if (balance < 0) {
+         if(isDebitNormal(account.type) && !isContraAsset(account.type)) {
+            credit = -balance;
+        } else {
+            debit = -balance;
+        }
       }
+
 
       return {
         accountCode: account.code,
@@ -150,8 +159,8 @@ export default function PostClosingTrialBalancePage() {
                     <TableRow key={index}>
                         <TableCell className="font-mono">{row.accountCode}</TableCell>
                         <TableCell>{row.accountName}</TableCell>
-                        <TableCell className="text-right font-mono">{row.debit > 0 ? row.debit.toLocaleString('id-ID') : '-'}</TableCell>
-                        <TableCell className="text-right font-mono">{row.credit > 0 ? row.credit.toLocaleString('id-ID') : '-'}</TableCell>
+                        <TableCell className="text-right font-mono">{row.debit > 0 ? row.debit.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-'}</TableCell>
+                        <TableCell className="text-right font-mono">{row.credit > 0 ? row.credit.toLocaleString('id-ID', { maximumFractionDigits: 0 }) : '-'}</TableCell>
                     </TableRow>
                     ))}
                 </TableBody>
@@ -159,10 +168,10 @@ export default function PostClosingTrialBalancePage() {
                     <TableRow className="font-bold text-base">
                     <TableCell colSpan={2}>Total</TableCell>
                     <TableCell className={cn("text-right font-mono", totals.debit !== totals.credit && "text-destructive")}>
-                        {totals.debit.toLocaleString('id-ID')}
+                        {totals.debit.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                     </TableCell>
                     <TableCell className={cn("text-right font-mono", totals.debit !== totals.credit && "text-destructive")}>
-                        {totals.credit.toLocaleString('id-ID')}
+                        {totals.credit.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
                     </TableCell>
                     </TableRow>
                 </TableFooter>

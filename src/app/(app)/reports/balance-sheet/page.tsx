@@ -113,15 +113,18 @@ export default function BalanceSheetPage() {
         journal.entries.forEach(entry => {
             const account = accounts.find(a => a.id === entry.accountId);
             if (account && balances[entry.accountId] !== undefined) {
-               const isDebitNormalAcc = isAsset(account.type) || isExpense(account.type);
-               
-               if (isContraAsset(account.type)) {
-                   balances[entry.accountId] += entry.credit - entry.debit;
-               } else if (isDebitNormalAcc) {
-                   balances[entry.accountId] += entry.debit - entry.credit;
+               let balanceEffect = 0;
+               if (isAsset(account.type) || isExpense(account.type)) {
+                   balanceEffect = entry.debit - entry.credit;
                } else {
-                   balances[entry.accountId] += entry.credit - entry.debit;
+                   balanceEffect = entry.credit - entry.debit;
                }
+
+               if(isContraAsset(account.type)){
+                   balanceEffect = entry.credit - entry.debit;
+               }
+               
+               balances[entry.accountId] += balanceEffect;
             }
         });
     });
@@ -138,7 +141,7 @@ export default function BalanceSheetPage() {
             if (balance === 0 && !isContraAsset(account.type)) return;
 
              if (isContraAsset(account.type)) {
-                report.fixedAssets.push({ ...row, amount: -balance }); // Show as negative to reduce asset value
+                report.fixedAssets.push({ ...row, amount: balance }); // Display as is (negative)
             } else if (account.type === 'Aset Lancar' || account.type === 'Kas & Bank') {
                 report.currentAssets.push(row);
             } else if (account.type === 'Aset Tetap') {
@@ -205,11 +208,11 @@ export default function BalanceSheetPage() {
     
     const assetBody = [
         [{ content: 'Aset Lancar', colSpan: 2, styles: { fontStyle: 'bold' } }],
-        ...reportData.currentAssets.map(r => [({ content: `  ${r.accountName}`}), ({ content: r.amount.toLocaleString('id-ID'), styles: { halign: 'right' } })]),
-        [{ content: 'Total Aset Lancar', styles: { fontStyle: 'bold' } }, { content: reportData.currentAssets.reduce((s, r) => s + r.amount, 0).toLocaleString('id-ID'), styles: { halign: 'right' } }],
+        ...reportData.currentAssets.map(r => [({ content: `  ${r.accountName}`}), ({ content: r.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 }), styles: { halign: 'right' } })]),
+        [{ content: 'Total Aset Lancar', styles: { fontStyle: 'bold' } }, { content: reportData.currentAssets.reduce((s, r) => s + r.amount, 0).toLocaleString('id-ID', { maximumFractionDigits: 0 }), styles: { halign: 'right' } }],
         [{ content: 'Aset Tetap', colSpan: 2, styles: { fontStyle: 'bold' } }],
-        ...reportData.fixedAssets.map(r => [({ content: `  ${r.accountName}`}), ({ content: r.amount.toLocaleString('id-ID'), styles: { halign: 'right' } })]),
-        [{ content: 'Total Aset Tetap', styles: { fontStyle: 'bold' } }, { content: reportData.fixedAssets.reduce((s, r) => s + r.amount, 0).toLocaleString('id-ID'), styles: { halign: 'right' } }]
+        ...reportData.fixedAssets.map(r => [({ content: `  ${r.accountName}`}), ({ content: r.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 }), styles: { halign: 'right' } })]),
+        [{ content: 'Total Aset Tetap', styles: { fontStyle: 'bold' } }, { content: reportData.fixedAssets.reduce((s, r) => s + r.amount, 0).toLocaleString('id-ID', { maximumFractionDigits: 0 }), styles: { halign: 'right' } }]
     ];
      autoTable(doc, {
         startY: y,
@@ -223,10 +226,10 @@ export default function BalanceSheetPage() {
 
     const liabEquityBody = [
         [{ content: 'Kewajiban Jangka Pendek', colSpan: 2, styles: { fontStyle: 'bold' } }],
-        ...reportData.shortTermLiabilities.map(r => [({ content: `  ${r.accountName}`}), ({ content: r.amount.toLocaleString('id-ID'), styles: { halign: 'right' } })]),
-        [{ content: 'Total Kewajiban Jangka Pendek', styles: { fontStyle: 'bold' } }, { content: reportData.shortTermLiabilities.reduce((s, r) => s + r.amount, 0).toLocaleString('id-ID'), styles: { halign: 'right' } }],
+        ...reportData.shortTermLiabilities.map(r => [({ content: `  ${r.accountName}`}), ({ content: r.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 }), styles: { halign: 'right' } })]),
+        [{ content: 'Total Kewajiban Jangka Pendek', styles: { fontStyle: 'bold' } }, { content: reportData.shortTermLiabilities.reduce((s, r) => s + r.amount, 0).toLocaleString('id-ID', { maximumFractionDigits: 0 }), styles: { halign: 'right' } }],
         [{ content: 'Ekuitas', colSpan: 2, styles: { fontStyle: 'bold' } }],
-        ...reportData.equity.map(r => [({ content: `  ${r.accountName}`}), ({ content: r.amount.toLocaleString('id-ID'), styles: { halign: 'right' } })]),
+        ...reportData.equity.map(r => [({ content: `  ${r.accountName}`}), ({ content: r.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 }), styles: { halign: 'right' } })]),
     ];
     autoTable(doc, {
         head: [['Kewajiban dan Ekuitas', '']],
@@ -253,7 +256,7 @@ export default function BalanceSheetPage() {
                         <ExternalLink className="inline-block ml-2 h-3 w-3 text-muted-foreground"/>
                     </Link>
                 </TableCell>
-                <TableCell className="text-right font-mono">{row.amount.toLocaleString('id-ID')}</TableCell>
+                <TableCell className="text-right font-mono">{row.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
             </TableRow>
         )
     }
@@ -266,7 +269,7 @@ export default function BalanceSheetPage() {
                     <ExternalLink className="inline-block ml-2 h-3 w-3 text-muted-foreground"/>
                 </Link>
             </TableCell>
-            <TableCell className={cn("text-right font-mono", row.amount < 0 && 'text-destructive')}>{row.amount.toLocaleString('id-ID')}</TableCell>
+            <TableCell className={cn("text-right font-mono", row.amount < 0 && 'text-destructive')}>{row.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
         </TableRow>
     );
   };
@@ -282,7 +285,7 @@ export default function BalanceSheetPage() {
       ))}
       <TableRow className="font-semibold border-t">
         <TableCell className="pl-8">Total {title}</TableCell>
-        <TableCell className={cn("text-right font-mono", total < 0 && "text-destructive")}>{total.toLocaleString('id-ID')}</TableCell>
+        <TableCell className={cn("text-right font-mono", total < 0 && "text-destructive")}>{total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
       </TableRow>
     </>
   );
@@ -342,7 +345,7 @@ export default function BalanceSheetPage() {
                         <TableFooter>
                             <TableRow className="text-lg font-bold bg-secondary/50 hover:bg-secondary">
                                 <TableCell>Total Aset</TableCell>
-                                <TableCell className={cn("text-right font-mono", reportData.totalAssets < 0 && "text-destructive")}>{reportData.totalAssets.toLocaleString('id-ID')}</TableCell>
+                                <TableCell className={cn("text-right font-mono", reportData.totalAssets < 0 && "text-destructive")}>{reportData.totalAssets.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -364,7 +367,7 @@ export default function BalanceSheetPage() {
                         <TableFooter>
                             <TableRow className="text-lg font-bold bg-secondary/50 hover:bg-secondary">
                                 <TableCell>Total Kewajiban dan Ekuitas</TableCell>
-                                <TableCell className={cn("text-right font-mono", (reportData.totalLiabilities + reportData.totalEquity) < 0 && "text-destructive")}>{(reportData.totalLiabilities + reportData.totalEquity).toLocaleString('id-ID')}</TableCell>
+                                <TableCell className={cn("text-right font-mono", (reportData.totalLiabilities + reportData.totalEquity) < 0 && "text-destructive")}>{(reportData.totalLiabilities + reportData.totalEquity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -376,5 +379,3 @@ export default function BalanceSheetPage() {
     </div>
   );
 }
-
-
