@@ -1,6 +1,6 @@
 
 
-"use server";
+'use server';
 
 import {
   collection,
@@ -71,19 +71,23 @@ export async function importMarketplaceTransactions(
     salesRevenueAccountId,
     cogsAccountId,
     inventoryAccountId,
-    bankAccountId, // Changed from accountsReceivableAccountId
+    bankAccountId,
+    marketplaceFeeAccountId,
+    salesDiscountAccountId
   } = settings;
 
   const requiredAccountIds = [
     salesRevenueAccountId,
     cogsAccountId,
     inventoryAccountId,
-    bankAccountId, // Ensure bank account is set
+    bankAccountId,
+    marketplaceFeeAccountId,
+    salesDiscountAccountId
   ];
 
   if (requiredAccountIds.some((id) => !id)) {
     return createResponse(
-      `Gagal membuat jurnal otomatis: Akun Pendapatan, HPP, Persediaan, dan Bank harus diatur di Pengaturan Akuntansi.`
+      `Gagal membuat jurnal otomatis: Semua akun pada Pengaturan > Akuntansi > Penjualan harus diisi.`
     );
   }
 
@@ -217,31 +221,55 @@ export async function importMarketplaceTransactions(
           netTotal: order.netTotal,
           paymentMethod: 'Transfer',
           customerName: order.customerName,
-          status: 'Lunas', // Changed from 'Belum Lunas'
+          status: 'Lunas',
           channel: order.channel,
         };
         transaction.set(newTxRef, newTransaction);
         
-        const journalDescription = `Penjualan Marketplace #${orderId}`;
-        
-        const journalEntries: JournalEntry[] = [
+        // Journal 1: Sales Recognition
+        const salesJournalDesc = `Penjualan Marketplace #${orderId}`;
+        const salesJournalEntries: JournalEntry[] = [
           { accountId: bankAccountId!, accountName: '', debit: order.total, credit: 0 },
           { accountId: salesRevenueAccountId!, accountName: '', debit: 0, credit: order.total }
         ];
 
-        const newJournal: NewJournal = {
+        const newSalesJournal: NewJournal = {
           date: order.date,
-          description: journalDescription,
+          description: salesJournalDesc,
           refNumber: newId,
-          entries: journalEntries,
+          entries: salesJournalEntries,
           total: order.total,
         };
-        const newJournalRef = doc(collection(db, 'journals'));
-        transaction.set(newJournalRef, {
-          ...newJournal,
-          date: Timestamp.fromDate(newJournal.date as Date),
+        const newSalesJournalRef = doc(collection(db, 'journals'));
+        transaction.set(newSalesJournalRef, {
+          ...newSalesJournal,
+          date: Timestamp.fromDate(newSalesJournal.date as Date),
         });
+
+        // Journal 2: Expenses (Fee & Discount)
+        const totalExpenses = order.fee + order.discount;
+        if(totalExpenses > 0) {
+            const expenseJournalDesc = `Beban & Diskon untuk Marketplace #${orderId}`;
+            const expenseJournalEntries: JournalEntry[] = [];
+            if(order.fee > 0) expenseJournalEntries.push({ accountId: marketplaceFeeAccountId!, accountName: '', debit: order.fee, credit: 0 });
+            if(order.discount > 0) expenseJournalEntries.push({ accountId: salesDiscountAccountId!, accountName: '', debit: order.discount, credit: 0 });
+            expenseJournalEntries.push({ accountId: bankAccountId!, accountName: '', debit: 0, credit: totalExpenses });
+
+            const newExpenseJournal: NewJournal = {
+                date: order.date,
+                description: expenseJournalDesc,
+                refNumber: newId,
+                entries: expenseJournalEntries,
+                total: totalExpenses,
+            };
+            const newExpenseJournalRef = doc(collection(db, 'journals'));
+            transaction.set(newExpenseJournalRef, {
+                ...newExpenseJournal,
+                date: Timestamp.fromDate(newExpenseJournal.date as Date),
+            });
+        }
         
+        // Journal 3: COGS
         if (order.totalCost > 0) {
             const cogsJournal: NewJournal = {
               date: order.date,
