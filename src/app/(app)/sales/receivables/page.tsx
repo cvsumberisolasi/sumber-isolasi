@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
@@ -232,15 +233,23 @@ export default function AccountsReceivablePage() {
     }).filter(tx => tx.status === 'Belum Lunas'); // Filter on the client-side
 
     setReceivables(transactionList);
-    setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-    setFirstVisible(snapshot.docs[0]);
     
-    if (snapshot.docs.length < TRANSACTIONS_PER_PAGE && direction !== 'prev') {
-        setHasNextPage(false);
+    if (snapshot.docs.length > 0) {
+        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+        setFirstVisible(snapshot.docs[0]);
+        
+        const nextDoc = snapshot.docs[snapshot.docs.length - 1];
+        if (nextDoc) {
+            const nextQuery = query(baseQuery, startAfter(nextDoc), limit(1));
+            const nextSnapshot = await getDocs(nextQuery);
+            setHasNextPage(!nextSnapshot.empty);
+        } else {
+             setHasNextPage(false);
+        }
     } else {
-        const nextQuery = query(baseQuery, startAfter(snapshot.docs[snapshot.docs.length - 1]), limit(1));
-        const nextSnapshot = await getDocs(nextQuery);
-        setHasNextPage(!nextSnapshot.empty);
+        setLastVisible(null);
+        setFirstVisible(null);
+        setHasNextPage(false);
     }
     
     setLoading(false);

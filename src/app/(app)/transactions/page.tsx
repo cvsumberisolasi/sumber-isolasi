@@ -69,6 +69,7 @@ function TransactionsPageContent() {
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [selectedTxForPrint, setSelectedTxForPrint] = useState<Transaction | null>(null);
   const [selectedCustomerForPrint, setSelectedCustomerForPrint] = useState<Customer | null>(null);
+  const [hasNextPage, setHasNextPage] = useState(false);
 
 
   useEffect(() => {
@@ -127,17 +128,24 @@ function TransactionsPageContent() {
     });
 
     setAllTransactions(transactionList);
-    setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-    setFirstVisible(snapshot.docs[0]);
-    
-    const nextQuery = query(baseQuery, startAfter(snapshot.docs[snapshot.docs.length - 1]), limit(1));
-    const nextSnapshot = await getDocs(nextQuery);
-    setHasNextPage(!nextSnapshot.empty);
+
+    if (snapshot.docs.length > 0) {
+      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
+      setFirstVisible(snapshot.docs[0]);
+      
+      const nextDoc = snapshot.docs[snapshot.docs.length - 1];
+      const nextQuery = query(baseQuery, startAfter(nextDoc), limit(1));
+      const nextSnapshot = await getDocs(nextQuery);
+      setHasNextPage(!nextSnapshot.empty);
+    } else {
+      setLastVisible(null);
+      setFirstVisible(null);
+      setHasNextPage(false);
+    }
     
     setLoading(false);
   };
   
-  const [hasNextPage, setHasNextPage] = useState(false);
 
   const filteredTransactions = useMemo(() => {
     if (!searchQuery) {
@@ -220,7 +228,7 @@ function TransactionsPageContent() {
                   </div>
                   <div className="text-left sm:text-right">
                       <p className="text-sm text-muted-foreground">Total Penjualan Bersih</p>
-                      <p className="text-xl sm:text-2xl font-bold">Rp {totalSales.toLocaleString('id-ID')}</p>
+                      <p className="text-xl sm:text-2xl font-bold">Rp {totalSales.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                   </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full pt-4">
@@ -282,7 +290,7 @@ function TransactionsPageContent() {
                               </div>
                               <div className="flex items-center gap-2 sm:gap-4 justify-between">
                                   {getPaymentBadge(tx)}
-                                  <p className="font-bold text-md sm:text-lg text-primary">Rp {(tx.netTotal ?? tx.total).toLocaleString('id-ID')}</p>
+                                  <p className="font-bold text-md sm:text-lg text-primary">Rp {(tx.netTotal ?? tx.total).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</p>
                               </div>
                           </div>
                           </AccordionTrigger>
@@ -302,8 +310,8 @@ function TransactionsPageContent() {
                                       <TableRow key={`${item.productId}-${index}`}>
                                           <TableCell>{item.productName || item.productId}</TableCell>
                                           <TableCell>{item.quantity}</TableCell>
-                                          <TableCell>Rp {item.price.toLocaleString('id-ID')}</TableCell>
-                                          <TableCell className="text-right">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</TableCell>
+                                          <TableCell>Rp {item.price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                          <TableCell className="text-right">Rp {(item.price * item.quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                       </TableRow>
                                       ))}
                                   </TableBody>
@@ -311,23 +319,23 @@ function TransactionsPageContent() {
                                       <TableFooter>
                                           <TableRow>
                                               <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
-                                              <TableCell className="text-right font-medium">Rp {tx.total.toLocaleString('id-ID')}</TableCell>
+                                              <TableCell className="text-right font-medium">Rp {tx.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                           </TableRow>
                                           {tx.discount ? (
                                           <TableRow>
                                               <TableCell colSpan={3} className="text-right">Diskon</TableCell>
-                                              <TableCell className="text-right text-destructive">- Rp {tx.discount.toLocaleString('id-ID')}</TableCell>
+                                              <TableCell className="text-right text-destructive">- Rp {tx.discount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                           </TableRow>
                                           ) : null}
                                           {tx.fee ? (
                                               <TableRow>
                                                   <TableCell colSpan={3} className="text-right">Biaya Marketplace</TableCell>
-                                                  <TableCell className="text-right text-destructive">- Rp {tx.fee.toLocaleString('id-ID')}</TableCell>
+                                                  <TableCell className="text-right text-destructive">- Rp {tx.fee.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                               </TableRow>
                                           ) : null}
                                           <TableRow className="font-bold">
                                               <TableCell colSpan={3} className="text-right">Total Bersih</TableCell>
-                                              <TableCell className="text-right">Rp {tx.netTotal?.toLocaleString('id-ID')}</TableCell>
+                                              <TableCell className="text-right">Rp {tx.netTotal?.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                           </TableRow>
                                       </TableFooter>
                                   ) : null}
@@ -455,7 +463,7 @@ function SettleReceivableDialog({ transaction, onSettled }: { transaction: Trans
                 <DialogHeader>
                     <DialogTitle>Pelunasan Piutang</DialogTitle>
                     <DialogDescription>
-                        Anda akan melunasi transaksi #{transaction.id} sebesar Rp {(transaction.grandTotal || transaction.total).toLocaleString('id-ID')}. Pilih akun bank/kas tujuan penerimaan dana.
+                        Anda akan melunasi transaksi #{transaction.id} sebesar Rp {(transaction.grandTotal || transaction.total).toLocaleString('id-ID', { maximumFractionDigits: 0 })}. Pilih akun bank/kas tujuan penerimaan dana.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-2 py-4">
