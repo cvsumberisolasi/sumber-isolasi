@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useTransition } from 'react';
 import {
   Card,
   CardContent,
@@ -31,15 +31,29 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Download, Loader2, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { collection, onSnapshot, query, orderBy, where, Timestamp, getDocs, limit, startAfter, DocumentData, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Account, Journal, JournalEntry } from '@/lib/types';
 import { DateRange } from 'react-day-picker';
 import { format, startOfDay } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { deleteJournalEntry } from '@/app/(app)/accounting/journal/actions';
 
 type LedgerEntry = {
   date: Date;
@@ -277,12 +291,44 @@ export default function GeneralLedgerPage() {
         </CardContent>
       </Card>
       
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+      <JournalDetailDialog 
+        journal={selectedJournal} 
+        isOpen={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        onJournalDeleted={() => {
+            setIsDetailOpen(false);
+            fetchLedgerEntries();
+        }}
+      />
+    </div>
+  );
+}
+
+function JournalDetailDialog({ journal, isOpen, onOpenChange, onJournalDeleted }: { journal: Journal | null, isOpen: boolean, onOpenChange: (open: boolean) => void, onJournalDeleted: () => void }) {
+    const { toast } = useToast();
+    const [isPending, startTransition] = useTransition();
+    
+    if (!journal) return null;
+
+    const handleDelete = () => {
+        startTransition(async () => {
+            const result = await deleteJournalEntry(journal.id);
+            if (result.error) {
+                toast({ title: 'Gagal Menghapus Jurnal', description: result.error, variant: 'destructive'});
+            } else {
+                toast({ title: 'Jurnal Berhasil Dihapus'});
+                onJournalDeleted();
+            }
+        });
+    }
+
+    return (
+         <Dialog open={isOpen} onOpenChange={onOpenChange}>
           <DialogContent className="max-w-2xl">
               <DialogHeader>
-                  <DialogTitle>Detail Jurnal: {selectedJournal?.id}</DialogTitle>
+                  <DialogTitle>Detail Jurnal: {journal.id}</DialogTitle>
                   <DialogDescription>
-                      {selectedJournal?.description}
+                      {journal.description}
                   </DialogDescription>
               </DialogHeader>
                <div className="py-4 max-h-[60vh] overflow-y-auto">
@@ -295,7 +341,7 @@ export default function GeneralLedgerPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {selectedJournal?.entries.map((entry, idx) => (
+                            {journal.entries.map((entry, idx) => (
                                 <TableRow key={idx}>
                                     <TableCell>{entry.accountName}</TableCell>
                                     <TableCell className="text-right font-mono">{entry.debit > 0 ? entry.debit.toLocaleString('id-ID') : '-'}</TableCell>
@@ -305,9 +351,28 @@ export default function GeneralLedgerPage() {
                         </TableBody>
                     </Table>
                 </div>
+                <DialogFooter>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" disabled={isPending}><Trash2 className="mr-2 h-4 w-4"/> Hapus Jurnal</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Anda yakin?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Tindakan ini akan menghapus jurnal ini secara permanen. Tindakan ini tidak dapat diurungkan.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+                                    {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Ya, Hapus'}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </DialogFooter>
           </DialogContent>
       </Dialog>
-
-    </div>
-  );
+    );
 }
