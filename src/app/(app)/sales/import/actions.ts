@@ -71,19 +71,19 @@ export async function importMarketplaceTransactions(
     salesRevenueAccountId,
     cogsAccountId,
     inventoryAccountId,
-    accountsReceivableAccountId,
+    bankAccountId, // Changed from accountsReceivableAccountId
   } = settings;
 
   const requiredAccountIds = [
     salesRevenueAccountId,
     cogsAccountId,
     inventoryAccountId,
-    accountsReceivableAccountId,
+    bankAccountId, // Ensure bank account is set
   ];
 
   if (requiredAccountIds.some((id) => !id)) {
     return createResponse(
-      `Gagal membuat jurnal otomatis: Pengaturan pemetaan akun belum lengkap. Mohon lengkapi di menu Pengaturan > Akuntansi.`
+      `Gagal membuat jurnal otomatis: Akun Pendapatan, HPP, Persediaan, dan Bank harus diatur di Pengaturan Akuntansi.`
     );
   }
 
@@ -215,18 +215,17 @@ export async function importMarketplaceTransactions(
           discount: order.discount,
           fee: order.fee,
           netTotal: order.netTotal,
-          paymentMethod: 'Kredit',
+          paymentMethod: 'Transfer',
           customerName: order.customerName,
-          status: 'Belum Lunas',
+          status: 'Lunas', // Changed from 'Belum Lunas'
           channel: order.channel,
         };
         transaction.set(newTxRef, newTransaction);
         
         const journalDescription = `Penjualan Marketplace #${orderId}`;
         
-        // REVISED JOURNAL LOGIC
         const journalEntries: JournalEntry[] = [
-          { accountId: accountsReceivableAccountId!, accountName: '', debit: order.total, credit: 0 },
+          { accountId: bankAccountId!, accountName: '', debit: order.total, credit: 0 },
           { accountId: salesRevenueAccountId!, accountName: '', debit: 0, credit: order.total }
         ];
 
