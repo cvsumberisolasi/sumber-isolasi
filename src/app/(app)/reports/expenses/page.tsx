@@ -10,7 +10,7 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Download, PieChart, PlusCircle } from 'lucide-react';
+import { Loader2, Download, PieChart, PlusCircle, Pencil } from 'lucide-react';
 import { Pie, ResponsiveContainer, Tooltip, Legend, Cell } from 'recharts';
 import { ChartTooltipContent, ChartContainer } from "@/components/ui/chart";
 import { Button } from '@/components/ui/button';
@@ -131,11 +131,10 @@ export default function ExpensesPage() {
                     ))}
                 </SelectContent>
             </Select>
-            <ExpenseJournalDialog accounts={accounts} totalExpenses={totalExpenses} period={`${getMonthName(month)} ${year}`}>
-                <Button disabled={totalExpenses <= 0}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Buat Jurnal Beban
-                </Button>
-            </ExpenseJournalDialog>
+             <Button variant="outline" disabled>
+                <Download className="mr-2 h-4 w-4" />
+                Ekspor
+            </Button>
         </div>
       </div>
 
@@ -179,6 +178,7 @@ export default function ExpensesPage() {
             <Card className="lg:col-span-3">
               <CardHeader>
                 <CardTitle>Rincian Pengeluaran per Akun</CardTitle>
+                <CardDescription>Buat jurnal penyesuaian langsung dari sini jika ada beban yang belum tercatat.</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -187,17 +187,29 @@ export default function ExpensesPage() {
                       <TableHead>Akun</TableHead>
                       <TableHead>Kategori</TableHead>
                       <TableHead className="text-right">Jumlah</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {expensesByAccount.length === 0 ? (
-                      <TableRow><TableCell colSpan={3} className="text-center h-24">Tidak ada data pengeluaran.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4} className="text-center h-24">Tidak ada data pengeluaran.</TableCell></TableRow>
                     ) : (
                       expensesByAccount.map(expense => (
                         <TableRow key={expense.accountId}>
                           <TableCell className="font-medium">{expense.accountName}</TableCell>
                           <TableCell>{expense.category}</TableCell>
                           <TableCell className="text-right font-mono">Rp {expense.amount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                          <TableCell className="text-right">
+                            <ExpenseJournalDialog 
+                                accounts={accounts} 
+                                expenseAccount={expense} 
+                                period={`${getMonthName(month)} ${year}`}
+                            >
+                                <Button variant="outline" size="sm">
+                                    <Pencil className="mr-2 h-3 w-3" /> Buat Penyesuaian
+                                </Button>
+                            </ExpenseJournalDialog>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -212,7 +224,7 @@ export default function ExpensesPage() {
   );
 }
 
-function ExpenseJournalDialog({ children, accounts, totalExpenses, period }: { children: React.ReactNode, accounts: Account[], totalExpenses: number, period: string }) {
+function ExpenseJournalDialog({ children, accounts, expenseAccount, period }: { children: React.ReactNode, accounts: Account[], expenseAccount: ExpenseRow, period: string }) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
@@ -220,36 +232,33 @@ function ExpenseJournalDialog({ children, accounts, totalExpenses, period }: { c
     const [date, setDate] = useState<Date | undefined>(new Date());
     const [amount, setAmount] = useState(0);
     const [description, setDescription] = useState('');
-    const [debitAccountId, setDebitAccountId] = useState('');
     const [creditAccountId, setCreditAccountId] = useState('');
     
-    const expenseAccounts = useMemo(() => accounts.filter(a => a.type.includes('Beban')), [accounts]);
     const cashBankAccounts = useMemo(() => accounts.filter(a => a.type === 'Kas & Bank'), [accounts]);
 
     useEffect(() => {
         if(open) {
-            setAmount(totalExpenses);
-            setDescription(`Penyesuaian Beban periode ${period}`);
+            setAmount(expenseAccount.amount);
+            setDescription(`Penyesuaian untuk ${expenseAccount.accountName} periode ${period}`);
         }
-    }, [open, totalExpenses, period])
+    }, [open, expenseAccount, period])
 
     const handleSave = () => {
-        if (!date || !debitAccountId || !creditAccountId || amount <= 0 || !description) {
+        if (!date || !creditAccountId || amount <= 0 || !description) {
             toast({ title: "Data tidak lengkap", description: "Mohon isi semua field.", variant: "destructive" });
             return;
         }
 
-        const debitAccount = accounts.find(a => a.id === debitAccountId);
         const creditAccount = accounts.find(a => a.id === creditAccountId);
-        if (!debitAccount || !creditAccount) return;
+        if (!creditAccount) return;
 
         startTransition(async () => {
             const result = await addExpenseJournal({
                 date,
                 description: `Beban: ${description}`,
                 amount,
-                debitAccountId,
-                debitAccountName: debitAccount.name,
+                debitAccountId: expenseAccount.accountId,
+                debitAccountName: expenseAccount.accountName,
                 creditAccountId,
                 creditAccountName: creditAccount.name,
             });
@@ -267,7 +276,6 @@ function ExpenseJournalDialog({ children, accounts, totalExpenses, period }: { c
         setDate(new Date());
         setAmount(0);
         setDescription('');
-        setDebitAccountId('');
         setCreditAccountId('');
     }
 
@@ -276,18 +284,13 @@ function ExpenseJournalDialog({ children, accounts, totalExpenses, period }: { c
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Buat Jurnal Penyesuaian Beban</DialogTitle>
-                    <DialogDescription>Catat pengeluaran atau beban yang belum tercatat.</DialogDescription>
+                    <DialogTitle>Jurnal Penyesuaian untuk {expenseAccount.accountName}</DialogTitle>
+                    <DialogDescription>Catat pengeluaran atau beban yang belum tercatat untuk akun ini.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div className="space-y-2">
                         <Label>Akun Beban (Debit)</Label>
-                        <Select value={debitAccountId} onValueChange={setDebitAccountId}>
-                            <SelectTrigger><SelectValue placeholder="Pilih akun beban..."/></SelectTrigger>
-                            <SelectContent>
-                                {expenseAccounts.map(acc => <SelectItem key={acc.id} value={acc.id}>{acc.code} - {acc.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                        <Input value={`${expenseAccount.accountName}`} disabled />
                     </div>
                      <div className="space-y-2">
                         <Label>Sumber Pembayaran (Kredit)</Label>

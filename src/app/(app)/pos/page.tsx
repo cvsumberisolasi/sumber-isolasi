@@ -69,7 +69,7 @@ export default function POSPage() {
     // Resume cart from local storage if exists
     try {
         const resumedCart = localStorage.getItem('resumedCart');
-        if (resumedCart) {
+        if (resumedCart && resumedCart !== 'null' && resumedCart !== 'undefined') {
             const parsedCart = JSON.parse(resumedCart);
             if (Array.isArray(parsedCart) && parsedCart.length > 0) {
                 setCart(parsedCart);
@@ -495,3 +495,6 @@ function ProductPicker({ products, onSelect }: { products: Product[], onSelect: 
 
 
 
+
+
+    
