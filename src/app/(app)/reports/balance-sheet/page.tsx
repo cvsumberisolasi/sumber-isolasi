@@ -39,7 +39,7 @@ type BalanceSheetReport = {
   totalEquity: number;
 };
 
-const isAsset = (type: string) => type.startsWith('Aset') || type.startsWith('Kas') || type.startsWith('Akumulasi');
+const isAsset = (type: string) => type.startsWith('Aset') || type.startsWith('Kas');
 const isLiability = (type: string) => type.startsWith('Kewajiban');
 const isEquity = (type: string) => type.startsWith('Ekuitas');
 const isRevenue = (type: string) => type.startsWith('Pendapatan');
@@ -113,11 +113,14 @@ export default function BalanceSheetPage() {
             const account = accounts.find(a => a.id === entry.accountId);
             if (account && balances[entry.accountId] !== undefined) {
                const isDebitNormalAcc = isAsset(account.type) || isExpense(account.type);
-               let balanceEffect = isDebitNormalAcc ? entry.debit - entry.credit : entry.credit - entry.debit;
+               const balanceEffect = isDebitNormalAcc ? entry.debit - entry.credit : entry.credit - entry.debit;
+               
+               // Contra asset like accumulated depreciation is an asset but has a credit normal balance
                if(isContraAsset(account.type)) {
-                   balanceEffect = -balanceEffect; 
+                   balances[entry.accountId] -= balanceEffect; // Re-negate to get positive credit balance
+               } else {
+                   balances[entry.accountId] += balanceEffect;
                }
-               balances[entry.accountId] += balanceEffect;
             }
         });
     });
@@ -132,16 +135,24 @@ export default function BalanceSheetPage() {
 
         if (isAsset(account.type)) {
             if (balance === 0) return;
-            if (account.type === 'Aset Lancar' || account.type === 'Kas & Bank') report.currentAssets.push(row);
-            else if (account.type === 'Aset Tetap') report.fixedAssets.push(row);
-            else if (isContraAsset(account.type)) report.fixedAssets.push({ ...row, amount: -balance });
-            else report.otherAssets.push(row);
+             if (isContraAsset(account.type)) {
+                report.fixedAssets.push({ ...row, amount: -balance }); // Show as negative to reduce asset value
+            } else if (account.type === 'Aset Lancar' || account.type === 'Kas & Bank') {
+                report.currentAssets.push(row);
+            } else if (account.type === 'Aset Tetap') {
+                report.fixedAssets.push(row);
+            } else {
+                report.otherAssets.push(row);
+            }
         } else if (isLiability(account.type)) {
             if (balance === 0) return;
             if (account.type === 'Kewajiban Jangka Pendek') report.shortTermLiabilities.push(row);
             else report.longTermLiabilities.push(row);
         } else if (isEquity(account.type)) {
-            if (balance !== 0) report.equity.push(row);
+            // Include equity accounts even if balance is 0 to show structure, but filter out for net income.
+            if (balance !== 0 || account.name.toLowerCase().includes('laba ditahan')) {
+              report.equity.push(row);
+            }
         } else if (isRevenue(account.type)) {
             totalRevenue += balance;
         } else if (isExpense(account.type)) {
@@ -364,3 +375,4 @@ export default function BalanceSheetPage() {
     </div>
   );
 }
+
