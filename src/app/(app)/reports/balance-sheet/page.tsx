@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -113,13 +114,13 @@ export default function BalanceSheetPage() {
             const account = accounts.find(a => a.id === entry.accountId);
             if (account && balances[entry.accountId] !== undefined) {
                const isDebitNormalAcc = isAsset(account.type) || isExpense(account.type);
-               const balanceEffect = isDebitNormalAcc ? entry.debit - entry.credit : entry.credit - entry.debit;
                
-               // Contra asset like accumulated depreciation is an asset but has a credit normal balance
-               if(isContraAsset(account.type)) {
-                   balances[entry.accountId] -= balanceEffect; // Re-negate to get positive credit balance
+               if (isContraAsset(account.type)) {
+                   balances[entry.accountId] += entry.credit - entry.debit;
+               } else if (isDebitNormalAcc) {
+                   balances[entry.accountId] += entry.debit - entry.credit;
                } else {
-                   balances[entry.accountId] += balanceEffect;
+                   balances[entry.accountId] += entry.credit - entry.debit;
                }
             }
         });
@@ -134,7 +135,8 @@ export default function BalanceSheetPage() {
         const row = { accountId: account.id, accountName: account.name, amount: balance };
 
         if (isAsset(account.type)) {
-            if (balance === 0) return;
+            if (balance === 0 && !isContraAsset(account.type)) return;
+
              if (isContraAsset(account.type)) {
                 report.fixedAssets.push({ ...row, amount: -balance }); // Show as negative to reduce asset value
             } else if (account.type === 'Aset Lancar' || account.type === 'Kas & Bank') {
@@ -149,7 +151,6 @@ export default function BalanceSheetPage() {
             if (account.type === 'Kewajiban Jangka Pendek') report.shortTermLiabilities.push(row);
             else report.longTermLiabilities.push(row);
         } else if (isEquity(account.type)) {
-            // Include equity accounts even if balance is 0 to show structure, but filter out for net income.
             if (balance !== 0 || account.name.toLowerCase().includes('laba ditahan')) {
               report.equity.push(row);
             }
@@ -265,7 +266,7 @@ export default function BalanceSheetPage() {
                     <ExternalLink className="inline-block ml-2 h-3 w-3 text-muted-foreground"/>
                 </Link>
             </TableCell>
-            <TableCell className="text-right font-mono">{row.amount.toLocaleString('id-ID')}</TableCell>
+            <TableCell className={cn("text-right font-mono", row.amount < 0 && 'text-destructive')}>{row.amount.toLocaleString('id-ID')}</TableCell>
         </TableRow>
     );
   };
@@ -281,7 +282,7 @@ export default function BalanceSheetPage() {
       ))}
       <TableRow className="font-semibold border-t">
         <TableCell className="pl-8">Total {title}</TableCell>
-        <TableCell className="text-right font-mono">{total.toLocaleString('id-ID')}</TableCell>
+        <TableCell className={cn("text-right font-mono", total < 0 && "text-destructive")}>{total.toLocaleString('id-ID')}</TableCell>
       </TableRow>
     </>
   );
@@ -341,7 +342,7 @@ export default function BalanceSheetPage() {
                         <TableFooter>
                             <TableRow className="text-lg font-bold bg-secondary/50 hover:bg-secondary">
                                 <TableCell>Total Aset</TableCell>
-                                <TableCell className="text-right font-mono">{reportData.totalAssets.toLocaleString('id-ID')}</TableCell>
+                                <TableCell className={cn("text-right font-mono", reportData.totalAssets < 0 && "text-destructive")}>{reportData.totalAssets.toLocaleString('id-ID')}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -363,7 +364,7 @@ export default function BalanceSheetPage() {
                         <TableFooter>
                             <TableRow className="text-lg font-bold bg-secondary/50 hover:bg-secondary">
                                 <TableCell>Total Kewajiban dan Ekuitas</TableCell>
-                                <TableCell className="text-right font-mono">{(reportData.totalLiabilities + reportData.totalEquity).toLocaleString('id-ID')}</TableCell>
+                                <TableCell className={cn("text-right font-mono", (reportData.totalLiabilities + reportData.totalEquity) < 0 && "text-destructive")}>{(reportData.totalLiabilities + reportData.totalEquity).toLocaleString('id-ID')}</TableCell>
                             </TableRow>
                         </TableFooter>
                     </Table>
@@ -375,4 +376,5 @@ export default function BalanceSheetPage() {
     </div>
   );
 }
+
 

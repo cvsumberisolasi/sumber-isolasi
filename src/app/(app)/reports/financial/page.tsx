@@ -164,7 +164,7 @@ export default function FinancialReportsPage() {
                     <ExternalLink className="inline-block ml-2 h-3 w-3 text-muted-foreground"/>
                 </Link>
             </TableCell>
-            <TableCell className="text-right font-mono">{row.amount.toLocaleString('id-ID')}</TableCell>
+            <TableCell className={cn("text-right font-mono", row.amount < 0 && "text-destructive")}>{row.amount.toLocaleString('id-ID')}</TableCell>
         </TableRow>
     );
   };
@@ -180,7 +180,7 @@ export default function FinancialReportsPage() {
       {isTotal && rows.length > 0 && (
         <TableRow className={cn("font-bold", className)}>
             <TableCell className="pl-8">Total {title}</TableCell>
-            <TableCell className="text-right font-mono">{total.toLocaleString('id-ID')}</TableCell>
+            <TableCell className={cn("text-right font-mono", total < 0 && "text-destructive")}>{total.toLocaleString('id-ID')}</TableCell>
         </TableRow>
       )}
     </>
@@ -243,7 +243,7 @@ export default function FinancialReportsPage() {
 
                     <TableRow className="font-bold bg-muted/50">
                         <TableCell>Laba Kotor</TableCell>
-                        <TableCell className="text-right font-mono">{reportData.grossProfit.toLocaleString('id-ID')}</TableCell>
+                        <TableCell className={cn("text-right font-mono", reportData.grossProfit < 0 && "text-destructive")}>{reportData.grossProfit.toLocaleString('id-ID')}</TableCell>
                     </TableRow>
 
                     {renderSection("Beban", reportData.expenses, reportData.totalExpense)}
@@ -262,6 +262,7 @@ export default function FinancialReportsPage() {
     </div>
   );
 }
+
 
 
 
