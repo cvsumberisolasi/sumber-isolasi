@@ -131,8 +131,8 @@ export default function ExpensesPage() {
                     ))}
                 </SelectContent>
             </Select>
-            <ExpenseJournalDialog accounts={accounts}>
-                <Button>
+            <ExpenseJournalDialog accounts={accounts} totalExpenses={totalExpenses} period={`${getMonthName(month)} ${year}`}>
+                <Button disabled={totalExpenses <= 0}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Buat Jurnal Beban
                 </Button>
             </ExpenseJournalDialog>
@@ -212,7 +212,7 @@ export default function ExpensesPage() {
   );
 }
 
-function ExpenseJournalDialog({ children, accounts }: { children: React.ReactNode, accounts: Account[] }) {
+function ExpenseJournalDialog({ children, accounts, totalExpenses, period }: { children: React.ReactNode, accounts: Account[], totalExpenses: number, period: string }) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
@@ -225,6 +225,13 @@ function ExpenseJournalDialog({ children, accounts }: { children: React.ReactNod
     
     const expenseAccounts = useMemo(() => accounts.filter(a => a.type.includes('Beban')), [accounts]);
     const cashBankAccounts = useMemo(() => accounts.filter(a => a.type === 'Kas & Bank'), [accounts]);
+
+    useEffect(() => {
+        if(open) {
+            setAmount(totalExpenses);
+            setDescription(`Penyesuaian Beban periode ${period}`);
+        }
+    }, [open, totalExpenses, period])
 
     const handleSave = () => {
         if (!date || !debitAccountId || !creditAccountId || amount <= 0 || !description) {
