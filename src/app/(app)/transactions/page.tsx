@@ -213,6 +213,13 @@ function TransactionsPageContent() {
         setSelectedCustomerForPrint(null);
       }
   };
+  
+  const calculateFinancials = (tx: Transaction) => {
+    const totalCOGS = tx.items.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
+    const grossProfit = tx.subtotal - totalCOGS;
+    const netProfit = grossProfit - (tx.discount || 0) - (tx.fee || 0);
+    return { totalCOGS, grossProfit, netProfit };
+  }
 
   return (
     <>
@@ -270,7 +277,9 @@ function TransactionsPageContent() {
                       {searchQuery ? `Tidak ada transaksi yang cocok dengan "${searchQuery}".` : "Tidak ada transaksi pada periode ini."}
                   </div>
               ) : (
-                  filteredTransactions.map((tx, index) => (
+                  filteredTransactions.map((tx, index) => {
+                      const financials = calculateFinancials(tx);
+                      return (
                       <AccordionItem value={tx.id} key={tx.id}>
                           <AccordionTrigger>
                           <div className="flex flex-col sm:flex-row justify-between w-full sm:pr-4 text-left sm:items-center">
@@ -315,30 +324,36 @@ function TransactionsPageContent() {
                                       </TableRow>
                                       ))}
                                   </TableBody>
-                                  {tx.discount || tx.fee ? (
-                                      <TableFooter>
+                                  <TableFooter>
+                                      <TableRow>
+                                          <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
+                                          <TableCell className="text-right font-medium">Rp {tx.subtotal.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                      </TableRow>
+                                      <TableRow>
+                                          <TableCell colSpan={3} className="text-right">HPP (COGS)</TableCell>
+                                          <TableCell className="text-right text-destructive">- Rp {financials.totalCOGS.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                      </TableRow>
+                                      <TableRow>
+                                          <TableCell colSpan={3} className="text-right font-semibold">Laba Kotor</TableCell>
+                                          <TableCell className="text-right font-semibold">Rp {financials.grossProfit.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                      </TableRow>
+                                      {tx.discount ? (
+                                      <TableRow>
+                                          <TableCell colSpan={3} className="text-right">Diskon</TableCell>
+                                          <TableCell className="text-right text-destructive">- Rp {tx.discount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                      </TableRow>
+                                      ) : null}
+                                      {tx.fee ? (
                                           <TableRow>
-                                              <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
-                                              <TableCell className="text-right font-medium">Rp {tx.total.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                              <TableCell colSpan={3} className="text-right">Biaya Marketplace</TableCell>
+                                              <TableCell className="text-right text-destructive">- Rp {tx.fee.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                           </TableRow>
-                                          {tx.discount ? (
-                                          <TableRow>
-                                              <TableCell colSpan={3} className="text-right">Diskon</TableCell>
-                                              <TableCell className="text-right text-destructive">- Rp {tx.discount.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
-                                          </TableRow>
-                                          ) : null}
-                                          {tx.fee ? (
-                                              <TableRow>
-                                                  <TableCell colSpan={3} className="text-right">Biaya Marketplace</TableCell>
-                                                  <TableCell className="text-right text-destructive">- Rp {tx.fee.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
-                                              </TableRow>
-                                          ) : null}
-                                          <TableRow className="font-bold">
-                                              <TableCell colSpan={3} className="text-right">Total Bersih</TableCell>
-                                              <TableCell className="text-right">Rp {tx.netTotal?.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
-                                          </TableRow>
-                                      </TableFooter>
-                                  ) : null}
+                                      ) : null}
+                                      <TableRow className="font-bold bg-muted/50">
+                                          <TableCell colSpan={3} className="text-right">Laba Bersih</TableCell>
+                                          <TableCell className="text-right">Rp {financials.netProfit.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                      </TableRow>
+                                  </TableFooter>
                               </Table>
                               <div className="flex justify-end gap-2 mt-4">
                                 {tx.status === 'Belum Lunas' && <SettleReceivableDialog transaction={tx} onSettled={() => fetchTransactions('initial')} />}
@@ -349,7 +364,8 @@ function TransactionsPageContent() {
                           </div>
                           </AccordionContent>
                       </AccordionItem>
-                  ))
+                      )
+                  })
               )}
             </Accordion>
           </CardContent>
