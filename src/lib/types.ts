@@ -1,6 +1,5 @@
 
 
-
 export type ProductType = 'Barang Jadi' | 'Bahan Baku' | 'Barang Dagang';
 
 export type ProductUnit = {
@@ -425,6 +424,16 @@ export type MappedRow = Omit<ParsedRow, 'id'> & { id: string };
 export type ImportRow = MappedRow & {
     mappedProduct: Product | null;
 };
+
+export type SkuMapping = {
+    id: string;
+    marketplaceSku: string;
+    channel: string;
+    productId: string;
+    productName: string;
+};
+export type NewSkuMapping = Omit<SkuMapping, 'id'>;
+
 
 // Production Module Types
 export type BillOfMaterialItem = {

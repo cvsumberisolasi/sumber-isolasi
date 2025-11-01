@@ -7,7 +7,7 @@ import ManualSalesInputPage from "./manual-input/page";
 import AccountsReceivablePage from "./receivables/page";
 import SalesReturnsPage from "./returns/page";
 import ImportMarketplacePage from "./import/page";
-import ImportMappingHistoryPage from "./import/history/page";
+import SkuMappingPage from "./import/mapping/page";
 
 export default function SalesPage() {
     return (
@@ -20,7 +20,7 @@ export default function SalesPage() {
                     <TabsTrigger value="receivables">Piutang Usaha</TabsTrigger>
                     <TabsTrigger value="returns">Retur Penjualan</TabsTrigger>
                     <TabsTrigger value="import">Import Marketplace</TabsTrigger>
-                    <TabsTrigger value="import-mapping">Riwayat Mapping</TabsTrigger>
+                    <TabsTrigger value="import-mapping">Mapping SKU</TabsTrigger>
                 </TabsList>
                 <TabsContent value="history" className="mt-6">
                     <TransactionsPage />
@@ -38,7 +38,7 @@ export default function SalesPage() {
                     <ImportMarketplacePage />
                 </TabsContent>
                  <TabsContent value="import-mapping" className="mt-6">
-                    <ImportMappingHistoryPage />
+                    <SkuMappingPage />
                 </TabsContent>
             </Tabs>
         </div>

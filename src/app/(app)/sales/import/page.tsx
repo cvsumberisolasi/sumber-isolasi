@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useTransition, useMemo, useRef, useEffect } from 'react';
@@ -40,11 +39,12 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import type { Product, ImportRow } from '@/lib/types';
-import { collection, onSnapshot } from 'firebase/firestore';
+import type { Product, ImportRow, SkuMapping } from '@/lib/types';
+import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { importMarketplaceTransactions } from './actions';
+import { addOrUpdateSkuMapping } from './mapping/actions';
 import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -55,6 +55,7 @@ export default function ImportMarketplacePage() {
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ImportRow[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [skuMappings, setSkuMappings] = useState<SkuMapping[]>([]);
   const [skuToProductMap, setSkuToProductMap] = useState<Record<string, Product | null>>({});
 
   const [isParsing, startParsing] = useTransition();
@@ -64,10 +65,17 @@ export default function ImportMarketplacePage() {
   const router = useRouter();
   
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'products'), (snapshot) => {
+    const unsubProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
         setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
     });
-    return () => unsub();
+    const unsubMappings = onSnapshot(query(collection(db, 'skuMappings')), (snapshot) => {
+        setSkuMappings(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SkuMapping)));
+    });
+
+    return () => {
+      unsubProducts();
+      unsubMappings();
+    };
   }, []);
 
   const { allProductsMapped, uniqueOrderCount, totalItems, unmappedSkus, summary } = useMemo(() => {
@@ -129,7 +137,7 @@ export default function ImportMarketplacePage() {
   
  const normalizeNumber = (value: any): number => {
     if (value === null || value === undefined || value === '') return 0;
-    if (typeof value === 'number') return value;
+    if (typeof value === 'number' && !isNaN(value)) return value;
     if (typeof value === 'string') {
         const cleanedValue = value.trim().replace(/[^0-9,.-]+/g, '').replace(',', '.');
         if (cleanedValue === '' || cleanedValue === '-' || cleanedValue === '.') return 0;
@@ -160,7 +168,8 @@ export default function ImportMarketplacePage() {
                 const header = json[0].map(h => String(h).toLowerCase().trim());
                 const dataRows = json.slice(1);
                 
-                const currentSkuMap = { ...skuToProductMap };
+                let currentSkuMap: Record<string, Product | null> = {};
+                
                 const processedOrders = new Set<string>();
 
                 const mappedData: ImportRow[] = dataRows.map((row, rowIndex) => {
@@ -235,7 +244,12 @@ export default function ImportMarketplacePage() {
                     const tanggal_order_formatted = !isNaN(parsedDate.getTime()) ? format(parsedDate, 'yyyy-MM-dd HH:mm:ss') : format(new Date(), 'yyyy-MM-dd HH:mm:ss');
                     
                     if (sku && currentSkuMap[sku] === undefined) {
-                        currentSkuMap[sku] = products.find(p => p.sku && sku && p.sku.trim().toLowerCase() === sku.trim().toLowerCase()) || null;
+                        const existingMapping = skuMappings.find(m => m.marketplaceSku.trim().toLowerCase() === sku.trim().toLowerCase());
+                        if (existingMapping) {
+                            currentSkuMap[sku] = products.find(p => p.id === existingMapping.productId) || null;
+                        } else {
+                            currentSkuMap[sku] = products.find(p => p.sku && sku && p.sku.trim().toLowerCase() === sku.trim().toLowerCase()) || null;
+                        }
                     }
 
                     return {
@@ -260,11 +274,22 @@ export default function ImportMarketplacePage() {
     });
   };
 
-  const handleProductMapping = (sku: string, product: Product | null) => {
+  const handleProductMapping = async (sku: string, channel: string, product: Product | null) => {
     setSkuToProductMap(prevMap => ({
         ...prevMap,
         [sku]: product
     }));
+
+    if (product) {
+      // Save mapping to Firestore
+      await addOrUpdateSkuMapping({
+        marketplaceSku: sku,
+        channel: channel,
+        productId: product.id,
+        productName: product.name
+      });
+      toast({ title: "Mapping Disimpan", description: `SKU ${sku} dipetakan ke ${product.name}.` });
+    }
   };
 
   const handleImport = () => {
@@ -370,9 +395,10 @@ export default function ImportMarketplacePage() {
                                         </div>
                                         <ProductMappingCell
                                             sku={sku}
+                                            channel={parsedData.find(d => d.sku === sku)?.channel || 'unknown'}
                                             mappedProduct={skuToProductMap[sku]}
                                             allProducts={products}
-                                            onMap={(p) => handleProductMapping(sku, p)}
+                                            onMap={(p) => handleProductMapping(sku, parsedData.find(d => d.sku === sku)?.channel || 'unknown', p)}
                                         />
                                     </div>
                                 ))}
@@ -405,9 +431,10 @@ export default function ImportMarketplacePage() {
                                         <TableCell>
                                             <ProductMappingCell
                                                 sku={row.sku}
+                                                channel={row.channel}
                                                 mappedProduct={skuToProductMap[row.sku]}
                                                 allProducts={products}
-                                                onMap={(p) => handleProductMapping(row.sku, p)}
+                                                onMap={(p) => handleProductMapping(row.sku, row.channel, p)}
                                             />
                                         </TableCell>
                                         <TableCell className="text-center">{row.qty}</TableCell>
@@ -453,7 +480,7 @@ export default function ImportMarketplacePage() {
 }
 
 
-function ProductMappingCell({ sku, mappedProduct, allProducts, onMap }: { sku: string; mappedProduct: Product | null | undefined, allProducts: Product[], onMap: (p: Product | null) => void }) {
+function ProductMappingCell({ sku, channel, mappedProduct, allProducts, onMap }: { sku: string; channel: string, mappedProduct: Product | null | undefined, allProducts: Product[], onMap: (p: Product | null) => void }) {
     const [open, setOpen] = useState(false);
 
     if (mappedProduct) {
@@ -517,4 +544,3 @@ const SummaryItem = ({ icon: Icon, label, value, isNegative = false, isProfit = 
     </div>
   )
 };
-
