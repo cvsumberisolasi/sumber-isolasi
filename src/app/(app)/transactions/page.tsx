@@ -215,8 +215,9 @@ function TransactionsPageContent() {
   };
   
   const calculateFinancials = (tx: Transaction) => {
-    const totalCOGS = tx.items.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
-    const grossProfit = tx.subtotal - totalCOGS;
+    const subtotal = tx.subtotal ?? tx.total;
+    const totalCOGS = tx.items.reduce((sum, item) => sum + ((item.cost || 0) * item.quantity), 0);
+    const grossProfit = subtotal - totalCOGS;
     const netProfit = grossProfit - (tx.discount || 0) - (tx.fee || 0);
     return { totalCOGS, grossProfit, netProfit };
   }
@@ -279,6 +280,7 @@ function TransactionsPageContent() {
               ) : (
                   filteredTransactions.map((tx, index) => {
                       const financials = calculateFinancials(tx);
+                      const subtotal = tx.subtotal ?? tx.total;
                       return (
                       <AccordionItem value={tx.id} key={tx.id}>
                           <AccordionTrigger>
@@ -327,7 +329,7 @@ function TransactionsPageContent() {
                                   <TableFooter>
                                       <TableRow>
                                           <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
-                                          <TableCell className="text-right font-medium">Rp {tx.subtotal.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                          <TableCell className="text-right font-medium">Rp {(subtotal).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                       </TableRow>
                                       <TableRow>
                                           <TableCell colSpan={3} className="text-right">HPP (COGS)</TableCell>
