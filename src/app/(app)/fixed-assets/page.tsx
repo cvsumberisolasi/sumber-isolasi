@@ -4,6 +4,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AssetListPage from "./list/page";
 import AssetDepreciationPage from "./depreciation/page";
+import AssetRegisterPage from "./register/page";
 
 export default function FixedAssetsPage() {
     return (
@@ -12,10 +13,14 @@ export default function FixedAssetsPage() {
             <Tabs defaultValue="list">
                 <TabsList className="w-full justify-start overflow-x-auto">
                     <TabsTrigger value="list">Daftar Aset</TabsTrigger>
-                    <TabsTrigger value="depreciation">Penyusutan Aset</TabsTrigger>
+                    <TabsTrigger value="register">Register Aset</TabsTrigger>
+                    <TabsTrigger value="depreciation">Penyusutan</TabsTrigger>
                 </TabsList>
                 <TabsContent value="list" className="mt-6">
                     <AssetListPage />
+                </TabsContent>
+                <TabsContent value="register" className="mt-6">
+                    <AssetRegisterPage />
                 </TabsContent>
                 <TabsContent value="depreciation" className="mt-6">
                     <AssetDepreciationPage />
