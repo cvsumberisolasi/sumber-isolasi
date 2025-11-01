@@ -1,5 +1,6 @@
 
 
+
 export type ProductType = 'Barang Jadi' | 'Bahan Baku' | 'Barang Dagang';
 
 export type ProductUnit = {
@@ -488,3 +489,34 @@ export type ProductionCompletion = {
 };
 
 export type NewProductionCompletion = Omit<ProductionCompletion, 'id' | 'date'> & { date: Date };
+
+
+// Fixed Assets Module Types
+export type FixedAsset = {
+  id: string;
+  assetCode: string;
+  name: string;
+  description: string;
+  acquisitionDate: any; // Timestamp
+  acquisitionCost: number;
+  usefulLife: number; // in years
+  depreciationMethod: 'Garis Lurus';
+  assetAccountId: string;
+  assetAccountName: string;
+  accumulatedDepreciationAccountId: string;
+  accumulatedDepreciationAccountName: string;
+  depreciationExpenseAccountId: string;
+  depreciationExpenseAccountName: string;
+};
+
+export type NewFixedAsset = Omit<FixedAsset, 'id'>;
+
+export type DepreciationRun = {
+  id: string;
+  date: any; // Timestamp
+  month: number;
+  year: number;
+  journalId: string;
+  totalDepreciation: number;
+  assetsDepreciated: number;
+};
