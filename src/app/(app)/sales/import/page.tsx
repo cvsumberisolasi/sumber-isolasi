@@ -127,10 +127,14 @@ export default function ImportMarketplacePage() {
     }
   };
   
-  const normalizeNumber = (value: any): number => {
+ const normalizeNumber = (value: any): number => {
+    if (value === null || value === undefined || value === '') return 0;
     if (typeof value === 'number') return value;
     if (typeof value === 'string') {
-        return parseFloat(value.replace(/[^0-9,.-]+/g, '').replace(',', '.')) || 0;
+        const cleanedValue = value.trim().replace(/[^0-9,.-]+/g, '').replace(',', '.');
+        if (cleanedValue === '' || cleanedValue === '-' || cleanedValue === '.') return 0;
+        const num = parseFloat(cleanedValue);
+        return isNaN(num) ? 0 : num;
     }
     return 0;
   }
@@ -513,3 +517,4 @@ const SummaryItem = ({ icon: Icon, label, value, isNegative = false, isProfit = 
     </div>
   )
 };
+
