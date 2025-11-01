@@ -223,14 +223,14 @@ export function ProductFormDialog({ children, product, isCopy = false }: { child
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const [name, setName] = useState(product?.name || '');
-  const [sku, setSku] = useState(product?.sku || '');
-  const [category, setCategory] = useState(product?.category || '');
-  const [productTypes, setProductTypes] = useState<string[]>(product?.productType ? (Array.isArray(product.productType) ? product.productType : [product.productType]) : ['Barang Dagang']);
-  const [stock, setStock] = useState(product?.stock || 0);
-  const [cost, setCost] = useState(product?.cost || 0);
-  const [minStockThreshold, setMinStockThreshold] = useState(product?.minStockThreshold || 10);
-  const [units, setUnits] = useState<ProductUnit[]>(product?.units || [{ name: '', price: 0, cost: 0, conversionRate: 1 }]);
+  const [name, setName] = useState('');
+  const [sku, setSku] = useState('');
+  const [category, setCategory] = useState('');
+  const [productTypes, setProductTypes] = useState<string[]>(['Barang Dagang']);
+  const [stock, setStock] = useState(0);
+  const [cost, setCost] = useState(0);
+  const [minStockThreshold, setMinStockThreshold] = useState(10);
+  const [units, setUnits] = useState<ProductUnit[]>([{ name: '', price: 0, cost: 0, conversionRate: 1 }]);
   
   const [categories, setCategories] = useState<ProductCategory[]>([]);
 
@@ -240,7 +240,7 @@ export function ProductFormDialog({ children, product, isCopy = false }: { child
     });
     return () => unsub();
   }, []);
-
+  
   const isEditing = !!product && !isCopy;
   const isDropdownItem = React.isValidElement(children) && (children.type as any).displayName === 'DropdownMenuItem';
   
@@ -273,6 +273,17 @@ export function ProductFormDialog({ children, product, isCopy = false }: { child
         return Array.from(newTypes);
     })
   };
+  
+  const resetForm = (p = product) => {
+      setName(p?.name || '');
+      setSku(p?.sku || '');
+      setCategory(p?.category || '');
+      setProductTypes(p?.productType ? (Array.isArray(p.productType) ? p.productType : [p.productType]) : ['Barang Dagang']);
+      setStock(p?.stock || 0);
+      setCost(p?.cost || 0);
+      setMinStockThreshold(p?.minStockThreshold || 10);
+      setUnits(p?.units && p.units.length > 0 ? p.units : [{ name: '', price: 0, cost: 0, conversionRate: 1 }]);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -328,39 +339,20 @@ export function ProductFormDialog({ children, product, isCopy = false }: { child
 
   const handleOpenChange = (isOpen: boolean) => {
     if (isPending) return;
-    if (!isOpen) {
-      // Reset form on close
-      setName(product?.name || '');
-      setSku(product?.sku || '');
-      setCategory(product?.category || '');
-      setProductTypes(product?.productType ? (Array.isArray(product.productType) ? product.productType : [product.productType]) : ['Barang Dagang']);
-      setStock(product?.stock || 0);
-      setCost(product?.cost || 0);
-      setMinStockThreshold(product?.minStockThreshold || 10);
-      setUnits(product?.units || [{ name: '', price: 0, cost: 0, conversionRate: 1 }]);
-    } else {
+    if (isOpen) {
       if (isCopy && product) {
+        resetForm(product); // Reset with original data first
         setName(`${product.name} (Salinan)`);
         setSku('');
         setStock(0);
-        setCategory(product.category);
-        setProductTypes(product.productType ? (Array.isArray(product.productType) ? product.productType : [product.productType]) : ['Barang Dagang']);
-        setCost(product.cost || 0);
-        setMinStockThreshold(product.minStockThreshold || 10);
-        setUnits(product.units || [{ name: '', price: 0, cost: 0, conversionRate: 1 }]);
       } else if (product) {
-        setName(product.name);
-        setSku(product.sku || '');
-        setCategory(product.category);
-        setProductTypes(product.productType ? (Array.isArray(product.productType) ? product.productType : [product.productType]) : ['Barang Dagang']);
-        setStock(product.stock);
-        setCost(product.cost || 0);
-        setMinStockThreshold(product.minStockThreshold || 10);
-        setUnits(product.units || [{ name: '', price: 0, cost: 0, conversionRate: 1 }]);
+        resetForm(product);
+      } else {
+        resetForm(undefined);
       }
     }
     setOpen(isOpen);
-  }
+  };
 
   const isFinishedGood = productTypes.includes('Barang Jadi');
 
