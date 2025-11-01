@@ -226,12 +226,17 @@ export async function importMarketplaceTransactions(
         };
         transaction.set(newTxRef, newTransaction);
         
-        // Journal 1: Sales Recognition
-        const salesJournalDesc = `Penjualan Marketplace #${orderId}`;
-        const salesJournalEntries: JournalEntry[] = [
-          { accountId: bankAccountId!, accountName: '', debit: order.total, credit: 0 },
-          { accountId: salesRevenueAccountId!, accountName: '', debit: 0, credit: order.total }
-        ];
+        // Journal 1: Consolidated Sales & Expenses Journal
+        const salesJournalDesc = `Penjualan & Beban Marketplace #${orderId}`;
+        const salesJournalEntries: JournalEntry[] = [];
+        
+        // Debit: What we received and what was spent
+        if (order.netTotal > 0) salesJournalEntries.push({ accountId: bankAccountId!, accountName: '', debit: order.netTotal, credit: 0 });
+        if (order.fee > 0) salesJournalEntries.push({ accountId: marketplaceFeeAccountId!, accountName: '', debit: order.fee, credit: 0 });
+        if (order.discount > 0) salesJournalEntries.push({ accountId: salesDiscountAccountId!, accountName: '', debit: order.discount, credit: 0 });
+        
+        // Credit: Total Revenue
+        salesJournalEntries.push({ accountId: salesRevenueAccountId!, accountName: '', debit: 0, credit: order.total });
 
         const newSalesJournal: NewJournal = {
           date: order.date,
@@ -245,31 +250,8 @@ export async function importMarketplaceTransactions(
           ...newSalesJournal,
           date: Timestamp.fromDate(newSalesJournal.date as Date),
         });
-
-        // Journal 2: Expenses (Fee & Discount)
-        const totalExpenses = order.fee + order.discount;
-        if(totalExpenses > 0) {
-            const expenseJournalDesc = `Beban & Diskon untuk Marketplace #${orderId}`;
-            const expenseJournalEntries: JournalEntry[] = [];
-            if(order.fee > 0) expenseJournalEntries.push({ accountId: marketplaceFeeAccountId!, accountName: '', debit: order.fee, credit: 0 });
-            if(order.discount > 0) expenseJournalEntries.push({ accountId: salesDiscountAccountId!, accountName: '', debit: order.discount, credit: 0 });
-            expenseJournalEntries.push({ accountId: bankAccountId!, accountName: '', debit: 0, credit: totalExpenses });
-
-            const newExpenseJournal: NewJournal = {
-                date: order.date,
-                description: expenseJournalDesc,
-                refNumber: newId,
-                entries: expenseJournalEntries,
-                total: totalExpenses,
-            };
-            const newExpenseJournalRef = doc(collection(db, 'journals'));
-            transaction.set(newExpenseJournalRef, {
-                ...newExpenseJournal,
-                date: Timestamp.fromDate(newExpenseJournal.date as Date),
-            });
-        }
         
-        // Journal 3: COGS
+        // Journal 2: COGS
         if (order.totalCost > 0) {
             const cogsJournal: NewJournal = {
               date: order.date,
