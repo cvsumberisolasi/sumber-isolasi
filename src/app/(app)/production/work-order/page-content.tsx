@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import type { WorkOrder, BillOfMaterial, Product } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Loader2, Plus, ArrowLeft, Save, Eye, CheckCircle, XCircle, PlayCircle, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -530,7 +530,7 @@ function WOActions({ wo }: { wo: WorkOrder }) {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Batal</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleChangeStatus('Dibatalkan')} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
+                            <AlertDialogAction onClick={() => handleChangeStatus('Dibatalkan')} disabled={isPending} className={cn(buttonVariants({ variant: "destructive" }))}>
                                 {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : 'Ya, Batalkan'}
                             </AlertDialogAction>
                         </AlertDialogFooter>

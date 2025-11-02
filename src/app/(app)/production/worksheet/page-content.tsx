@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import type { WorkOrder, BillOfMaterial, Product, NewProductionCompletion, AdditionalCostItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Loader2, ArrowLeft, Save, Workflow, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';

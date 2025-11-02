@@ -3,7 +3,7 @@
 
 import React, { useState, useTransition } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 const ALL_COLLECTIONS = [
     { name: "transactions", group: 'Transaksional', description: 'Semua riwayat penjualan. Menghapus ini akan mengembalikan stok produk yang terjual.' },
@@ -91,7 +92,7 @@ function SpecificDeleteAction({ action, name, description }: { action: () => Pro
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleConfirm} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
+                            <AlertDialogAction onClick={handleConfirm} disabled={isPending} className={cn(buttonVariants({ variant: "destructive" }))}>
                                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Ya, Hapus Data
                             </AlertDialogAction>
@@ -139,7 +140,7 @@ function DeleteAction({ collection }: DeleteActionProps) {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleConfirm} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
+                    <AlertDialogAction onClick={handleConfirm} disabled={isPending} className={cn(buttonVariants({ variant: "destructive" }))}>
                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Ya, Hapus Koleksi
                     </AlertDialogAction>
@@ -188,7 +189,7 @@ function ResetStockAction() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirm} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
+                        <AlertDialogAction onClick={handleConfirm} disabled={isPending} className={cn(buttonVariants({ variant: "destructive" }))}>
                         {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Ya, Reset Stok
                         </AlertDialogAction>

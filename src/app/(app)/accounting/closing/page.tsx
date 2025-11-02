@@ -3,7 +3,7 @@
 
 import React, { useState, useTransition, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -39,6 +39,7 @@ import {
 } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 type PeriodClosing = {
     id: string;
@@ -228,7 +229,7 @@ function ClosingHistoryRow({ item }: { item: PeriodClosing }) {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDelete} variant="destructive" disabled={isPending}>
+                            <AlertDialogAction onClick={handleDelete} className={cn(buttonVariants({ variant: "destructive" }))} disabled={isPending}>
                                 {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Ya, Batalkan'}
                             </AlertDialogAction>
                         </AlertDialogFooter>
@@ -238,5 +239,3 @@ function ClosingHistoryRow({ item }: { item: PeriodClosing }) {
         </TableRow>
     )
 }
-
-    
