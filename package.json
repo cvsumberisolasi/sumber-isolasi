@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
-    "genkit:watch": "genkit start -- tsx --watch srcai/dev.ts",
+    "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "npm run genkit:start-prod & next build",
     "start": "next start",
     "lint": "next lint",
@@ -73,5 +73,11 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "overrides": {
+    "genkit": "1.20.0",
+    "@genkit-ai/firebase": "1.20.0",
+    "@genkit-ai/googleai": "1.20.0",
+    "@genkit-ai/next": "1.20.0"
   }
 }

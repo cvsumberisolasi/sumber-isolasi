@@ -379,3 +379,4 @@ function JournalDetailDialog({ journal, isOpen, onOpenChange, onJournalDeleted }
     );
 }
 
+
