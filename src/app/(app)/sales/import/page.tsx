@@ -5,13 +5,6 @@ import React, { useState, useTransition, useMemo, useRef, useEffect } from 'reac
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Upload,
   File,
   Loader2,
@@ -43,12 +36,13 @@ import type { Product, ImportRow, SkuMapping } from '@/lib/types';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
-import { importMarketplaceTransactions } from './actions';
+import { importMarketplaceTransactionsInChunks } from './actions';
 import { addOrUpdateSkuMapping } from './mapping/actions';
 import { useRouter } from 'next/navigation';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { Progress } from '@/components/ui/progress';
 
 
 export default function ImportMarketplacePage() {
@@ -60,6 +54,7 @@ export default function ImportMarketplacePage() {
 
   const [isParsing, startParsing] = useTransition();
   const [isImporting, startImporting] = useTransition();
+  const [importProgress, setImportProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -304,14 +299,31 @@ export default function ImportMarketplacePage() {
     }));
 
     startImporting(async () => {
-        const result = await importMarketplaceTransactions(dataToImport);
-        if (result.error) {
-            toast({ title: 'Gagal Mengimpor', description: result.error, variant: 'destructive' });
-        } else {
-            toast({ title: 'Impor Berhasil!', description: `${result.id} pesanan berhasil diimpor dan dijurnal.` });
-            router.push('/transactions');
+        setImportProgress(0);
+        const CHUNK_SIZE = 50; 
+        const totalChunks = Math.ceil(dataToImport.length / CHUNK_SIZE);
+        let importedOrderCount = 0;
+
+        for (let i = 0; i < totalChunks; i++) {
+            const chunk = dataToImport.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+            const result = await importMarketplaceTransactionsInChunks(chunk);
+
+            if (result.error) {
+                toast({ title: `Gagal Mengimpor (Bagian ${i + 1}/${totalChunks})`, description: result.error, variant: 'destructive' });
+                setImportProgress(0); // Reset progress on error
+                return;
+            }
+            
+            if (result.importedCount) {
+                importedOrderCount += result.importedCount;
+            }
+
+            setImportProgress(((i + 1) / totalChunks) * 100);
         }
-    })
+
+        toast({ title: 'Impor Selesai!', description: `${importedOrderCount} pesanan berhasil diimpor dan dijurnal.` });
+        setTimeout(() => router.push('/transactions'), 1000);
+    });
   }
 
   return (
@@ -466,6 +478,12 @@ export default function ImportMarketplacePage() {
                             </AlertDescription>
                         </Alert>
                      )}
+                     {isImporting && (
+                        <div className="w-full space-y-2">
+                            <Progress value={importProgress} />
+                            <p className="text-sm text-muted-foreground">Mengimpor data... {Math.round(importProgress)}%</p>
+                        </div>
+                     )}
                     <Button onClick={handleImport} disabled={isImporting || !allProductsMapped}>
                         {isImporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Upload className="mr-2 h-4 w-4" />}
                         Impor {parsedData.length} Baris
@@ -544,3 +562,5 @@ const SummaryItem = ({ icon: Icon, label, value, isNegative = false, isProfit = 
     </div>
   )
 };
+
+    

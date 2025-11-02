@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import {
@@ -24,15 +23,14 @@ import type {
   NewCustomer,
   ProductUnit,
 } from '@/lib/types';
-import { addJournalEntry } from '@/app/(app)/accounting/journal/actions';
 import { getAccountingSettings } from '@/app/(app)/settings/accounting/actions';
 import { generateDocumentId } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 
 const createResponse = (
   error: string | null = null,
-  id: string | null = null
-) => ({ error, id });
+  importedCount?: number
+) => ({ error, importedCount });
 
 
 async function queryInChunks<T>(
@@ -59,7 +57,7 @@ async function queryInChunks<T>(
 }
 
 
-export async function importMarketplaceTransactions(
+export async function importMarketplaceTransactionsInChunks(
   transactions: ImportRow[]
 ) {
   if (!transactions || transactions.length === 0) {
@@ -281,7 +279,7 @@ export async function importMarketplaceTransactions(
     revalidatePath('/(app)/reports');
 
 
-    return createResponse(null, `${Object.keys(groupedByOrder).length}`);
+    return createResponse(null, Object.keys(groupedByOrder).length);
   } catch (e) {
     console.error('Error importing marketplace transactions: ', e);
     return createResponse(
@@ -289,3 +287,5 @@ export async function importMarketplaceTransactions(
     );
   }
 }
+
+    
