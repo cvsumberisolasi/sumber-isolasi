@@ -1,5 +1,7 @@
 
 
+import { Timestamp } from 'firebase/firestore';
+
 export type ProductType = 'Barang Jadi' | 'Bahan Baku' | 'Barang Dagang';
 
 export type ProductUnit = {
@@ -65,7 +67,7 @@ export type Transaction = {
 };
 
 export type NewTransaction = Omit<Transaction, 'id' | 'date' | 'total'> & {
-  date: Date | any; // Allow for server timestamp
+  date: Date; 
 };
 
 export type CartItem = {
@@ -78,7 +80,7 @@ export type ParkedTransaction = {
     id: string;
     name: string;
     cart: CartItem[];
-    createdAt: any; // Firestore timestamp
+    createdAt: Timestamp; // Firestore timestamp
 }
 
 export type NewParkedTransaction = Omit<ParkedTransaction, 'id'>;
@@ -179,7 +181,7 @@ export type PurchaseRequest = {
 };
 
 export type NewPurchaseRequest = Omit<PurchaseRequest, 'id' | 'date'> & {
-    date: Date | any;
+    date: Date;
 };
 
 
@@ -209,7 +211,7 @@ export type PurchaseOrder = {
 };
 
 export type NewPurchaseOrder = Omit<PurchaseOrder, 'id' | 'date' | 'total'> & {
-    date: Date | any;
+    date: Date;
 };
 
 export type GoodsReceiptItem = {
@@ -232,7 +234,7 @@ export type GoodsReceipt = {
 };
 
 export type NewGoodsReceipt = Omit<GoodsReceipt, 'id' | 'date' | 'status'> & {
-    date: Date | any;
+    date: Date;
 };
 
 export type SupplierInvoice = {
@@ -254,7 +256,7 @@ export type SupplierInvoice = {
 }
 
 export type NewSupplierInvoice = Omit<SupplierInvoice, 'id' | 'status' | 'total'> & {
-  date: Date | any;
+  date: Date;
 };
 
 export type PurchasePayment = {
@@ -267,7 +269,7 @@ export type PurchasePayment = {
 }
 
 export type NewPurchasePayment = Omit<PurchasePayment, 'id' | 'date'> & {
-    date: Date | any;
+    date: Date;
 };
 
 
@@ -291,7 +293,7 @@ export type PurchaseReturn = {
 };
 
 export type NewPurchaseReturn = Omit<PurchaseReturn, 'id' | 'date'> & {
-    date: Date | any;
+    date: Date;
 };
 
 
@@ -321,7 +323,7 @@ export type Journal = {
 };
 
 export type NewJournal = Omit<Journal, 'id' | 'date'> & {
-  date: Date | any; // Allow for server timestamp
+  date: Date; 
 };
 
 export type Warehouse = {
@@ -364,7 +366,7 @@ export type StockOpnameItem = {
 
 export type StockOpname = {
   id: string;
-  date: any; // Timestamp
+  date: Timestamp;
   warehouseId: string;
   warehouseName: string;
   notes?: string;
@@ -469,14 +471,14 @@ export type WorkOrder = {
   bomId: string;
   status: 'Belum Diproses' | 'Dalam Pengerjaan' | 'Selesai' | 'Dibatalkan';
   notes?: string;
-  startDate: any; // Timestamp
-  endDate: any; // Timestamp
+  startDate: Date;
+  endDate: Date;
 };
 
 export type NewWorkOrder = Omit<WorkOrder, 'id' | 'date' | 'startDate' | 'endDate'> & {
-    date: Date | any;
-    startDate: Date | any;
-    endDate: Date | any;
+    date: Date;
+    startDate: Date;
+    endDate: Date;
 };
 
 export type ProductionCompletionItem = {
@@ -487,7 +489,7 @@ export type ProductionCompletionItem = {
 
 export type ProductionCompletion = {
   id: string;
-  date: any; // Timestamp
+  date: Date;
   workOrderId: string;
   finishedGoodId: string;
   finishedGoodName: string;
@@ -506,7 +508,7 @@ export type FixedAsset = {
   assetCode: string;
   name: string;
   description: string;
-  acquisitionDate: any; // Timestamp
+  acquisitionDate: Timestamp;
   acquisitionCost: number;
   usefulLife: number; // in years
   depreciationMethod: 'Garis Lurus';
@@ -522,7 +524,7 @@ export type NewFixedAsset = Omit<FixedAsset, 'id'>;
 
 export type DepreciationRun = {
   id: string;
-  date: any; // Timestamp
+  date: Timestamp;
   month: number;
   year: number;
   journalId: string;

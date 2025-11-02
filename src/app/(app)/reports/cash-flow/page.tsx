@@ -145,14 +145,13 @@ export default function CashFlowPage() {
                 const account = accounts.find(a => a.id === entry.accountId);
                 if (account) {
                    const isDebitNormalAcc = isAsset(account.type) || isExpense(account.type);
-                   const balanceEffect = isDebitNormalAcc
+                   let balanceEffect = isDebitNormalAcc
                         ? entry.debit - entry.credit
                         : entry.credit - entry.debit;
                     if(isContraAsset(account.type)){
-                        balances[entry.accountId] -= balanceEffect;
-                    } else {
-                        balances[entry.accountId] += balanceEffect;
+                        balanceEffect = entry.credit - entry.debit;
                     }
+                    balances[entry.accountId] += balanceEffect;
                 }
             })
         });
@@ -433,5 +432,6 @@ function JournalDetailDialog({ open, onOpenChange, journal }: { open: boolean, o
         </Dialog>
     );
 }
+
 
 

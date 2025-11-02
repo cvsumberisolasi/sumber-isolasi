@@ -309,7 +309,7 @@ export async function completeMultipleProductions(workOrderIds: string[]) {
                 additionalCosts: bom.additionalCosts?.map(c => ({...c, amount: c.amount * productionCycles})) || [],
                 totalCost: totalProductionCost
             };
-            batch.set(completionRef, {...completionData, date: Timestamp.fromDate(completionData.date)});
+            batch.set(completionRef, {...completionData, date: Timestamp.fromDate(completionData.date as Date)});
 
             // Create Journal Entry
             const journalEntries: JournalEntry[] = [];
