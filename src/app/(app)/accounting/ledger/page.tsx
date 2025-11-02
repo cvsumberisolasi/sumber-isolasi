@@ -44,7 +44,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Download, Loader2, ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { collection, onSnapshot, query, orderBy, where, Timestamp, getDocs, limit, startAfter, DocumentData, doc, getDoc } from 'firebase/firestore';
@@ -54,6 +54,7 @@ import { DateRange } from 'react-day-picker';
 import { format, startOfDay } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { deleteJournalEntry } from '@/app/(app)/accounting/journal/actions';
+import { cn } from '@/lib/utils';
 
 type LedgerEntry = {
   date: Date;
@@ -143,12 +144,13 @@ export default function GeneralLedgerPage() {
     const relevantEntries: LedgerEntry[] = [];
     journalsSnapshot.docs.forEach(journalDoc => {
         const journal = { ...journalDoc.data(), id: journalDoc.id } as Journal;
+        const journalDate = (journal.date as any).toDate ? (journal.date as any).toDate() : journal.date;
         journal.entries.forEach(entry => {
             if (entry.accountId === selectedAccountId) {
                  const balanceEffect = debitNormal ? (entry.debit - entry.credit) : (entry.credit - entry.debit);
                  runningBalance += balanceEffect;
                  relevantEntries.push({
-                    date: journal.date.toDate(),
+                    date: journalDate,
                     ref: journal.id,
                     desc: journal.description,
                     debit: entry.debit,
@@ -365,7 +367,7 @@ function JournalDetailDialog({ journal, isOpen, onOpenChange, onJournalDeleted }
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel disabled={isPending}>Batal</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+                                <AlertDialogAction onClick={handleDelete} className={cn(buttonVariants({ variant: "destructive" }))} disabled={isPending}>
                                     {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Ya, Hapus'}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
@@ -376,3 +378,4 @@ function JournalDetailDialog({ journal, isOpen, onOpenChange, onJournalDeleted }
       </Dialog>
     );
 }
+
