@@ -269,7 +269,7 @@ export default function BankReconciliationPage() {
                                               allAccounts={accounts}
                                               onJournalCreated={() => {
                                                   // A simple way to refresh is to re-trigger the effect
-                                                  setSelectedAccountId(prev => prev ? `${prev} ` : ' ').trim();
+                                                  setSelectedAccountId(prev => (prev ? `${prev} ` : ' ').trim());
                                               }}
                                             />
                                         )}
