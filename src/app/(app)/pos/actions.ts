@@ -13,7 +13,8 @@ import {
   setDoc,
   getDocs,
   query,
-  where
+  where,
+  WriteBatch
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { NewTransaction, Product, JournalEntry, NewJournal, NewParkedTransaction, NewSalesReturn, Transaction, Tax } from "@/lib/types";
@@ -300,7 +301,7 @@ export async function processSalesReturn(returnData: NewSalesReturn) {
 }
 
 
-export async function settleReceivable(transactionId: string, paymentAccountId: string, batch?: FirebaseFirestore.WriteBatch) {
+export async function settleReceivable(transactionId: string, paymentAccountId: string, batch?: WriteBatch) {
     const settings = await getAccountingSettings();
     if (!settings.accountsReceivableAccountId) {
         throw new Error("Akun Piutang Usaha belum diatur di Pengaturan Akuntansi.");

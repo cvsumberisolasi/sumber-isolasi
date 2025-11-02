@@ -1,7 +1,7 @@
 
 "use server";
 
-import { collection, query, where, Timestamp, getDocs, writeBatch, doc, getDoc, addDoc, deleteDoc } from "firebase/firestore";
+import { collection, query, where, Timestamp, getDocs, writeBatch, doc, getDoc, addDoc, deleteDoc, WriteBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getAccountingSettings } from "@/app/(app)/settings/accounting/actions";
 import { addJournalEntry } from "@/app/(app)/accounting/journal/actions";
@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 
 const createResponse = (error: string | null = null, extraMessage: string | null = null) => ({ error, extraMessage });
 
-async function createReversingEntries(year: number, month: number, batch: FirebaseFirestore.WriteBatch): Promise<{ id: string | null, message: string | null }> {
+async function createReversingEntries(year: number, month: number, batch: WriteBatch): Promise<{ id: string | null, message: string | null }> {
     const nextMonth = month === 12 ? 1 : month + 1;
     const nextYear = month === 12 ? year + 1 : year;
     
