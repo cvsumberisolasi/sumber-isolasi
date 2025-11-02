@@ -1,7 +1,7 @@
 
 "use server";
 
-import { collection, query, where, Timestamp, getDocs, writeBatch, doc, getDoc, addDoc, deleteDoc, WriteBatch } from "firebase/firestore";
+import { collection, query, where, Timestamp, getDocs, writeBatch, doc, getDoc, addDoc, deleteDoc, type WriteBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getAccountingSettings } from "@/app/(app)/settings/accounting/actions";
 import { addJournalEntry } from "@/app/(app)/accounting/journal/actions";
@@ -252,3 +252,5 @@ const accountIsDebitNormal = (type: string = '') => {
     
 
     
+
+

@@ -14,7 +14,7 @@ import {
   getDocs,
   query,
   where,
-  WriteBatch
+  type WriteBatch
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import type { NewTransaction, Product, JournalEntry, NewJournal, NewParkedTransaction, NewSalesReturn, Transaction, Tax } from "@/lib/types";
