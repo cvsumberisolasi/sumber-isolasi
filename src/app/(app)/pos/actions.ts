@@ -96,19 +96,19 @@ export async function createTransaction(transactionData: NewTransaction, isPOS: 
         
         const status = transactionData.paymentMethod === 'Kredit' ? 'Belum Lunas' : 'Lunas';
         
-        const transactionWithTimestamp: Omit<Transaction, 'id'> = {
+        const transactionToSave = {
           ...transactionData,
           date: Timestamp.fromDate(transactionData.date as Date),
           status,
         };
 
-        t.set(newDocRef, transactionWithTimestamp);
+        t.set(newDocRef, transactionToSave);
         
         return { ref: newDocRef, totalCost };
     });
 
     const { totalCost } = newTransactionRef;
-    const { subtotal, taxAmount, grandTotal, paymentMethod } = transactionData;
+    const { subtotal, taxAmount, grandTotal, paymentMethod, netTotal } = transactionData;
     const description = `Penjualan ${isPOS ? 'POS' : 'Manual'} #${newTransactionRef.ref.id}`;
 
     const settings = await getAccountingSettings();
@@ -136,8 +136,10 @@ export async function createTransaction(transactionData: NewTransaction, isPOS: 
 
     const journalEntries: JournalEntry[] = [];
     
+    const finalTotal = netTotal ?? grandTotal;
+
     journalEntries.push(
-        { accountId: paymentAccountId!, accountName: '', debit: grandTotal, credit: 0 },
+        { accountId: paymentAccountId!, accountName: '', debit: finalTotal, credit: 0 },
         { accountId: settings.salesRevenueAccountId!, accountName: '', debit: 0, credit: subtotal }
     );
     if(taxAmount && taxAmount > 0 && settings.taxPayableAccountId) {
@@ -163,7 +165,7 @@ export async function createTransaction(transactionData: NewTransaction, isPOS: 
       description,
       refNumber: newTransactionRef.ref.id,
       entries: journalEntries,
-      total: grandTotal, 
+      total: finalTotal, 
     };
 
     await addJournalEntry(newJournal);

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
@@ -198,7 +199,8 @@ export default function POSPage() {
           cost: item.unit.cost,
           unit: item.unit.name
         })),
-        total: cartTotal,
+        subtotal: cartTotal,
+        grandTotal: cartTotal,
         paymentMethod,
       };
 
@@ -215,6 +217,7 @@ export default function POSPage() {
             id: result.id!,
             ...newTransaction,
             status: 'Lunas',
+            total: cartTotal,
         };
         setReceipt(generatedReceipt);
         setCart([]);

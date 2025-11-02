@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import { PlusCircle, MinusCircle, X, Save, Loader2, UserPlus, Printer } from 'lucide-react';
-import type { Product, CartItem, NewTransaction, Customer, ProductUnit, Transaction } from '@/lib/types';
+import type { Product, CartItem, NewTransaction, Customer, ProductUnit, Transaction, Tax } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
@@ -24,15 +25,19 @@ import { CompanySettings, getCompanySettings } from '@/app/(app)/settings/action
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { InvoicePreview } from '@/components/common/invoice-preview';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function ManualSalesInputPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [taxes, setTaxes] = useState<Tax[]>([]);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [date, setDate] = useState<Date | undefined>();
   const [invoice, setInvoice] = useState<Transaction | null>(null);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [selectedTaxId, setSelectedTaxId] = useState<string | undefined>();
 
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -46,9 +51,14 @@ export default function ManualSalesInputPage() {
     const customersUnsub = onSnapshot(query(collection(db, 'customers'), ), (snapshot) => {
       setCustomers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer)));
     });
+    const taxesUnsub = onSnapshot(collection(db, "taxes"), (snapshot) => {
+      setTaxes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Tax)));
+    });
+
     return () => {
       productsUnsub();
       customersUnsub();
+      taxesUnsub();
     };
   }, []);
   
@@ -81,15 +91,21 @@ export default function ManualSalesInputPage() {
     });
   };
 
-  const cartTotal = useMemo(() => {
-    return cart.reduce((total, item) => total + item.unit.price * item.quantity, 0);
-  }, [cart]);
+  const { subtotal, taxAmount, grandTotal } = useMemo(() => {
+    const sub = cart.reduce((total, item) => total + item.unit.price * item.quantity, 0);
+    const tax = taxes.find(t => t.id === selectedTaxId);
+    const taxRate = tax ? tax.rate / 100 : 0;
+    const taxAmt = sub * taxRate;
+    const grand = sub + taxAmt;
+    return { subtotal: sub, taxAmount: taxAmt, grandTotal: grand };
+  }, [cart, selectedTaxId, taxes]);
 
   const resetForm = () => {
     setCart([]);
     setSelectedCustomer(null);
     setDate(new Date());
     setInvoice(null);
+    setSelectedTaxId(undefined);
   };
   
   const handlePrint = () => {
@@ -106,6 +122,8 @@ export default function ManualSalesInputPage() {
       return;
     }
 
+    const selectedTax = taxes.find(t => t.id === selectedTaxId);
+
     startTransition(async () => {
       const newTransaction: NewTransaction = {
         date,
@@ -117,7 +135,12 @@ export default function ManualSalesInputPage() {
           cost: item.unit.cost,
           unit: item.unit.name,
         })),
-        total: cartTotal,
+        subtotal,
+        taxId: selectedTax?.id,
+        taxName: selectedTax?.name,
+        taxRate: selectedTax?.rate,
+        taxAmount,
+        grandTotal,
         paymentMethod: 'Kredit',
         customerId: selectedCustomer.id,
         customerName: selectedCustomer.name,
@@ -132,7 +155,8 @@ export default function ManualSalesInputPage() {
             id: result.id!,
             ...newTransaction,
             status: 'Belum Lunas',
-            date: date
+            date: date,
+            total: grandTotal,
         }
         setInvoice(fullTransaction);
         toast({ title: 'Invoice Berhasil Disimpan', description: `Invoice untuk ${selectedCustomer.name} telah dibuat.` });
@@ -208,11 +232,39 @@ export default function ManualSalesInputPage() {
               )}
               <ProductPicker products={products} onSelect={addToCart} />
             </div>
+            <div className="flex justify-end">
+                <div className="w-full max-w-sm space-y-4">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span>Rp {subtotal.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <Label>Pajak</Label>
+                        <Select value={selectedTaxId} onValueChange={setSelectedTaxId}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Pilih Pajak" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">Tanpa Pajak</SelectItem>
+                                {taxes.map(tax => (
+                                    <SelectItem key={tax.id} value={tax.id}>{tax.name} ({tax.rate}%)</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">PPN</span>
+                        <span>Rp {taxAmount.toLocaleString('id-ID')}</span>
+                    </div>
+                    <hr/>
+                    <div className="flex justify-between font-bold text-lg">
+                        <span>Grand Total</span>
+                        <span>Rp {grandTotal.toLocaleString('id-ID')}</span>
+                    </div>
+                </div>
+            </div>
           </CardContent>
-          <CardFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-muted/50 p-6">
-              <div className="text-lg font-bold">
-                  Total Invoice: Rp {cartTotal.toLocaleString('id-ID', { maximumFractionDigits: 0 })}
-              </div>
+          <CardFooter className="flex flex-col sm:flex-row justify-end items-center gap-4 bg-muted/50 p-6">
             <Button onClick={handleSaveInvoice} disabled={isPending || !selectedCustomer || cart.length === 0} className="w-full sm:w-auto">
               {isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Simpan & Pratinjau Invoice
@@ -346,3 +398,4 @@ function CustomerPicker({ customers, selected, onSelect }: { customers: Customer
     </Popover>
   );
 }
+
