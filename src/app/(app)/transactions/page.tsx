@@ -329,7 +329,7 @@ function TransactionsPageContent() {
                                   <TableFooter>
                                       <TableRow>
                                           <TableCell colSpan={3} className="text-right">Subtotal</TableCell>
-                                          <TableCell className="text-right font-medium">Rp {subtotal.toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
+                                          <TableCell className="text-right font-medium">Rp {(tx.subtotal ?? tx.total).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</TableCell>
                                       </TableRow>
                                       <TableRow>
                                           <TableCell colSpan={3} className="text-right">HPP (COGS)</TableCell>
