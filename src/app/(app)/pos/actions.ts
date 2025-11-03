@@ -31,7 +31,7 @@ export async function parkTransaction(parkedData: NewParkedTransaction) {
         const parkedCol = collection(db, 'parkedTransactions');
         await setDoc(doc(parkedCol, id), {
             ...parkedData,
-            createdAt: Timestamp.fromDate(parkedData.createdAt as Date)
+            createdAt: Timestamp.fromDate(parkedData.createdAt)
         });
         revalidatePath('/(app)/pos/parked');
         return createResponse();
@@ -98,7 +98,7 @@ export async function createTransaction(transactionData: NewTransaction, isPOS: 
         
         const transactionToSave = {
           ...transactionData,
-          date: Timestamp.fromDate(transactionData.date as Date),
+          date: Timestamp.fromDate(transactionData.date),
           status,
         };
 
@@ -339,7 +339,7 @@ export async function settleReceivable(transactionId: string, paymentAccountId: 
     const journalsCol = collection(db, "journals");
     const newJournalRef = doc(journalsCol);
     
-    localBatch.set(newJournalRef, { ...newJournal, date: Timestamp.fromDate(newJournal.date as Date) });
+    localBatch.set(newJournalRef, { ...newJournal, date: Timestamp.fromDate(newJournal.date) });
 
     if (!batch) {
         await localBatch.commit();

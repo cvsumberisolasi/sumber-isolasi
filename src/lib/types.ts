@@ -80,7 +80,7 @@ export type ParkedTransaction = {
     id: string;
     name: string;
     cart: CartItem[];
-    createdAt: Timestamp; // Firestore timestamp
+    createdAt: Date; 
 }
 
 export type NewParkedTransaction = Omit<ParkedTransaction, 'id'>;
@@ -180,9 +180,7 @@ export type PurchaseRequest = {
   status: 'Pending Approval' | 'Approved' | 'Rejected' | 'Processed';
 };
 
-export type NewPurchaseRequest = Omit<PurchaseRequest, 'id' | 'date'> & {
-    date: Date;
-};
+export type NewPurchaseRequest = Omit<PurchaseRequest, 'id'>;
 
 
 export type PurchaseOrderItem = {
@@ -210,9 +208,7 @@ export type PurchaseOrder = {
   total: number; // legacy, replaced by grandTotal
 };
 
-export type NewPurchaseOrder = Omit<PurchaseOrder, 'id' | 'date' | 'total'> & {
-    date: Date;
-};
+export type NewPurchaseOrder = Omit<PurchaseOrder, 'id' | 'total'>;
 
 export type GoodsReceiptItem = {
     productId: string;
@@ -233,9 +229,7 @@ export type GoodsReceipt = {
     status: 'Pending Invoice' | 'Invoiced';
 };
 
-export type NewGoodsReceipt = Omit<GoodsReceipt, 'id' | 'date' | 'status'> & {
-    date: Date;
-};
+export type NewGoodsReceipt = Omit<GoodsReceipt, 'id' | 'status'>;
 
 export type SupplierInvoice = {
     id: string;
@@ -255,9 +249,7 @@ export type SupplierInvoice = {
     total: number; // legacy, replaced by grandTotal
 }
 
-export type NewSupplierInvoice = Omit<SupplierInvoice, 'id' | 'status' | 'total'> & {
-  date: Date;
-};
+export type NewSupplierInvoice = Omit<SupplierInvoice, 'id' | 'status' | 'total'>;
 
 export type PurchasePayment = {
     id: string;
@@ -268,9 +260,7 @@ export type PurchasePayment = {
     paymentAccountId: string; // ID of the cash/bank account
 }
 
-export type NewPurchasePayment = Omit<PurchasePayment, 'id' | 'date'> & {
-    date: Date;
-};
+export type NewPurchasePayment = Omit<PurchasePayment, 'id'>;
 
 
 export type PurchaseReturnItem = {
@@ -292,9 +282,7 @@ export type PurchaseReturn = {
   reason: string;
 };
 
-export type NewPurchaseReturn = Omit<PurchaseReturn, 'id' | 'date'> & {
-    date: Date;
-};
+export type NewPurchaseReturn = Omit<PurchaseReturn, 'id'>;
 
 
 export type Account = {
@@ -322,9 +310,7 @@ export type Journal = {
   total: number;
 };
 
-export type NewJournal = Omit<Journal, 'id' | 'date'> & {
-  date: Date; 
-};
+export type NewJournal = Omit<Journal, 'id'>;
 
 export type Warehouse = {
     id: string;
@@ -351,9 +337,7 @@ export type StockTransfer = {
     items: StockTransferItem[];
     notes?: string;
 }
-export type NewStockTransfer = Omit<StockTransfer, 'id' | 'date'> & {
-    date: Date;
-};
+export type NewStockTransfer = Omit<StockTransfer, 'id'>;
 
 export type StockOpnameItem = {
   productId: string;
@@ -366,7 +350,7 @@ export type StockOpnameItem = {
 
 export type StockOpname = {
   id: string;
-  date: Timestamp;
+  date: Date;
   warehouseId: string;
   warehouseName: string;
   notes?: string;
@@ -475,11 +459,7 @@ export type WorkOrder = {
   endDate: Date;
 };
 
-export type NewWorkOrder = Omit<WorkOrder, 'id' | 'date' | 'startDate' | 'endDate'> & {
-    date: Date;
-    startDate: Date;
-    endDate: Date;
-};
+export type NewWorkOrder = Omit<WorkOrder, 'id'>;
 
 export type ProductionCompletionItem = {
   productId: string;
@@ -499,7 +479,7 @@ export type ProductionCompletion = {
   totalCost: number;
 };
 
-export type NewProductionCompletion = Omit<ProductionCompletion, 'id' | 'date'> & { date: Date };
+export type NewProductionCompletion = Omit<ProductionCompletion, 'id'>;
 
 
 // Fixed Assets Module Types
@@ -520,7 +500,7 @@ export type FixedAsset = {
   depreciationExpenseAccountName: string;
 };
 
-export type NewFixedAsset = Omit<FixedAsset, 'id'>;
+export type NewFixedAsset = Omit<FixedAsset, 'id' | 'acquisitionDate'> & { acquisitionDate: Date };
 
 export type DepreciationRun = {
   id: string;

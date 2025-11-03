@@ -15,7 +15,11 @@ export async function addFixedAsset(assetData: NewFixedAsset, paymentAccountId: 
 
     // 1. Add the asset document
     const newAssetRef = doc(collection(db, 'fixedAssets'));
-    batch.set(newAssetRef, assetData);
+     const assetWithTimestamp = {
+      ...assetData,
+      acquisitionDate: Timestamp.fromDate(assetData.acquisitionDate),
+    };
+    batch.set(newAssetRef, assetWithTimestamp);
 
     // 2. Create the acquisition journal entry
     const journalDescription = `Pembelian Aset Tetap: ${assetData.name}`;
@@ -24,7 +28,7 @@ export async function addFixedAsset(assetData: NewFixedAsset, paymentAccountId: 
       { accountId: paymentAccountId, accountName: '', debit: 0, credit: assetData.acquisitionCost },
     ];
     const newJournal: NewJournal = {
-      date: (assetData.acquisitionDate as Timestamp).toDate(),
+      date: assetData.acquisitionDate,
       description: journalDescription,
       refNumber: newAssetRef.id,
       entries: journalEntries,

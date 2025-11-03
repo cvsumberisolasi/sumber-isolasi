@@ -213,7 +213,7 @@ export default function CashFlowPage() {
             
             // Investing: Changes in long-term assets
             if (contraAccount.type === 'Aset Tetap') {
-                report.investingActivities.push({ description: journal.description, amount: -cashAmount, sourceId: journal.id, sourceType: 'journal' });
+                report.investingActivities.push({ description: journal.description, amount: cashAmount, sourceId: journal.id, sourceType: 'journal' });
             } 
             // Financing: Changes in long-term liabilities and equity
             else if (contraAccount.type === 'Kewajiban Jangka Panjang' || (contraAccount.type === 'Ekuitas' && !contraAccount.name.toLowerCase().includes('laba'))) {
@@ -432,6 +432,3 @@ function JournalDetailDialog({ open, onOpenChange, journal }: { open: boolean, o
         </Dialog>
     );
 }
-
-
-

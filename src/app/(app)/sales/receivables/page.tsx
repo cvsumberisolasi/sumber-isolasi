@@ -188,84 +188,26 @@ export default function AccountsReceivablePage() {
 
 
   useEffect(() => {
-    // Listener for total receivables amount
-    const qTotal = query(collection(db, 'transactions'), where('status', '==', 'Belum Lunas'));
-    const unsubTotal = onSnapshot(qTotal, (snapshot) => {
+    // Listener for total receivables amount and initial data
+    const q = query(collection(db, 'transactions'), where('status', '==', 'Belum Lunas'), orderBy('date', 'desc'));
+    const unsub = onSnapshot(q, (snapshot) => {
       let total = 0;
-      snapshot.forEach(doc => {
-        const tx = doc.data() as Transaction;
+      const allUnpaid = snapshot.docs.map(doc => {
+        const tx = { id: doc.id, ...doc.data(), date: doc.data().date.toDate() } as Transaction;
         total += tx.grandTotal || tx.total;
+        return tx;
       });
+
       setTotalReceivables(total);
+      setReceivables(allUnpaid.slice(0, TRANSACTIONS_PER_PAGE));
+      setLastVisible(snapshot.docs[TRANSACTIONS_PER_PAGE - 1] || null);
+      setFirstVisible(snapshot.docs[0] || null);
+      setHasNextPage(snapshot.docs.length > TRANSACTIONS_PER_PAGE);
+      setLoading(false);
     });
 
-    fetchReceivables('initial');
-
-    return () => unsubTotal();
+    return () => unsub();
   }, []);
-
-  const fetchReceivables = async (direction: 'next' | 'prev' | 'initial' = 'initial') => {
-    setLoading(true);
-    setSelectedRows([]);
-    const receivablesCol = collection(db, "transactions");
-    
-    // Adjusted query to avoid composite index requirement
-    const baseQuery = query(receivablesCol, orderBy('date', 'desc'));
-
-    let q;
-    if (direction === 'next' && lastVisible) {
-        q = query(baseQuery, startAfter(lastVisible), limit(TRANSACTIONS_PER_PAGE));
-    } else if (direction === 'prev' && firstVisible) {
-        q = query(baseQuery, endBefore(firstVisible), limitToLast(TRANSACTIONS_PER_PAGE));
-    } else {
-        q = query(baseQuery, limit(TRANSACTIONS_PER_PAGE));
-    }
-    
-    const snapshot = await getDocs(q);
-
-    const transactionList = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        date: data.date.toDate(),
-      } as Transaction;
-    }).filter(tx => tx.status === 'Belum Lunas'); // Filter on the client-side
-
-    setReceivables(transactionList);
-    
-    if (snapshot.docs.length > 0) {
-        setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-        setFirstVisible(snapshot.docs[0]);
-        
-        const nextDoc = snapshot.docs[snapshot.docs.length - 1];
-        if (nextDoc) {
-            const nextQuery = query(baseQuery, startAfter(nextDoc), limit(1));
-            const nextSnapshot = await getDocs(nextQuery);
-            setHasNextPage(!nextSnapshot.empty);
-        } else {
-             setHasNextPage(false);
-        }
-    } else {
-        setLastVisible(null);
-        setFirstVisible(null);
-        setHasNextPage(false);
-    }
-    
-    setLoading(false);
-  };
-  
-  const handleNextPage = () => {
-    setCurrentPage(prev => prev + 1);
-    fetchReceivables('next');
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
-      fetchReceivables('prev');
-    }
-  };
   
   const handleSelectRow = (id: string) => {
     setSelectedRows(prev => 
@@ -315,7 +257,6 @@ export default function AccountsReceivablePage() {
                     <MultiSettleDialog 
                         transactionIds={selectedRows} 
                         onSettled={() => {
-                            fetchReceivables('initial');
                             setSelectedRows([]);
                         }}
                     />
@@ -368,17 +309,6 @@ export default function AccountsReceivablePage() {
                 </TableBody>
             </Table>
         </CardContent>
-        <CardFooter className="flex justify-between items-center">
-            <span className="text-sm text-muted-foreground">Halaman {currentPage}</span>
-            <div className="flex gap-2">
-                <Button variant="outline" onClick={handlePrevPage} disabled={currentPage === 1 || loading}>
-                    <ArrowLeft className="mr-2 h-4 w-4"/> Sebelumnya
-                </Button>
-                <Button variant="outline" onClick={handleNextPage} disabled={!hasNextPage || loading}>
-                    Berikutnya <ArrowRight className="ml-2 h-4 w-4"/>
-                </Button>
-            </div>
-        </CardFooter>
       </Card>
     </div>
   );

@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from "next/cache";
@@ -49,9 +50,9 @@ export async function addWorkOrder(data: NewWorkOrder) {
         
         const dataWithTimestamps = {
             ...data,
-            date: Timestamp.fromDate(data.date as Date),
-            startDate: Timestamp.fromDate(data.startDate as Date),
-            endDate: Timestamp.fromDate(data.endDate as Date),
+            date: Timestamp.fromDate(data.date),
+            startDate: Timestamp.fromDate(data.startDate),
+            endDate: Timestamp.fromDate(data.endDate),
         };
 
         await setDoc(woRef, dataWithTimestamps);
@@ -217,7 +218,7 @@ export async function completeProduction(completionData: NewProductionCompletion
                 };
     
                 const journalRef = doc(collection(db, 'journals'));
-                transaction.set(journalRef, {...newJournal, date: Timestamp.fromDate(newJournal.date as Date)});
+                transaction.set(journalRef, {...newJournal, date: Timestamp.fromDate(newJournal.date)});
             }
 
 
@@ -309,7 +310,7 @@ export async function completeMultipleProductions(workOrderIds: string[]) {
                 additionalCosts: bom.additionalCosts?.map(c => ({...c, amount: c.amount * productionCycles})) || [],
                 totalCost: totalProductionCost
             };
-            batch.set(completionRef, {...completionData, date: Timestamp.fromDate(completionData.date as Date)});
+            batch.set(completionRef, {...completionData, date: Timestamp.fromDate(completionData.date)});
 
             // Create Journal Entry
             const journalEntries: JournalEntry[] = [];
@@ -343,7 +344,7 @@ export async function completeMultipleProductions(workOrderIds: string[]) {
                     entries: journalEntries,
                     total: totalProductionCost,
                 };
-                batch.set(journalId, {...newJournal, date: Timestamp.fromDate(newJournal.date as Date)});
+                batch.set(journalId, {...newJournal, date: Timestamp.fromDate(newJournal.date)});
             }
 
             // Update WO status
