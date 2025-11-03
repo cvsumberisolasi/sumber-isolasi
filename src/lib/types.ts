@@ -66,9 +66,7 @@ export type Transaction = {
   total: number;
 };
 
-export type NewTransaction = Omit<Transaction, 'id' | 'date' | 'total'> & {
-  date: Date; 
-};
+export type NewTransaction = Omit<Transaction, 'id' | 'status' | 'total'>;
 
 export type CartItem = {
   product: Product;
@@ -80,7 +78,7 @@ export type ParkedTransaction = {
     id: string;
     name: string;
     cart: CartItem[];
-    createdAt: Date; 
+    createdAt: Timestamp; 
 }
 
 export type NewParkedTransaction = Omit<ParkedTransaction, 'id'>;
@@ -488,7 +486,7 @@ export type FixedAsset = {
   assetCode: string;
   name: string;
   description: string;
-  acquisitionDate: Timestamp;
+  acquisitionDate: Date;
   acquisitionCost: number;
   usefulLife: number; // in years
   depreciationMethod: 'Garis Lurus';
@@ -500,11 +498,11 @@ export type FixedAsset = {
   depreciationExpenseAccountName: string;
 };
 
-export type NewFixedAsset = Omit<FixedAsset, 'id' | 'acquisitionDate'> & { acquisitionDate: Date };
+export type NewFixedAsset = Omit<FixedAsset, 'id'>;
 
 export type DepreciationRun = {
   id: string;
-  date: Timestamp;
+  date: Date;
   month: number;
   year: number;
   journalId: string;
