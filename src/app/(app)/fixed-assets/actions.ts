@@ -11,16 +11,13 @@ const createResponse = (error: string | null = null) => ({ error });
 
 export async function addFixedAsset(assetData: NewFixedAsset, paymentAccountId: string) {
   try {
-    const batch = writeBatch(db);
-
     // 1. Add the asset document
     const newAssetRef = doc(collection(db, 'fixedAssets'));
      const assetWithTimestamp = {
       ...assetData,
       acquisitionDate: Timestamp.fromDate(assetData.acquisitionDate),
     };
-    batch.set(newAssetRef, assetWithTimestamp);
-
+    
     // 2. Create the acquisition journal entry
     const journalDescription = `Pembelian Aset Tetap: ${assetData.name}`;
     const journalEntries: JournalEntry[] = [
@@ -34,6 +31,9 @@ export async function addFixedAsset(assetData: NewFixedAsset, paymentAccountId: 
       entries: journalEntries,
       total: assetData.acquisitionCost,
     };
+    
+    const batch = writeBatch(db);
+    batch.set(newAssetRef, assetWithTimestamp);
     
     // addJournalEntry handles its own revalidation and timestamp conversion
     const journalResult = await addJournalEntry(newJournal);
@@ -69,14 +69,21 @@ export async function runDepreciation(month: number, year: number) {
             return createResponse("Tidak ada aset untuk disusutkan pada periode ini.");
         }
 
-        const assets = assetsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FixedAsset));
+        const assets = assetsSnapshot.docs.map(doc => {
+            const data = doc.data();
+            return { 
+                id: doc.id, 
+                ...data,
+                acquisitionDate: (data.acquisitionDate as Timestamp).toDate()
+            } as FixedAsset
+        });
 
         const journalEntries: JournalEntry[] = [];
         let totalMonthlyDepreciation = 0;
         let assetsDepreciatedCount = 0;
 
         assets.forEach(asset => {
-            const acquisitionDate = (asset.acquisitionDate as Timestamp).toDate();
+            const acquisitionDate = asset.acquisitionDate;
             // Don't depreciate in the month of acquisition for simplicity
             if(acquisitionDate.getFullYear() === year && acquisitionDate.getMonth() === month - 1) {
                 return;
