@@ -81,7 +81,11 @@ export type ParkedTransaction = {
     createdAt: Timestamp; 
 }
 
-export type NewParkedTransaction = Omit<ParkedTransaction, 'id'>;
+export type NewParkedTransaction = {
+    name: string;
+    cart: CartItem[];
+    createdAt: Date;
+};
 
 
 export type SalesReturnItem = {

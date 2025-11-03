@@ -115,7 +115,10 @@ export async function performPeriodClosing({ year, month }: { year: number, mont
             const journal = doc.data();
             journal.entries.forEach((entry: JournalEntry) => {
                 if (accountBalances[entry.accountId] !== undefined) {
-                     accountBalances[entry.accountId] += (accountIsDebitNormal(accounts.find(a => a.id === entry.accountId)?.type) ? entry.debit - entry.credit : entry.credit - entry.debit);
+                     const account = accounts.find(a => a.id === entry.accountId);
+                     if (account) {
+                        accountBalances[entry.accountId] += (accountIsDebitNormal(account.type) ? entry.debit - entry.credit : entry.credit - entry.debit);
+                     }
                 }
             });
         });
@@ -245,12 +248,9 @@ export async function deletePeriodClosing(id: string) {
 const getMonthName = (month: number) => {
     return new Date(2000, month - 1, 1).toLocaleString('id-ID', { month: 'long' });
 }
-const accountIsDebitNormal = (type: string = '') => {
-    return type.includes('Aset') || type.includes('Beban');
-}
 
-    
-
-    
-
-
+const accountIsDebitNormal = (type: string | undefined): boolean => {
+    if (!type) return false;
+    const debitTypes = ['Aset', 'Kas & Bank', 'Beban', 'Beban Pokok Penjualan', 'Beban Operasional', 'Beban Lainnya'];
+    return debitTypes.some(debitType => type.startsWith(debitType));
+};

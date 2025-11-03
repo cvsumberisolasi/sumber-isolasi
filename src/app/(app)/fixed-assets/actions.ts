@@ -6,19 +6,15 @@ import { collection, doc, addDoc, writeBatch, Timestamp, getDocs, query, where }
 import { db } from '@/lib/firebase';
 import type { NewFixedAsset, FixedAsset, NewJournal, JournalEntry } from '@/lib/types';
 import { addJournalEntry } from '@/app/(app)/accounting/journal/actions';
+import { generateDocumentId } from '@/lib/utils';
 
 const createResponse = (error: string | null = null) => ({ error });
 
 export async function addFixedAsset(assetData: NewFixedAsset, paymentAccountId: string) {
   try {
-    // 1. Add the asset document
     const newAssetRef = doc(collection(db, 'fixedAssets'));
-     const assetWithTimestamp = {
-      ...assetData,
-      acquisitionDate: Timestamp.fromDate(assetData.acquisitionDate),
-    };
     
-    // 2. Create the acquisition journal entry
+    // Create the acquisition journal entry
     const journalDescription = `Pembelian Aset Tetap: ${assetData.name}`;
     const journalEntries: JournalEntry[] = [
       { accountId: assetData.assetAccountId, accountName: assetData.assetAccountName, debit: assetData.acquisitionCost, credit: 0 },
@@ -32,17 +28,18 @@ export async function addFixedAsset(assetData: NewFixedAsset, paymentAccountId: 
       total: assetData.acquisitionCost,
     };
     
-    const batch = writeBatch(db);
-    batch.set(newAssetRef, assetWithTimestamp);
-    
     // addJournalEntry handles its own revalidation and timestamp conversion
     const journalResult = await addJournalEntry(newJournal);
     if(journalResult.error) {
         throw new Error(`Gagal membuat jurnal akuisisi: ${journalResult.error}`);
     }
 
-    // Since addJournalEntry has its own commit, we only need to commit the asset addition here.
-    await batch.commit();
+    // Set the asset data with a Firestore Timestamp
+    const assetToSave = {
+      ...assetData,
+      acquisitionDate: Timestamp.fromDate(assetData.acquisitionDate),
+    };
+    await setDoc(newAssetRef, assetToSave);
 
     revalidatePath('/(app)/fixed-assets/list');
     return createResponse();
