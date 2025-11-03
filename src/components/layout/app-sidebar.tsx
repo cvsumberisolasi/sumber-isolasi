@@ -115,11 +115,6 @@ const navItems = [
     icon: Hammer,
   },
   {
-    href: "/fixed-assets",
-    label: "Aset Tetap",
-    icon: Building,
-  },
-  {
     href: "/cash",
     label: "Kas & Bank",
     icon: Landmark,
