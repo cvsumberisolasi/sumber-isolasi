@@ -49,7 +49,6 @@ import {
   Download,
   BookCopy,
   BookLock,
-  Archive,
   Building,
   UserCheck,
   Percent,
@@ -177,7 +176,6 @@ export function AppSidebar({ companySettings }: { companySettings: CompanySettin
     if (href === '/accounting') return pathname.startsWith('/accounting');
     if (href === '/cash') return pathname.startsWith('/cash');
     if (href === '/pos') return pathname.startsWith('/pos');
-    if (href === '/fixed-assets') return pathname.startsWith('/fixed-assets');
     
     return pathname === href;
   };

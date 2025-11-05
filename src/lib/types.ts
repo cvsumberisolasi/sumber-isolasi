@@ -482,34 +482,3 @@ export type ProductionCompletion = {
 };
 
 export type NewProductionCompletion = Omit<ProductionCompletion, 'id'>;
-
-
-// Fixed Assets Module Types
-export type FixedAsset = {
-  id: string;
-  assetCode: string;
-  name: string;
-  description: string;
-  acquisitionDate: Date;
-  acquisitionCost: number;
-  usefulLife: number; // in years
-  depreciationMethod: 'Garis Lurus';
-  assetAccountId: string;
-  assetAccountName: string;
-  accumulatedDepreciationAccountId: string;
-  accumulatedDepreciationAccountName: string;
-  depreciationExpenseAccountId: string;
-  depreciationExpenseAccountName: string;
-};
-
-export type NewFixedAsset = Omit<FixedAsset, 'id'>;
-
-export type DepreciationRun = {
-  id: string;
-  date: Date;
-  month: number;
-  year: number;
-  journalId: string;
-  totalDepreciation: number;
-  assetsDepreciated: number;
-};
