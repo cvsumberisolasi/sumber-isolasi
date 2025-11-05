@@ -33,8 +33,9 @@ export default function ParkedTransactionsPage() {
     const unsub = onSnapshot(collection(db, 'parkedTransactions'), (snapshot) => {
       const txs = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
-      } as ParkedTransaction)).sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate()
+      } as ParkedTransaction)).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       setParkedTxs(txs);
       setLoading(false);
     });
@@ -86,7 +87,7 @@ export default function ParkedTransactionsPage() {
                   <CardHeader>
                     <CardTitle className="text-lg">{tx.name}</CardTitle>
                     <CardDescription>
-                      Disimpan pada: {tx.createdAt.toDate().toLocaleString('id-ID')}
+                      Disimpan pada: {tx.createdAt.toLocaleString('id-ID')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -94,7 +95,7 @@ export default function ParkedTransactionsPage() {
                       {tx.cart.map(item => (
                         <li key={item.product.id} className="flex justify-between text-sm">
                           <span>{item.product.name} x {item.quantity}</span>
-                          <span>Rp {(item.product.price * item.quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
+                          <span>Rp {(item.unit.price * item.quantity).toLocaleString('id-ID', { maximumFractionDigits: 0 })}</span>
                         </li>
                       ))}
                     </ul>
